@@ -1160,16 +1160,16 @@ void PRadDataHandler::ReadCalibrationFile(const string &path)
     }
 
     string name;
-    double calFactor, ref1, ref2, ref3, p0, p1;
+    double calFactor, ref1, ref2, ref3, nl;
     PRadDAQUnit *tmp;
 
     while(c_parser.ParseLine())
     {
         if(c_parser.NbofElements() >= 7) {
-            c_parser >> name >> calFactor >> ref1 >> ref2 >> ref3 >> p0 >> p1;
+            c_parser >> name >> calFactor >> ref1 >> ref2 >> ref3 >> nl;
             vector<double> ref_gain = {ref1, ref2, ref3};
 
-            PRadDAQUnit::CalibrationConstant calConst(calFactor, ref_gain, p0, p1);
+            PRadDAQUnit::CalibrationConstant calConst(calFactor, ref_gain, nl);
 
             if((tmp = GetChannel(name)) != nullptr)
                 tmp->UpdateCalibrationConstant(calConst);

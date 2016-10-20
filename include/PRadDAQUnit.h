@@ -56,17 +56,15 @@ public:
         double factor;
         double base_factor;
         std::vector<double> base_gain;
-        double p0;
-        double p1;
+        double non_linearity;
 
         CalibrationConstant()
-        : factor(0), base_factor(0), p0(1.), p1(0.)
+        : factor(0), base_factor(0), non_linearity(0.)
         {};
         CalibrationConstant(const double &calf,
                             const std::vector<double> &gain,
-                            const double &pp0 = 0.,
-                            const double &pp1 = 0.)
-        : factor(calf), base_factor(calf), base_gain(gain), p0(pp0), p1(pp1)
+                            const double &nl = 0.)
+        : factor(calf), base_factor(calf), base_gain(gain), non_linearity(nl)
         {};
 
         void AddReferenceGain(const double &gain)

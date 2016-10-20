@@ -41,6 +41,7 @@ int main(int argc, char *argv[])
             }
         }
     }
+
     ConfigParser parser;
     unordered_map<string, vector<ConfigValue>> eles_map;
 
@@ -48,50 +49,62 @@ int main(int argc, char *argv[])
         cerr << "Less than 2 input files, no need to combine" << endl;
     }
 
-    parser.OpenFile(input_list.front());
-    input_list.pop();
-
-    // read tdc map
-    while(parser.ParseLine())
-    {
-        if(!parser.NbofElements())
-            continue;
-        string key = parser.TakeFirst();
-        vector<ConfigValue> ori_eles = parser.TakeAll();
-
-        eles_map[key] = ori_eles;
-    }
-
-    parser.CloseFile();
-
+    bool first_map = true;
     while(input_list.size())
     {
+        int line = 0;
         parser.OpenFile(input_list.front());
         input_list.pop();
         while(parser.ParseLine())
         {
             if(!parser.NbofElements())
                 continue;
-            int id = parser.TakeFirst().Int();
+
+            ++line;
             string key;
-            if(id < 1000)
-                key = "G" + to_string(id);
-            else
-                key = "W" + to_string(id - 1000);
+            if(parser.NbofElements() == 1) { // PrimEx map, line number = primex id
+                if(line < 1000)
+                    key = "G" + to_string(line);
+                else
+                    key = "W" + to_string(line - 1000);
+            } else {
+                key = parser.TakeFirst();
+            }
+
+            vector<ConfigValue> eles = parser.TakeAll();
+
             auto it = eles_map.find(key);
             if(it == eles_map.end()) {
-                cout << "Cannot find key " << key << " in original map" << endl;
-                continue;
+                if(!first_map) { // do not create map element if it is not the first map
+                    cout << "Cannot find key " << key << " in original map" << endl;
+                    continue;
+                }
+                eles_map[key] = eles;
+            } else {
+                it->second.insert(it->second.end(), eles.begin(), eles.end());
             }
-            vector<ConfigValue> new_eles = parser.TakeAll();
-            it->second.insert(it->second.end(), new_eles.begin(), new_eles.end());
         }
         parser.CloseFile();
+        first_map = false;
     }
 
+    size_t nb_ele = 0;
     ofstream outfile(output);
     for(auto ele : eles_map)
     {
+        // sanity check
+        if(nb_ele && nb_ele != ele.second.size())
+        {
+            cout << "Skipped " << ele.first
+                 << ", it has " << ele.second.size()
+                 << " elements, while the previous one has " << nb_ele
+                 << ", one of the map might miss this element."
+                 << endl;
+            continue;
+        }
+
+        nb_ele = ele.second.size();
+
         outfile << setw(6) << ele.first;
         vector<ConfigValue> eles = ele.second;
         for(auto e : eles)

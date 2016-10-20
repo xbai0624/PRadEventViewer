@@ -30,6 +30,7 @@ COMPONENTS =
 # evio data files
 COMPONENTS += STANDARD_EVIO
 
+# enable the reconstruction display in GUI
 COMPONENTS += RECON_DISPLAY
 
 ######################################################################
@@ -142,6 +143,7 @@ QMAKE_EXTRA_COMPILERS += fortran
 ######################################################################
 # implement self-defined components
 ######################################################################
+
 contains(COMPONENTS, ONLINE_MODE) {
     DEFINES += USE_ONLINE_MODE
     HEADERS += include/PRadETChannel.h \
@@ -175,6 +177,7 @@ contains(COMPONENTS, STANDARD_EVIO) {
 contains(COMPONENTS, RECON_DISPLAY) {
     DEFINES += RECON_DISPLAY
 }
+
 ######################################################################
 # self-defined components end
 ######################################################################
