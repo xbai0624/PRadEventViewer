@@ -3,7 +3,7 @@
 
 #include <QGraphicsScene>
 #include <vector>
-#include <map>
+#include <unordered_map>
 
 class PRadEventViewer;
 class HyCalModule;
@@ -65,6 +65,11 @@ protected:
     void mouseReleaseEvent(QGraphicsSceneMouseEvent *event);
 
 private:
+    void printScalerBoxes(QPainter *painter);
+    void printTDCBoxes(QPainter *painter);
+    void printReconHits(QPainter *painter);
+
+private:
     PRadEventViewer *console;
     HyCalModule *pModule, *sModule, *rModule;
     bool showScalers;
@@ -72,7 +77,7 @@ private:
     QVector<TextBox> scalarBoxList;
     QVector<HyCalModule *> moduleList;
     QList<QPointF> recon_hits;
-    std::map< int, QList<QPointF> > gem_hits;
+    std::unordered_map< int, QList<QPointF> > gem_hits;
     std::vector< std::pair<QString, const QRectF> > module_energy;
 };
 

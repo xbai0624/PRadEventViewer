@@ -16,7 +16,7 @@ class PRadDataHandler;
 class PRadLogBox;
 class PRadHyCalCluster;
 class PRadGEMSystem;
-class PRadDetCoor;
+class PRadCoordSystem;
 class PRadDetMatch;
 #ifdef USE_ONLINE_MODE
 class PRadETChannel;
@@ -25,11 +25,6 @@ class ETSettingPanel;
 #ifdef USE_CAEN_HV
 class PRadHVSystem;
 #endif
-
-//class GEM;
-class TCanvas;
-class TObject;
-class TH1D;
 
 QT_BEGIN_NAMESPACE
 class QPushButton;
@@ -161,8 +156,8 @@ private:
     void reconCurrentEvent();
 
     PRadDataHandler *handler;
-    PRadDetCoor *fDetCoor;
-    PRadDetMatch *fDetMatch;
+    PRadCoordSystem *coordSystem;
+    PRadDetMatch *detMatch;
     int currentEvent;
     HistType histType;
     AnnoType annoType;

@@ -6,7 +6,6 @@
 #include <deque>
 #include <utility>
 #include "datastruct.h"
-#include "TObject.h"
 
 // some discriminator related settings
 #define REF_CHANNEL 7

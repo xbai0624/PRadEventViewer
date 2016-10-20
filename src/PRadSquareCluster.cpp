@@ -35,7 +35,7 @@ void PRadSquareCluster::Configure(const string &c_path)
     fMinClusterE = GetConfigValue("MIN_CLUSTER_TOTAL_E", "50.0").Double();
 
     // default value is 3.6, suggested by the study with GEM by Weizhi
-    fLogWeightThres = GetConfigValue("LOG_WEIGHT_THRESHOLD", "3.6").Double();
+    fLogWeightThres = GetConfigValue("WEIGHT_FREE_PAR", "3.6").Double();
 }
 
 void PRadSquareCluster::Clear()

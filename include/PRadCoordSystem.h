@@ -14,9 +14,7 @@
 #include "ConfigParser.h"
 #include "PRadGEMPlane.h"
 
-using namespace std;
-
-class PRadDetCoor
+class PRadCoordSystem
 {
 public:
     enum CoordinateType{
@@ -29,8 +27,8 @@ public:
     };
 
 
-    PRadDetCoor();
-    ~PRadDetCoor();
+    PRadCoordSystem();
+    ~PRadCoordSystem();
 
     void ReadConfigFile(const std::string &path);
     ConfigValue GetConfigValue(const std::string &var_name,
@@ -44,7 +42,7 @@ public:
 
     template<class T> void HyCalClustersToLab(int &nclusters, T* x, T*y);
 
-    void GEMClustersToLab(int type, list<GEMPlaneCluster>& clusters);
+    void GEMClustersToLab(int type, std::list<GEMPlaneCluster>& clusters);
 
     template<class T> void GEMClustersToLab(int type, int &nclusters, T* pos);
 
@@ -56,7 +54,7 @@ protected:
     template<class T> T CoordinateTransform(CoordinateType type, T & coor);  //transform the coordinate according to type
 
     // configuration map
-    unordered_map<string, ConfigValue> fConfigMap;
+    std::unordered_map<std::string, ConfigValue> fConfigMap;
 
     //geometric parameters
     float                fGEMZ[NGEM];

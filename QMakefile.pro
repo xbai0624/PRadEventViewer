@@ -82,7 +82,7 @@ HEADERS += include/PRadEventViewer.h \
            include/PRadGEMFEC.h \
            include/PRadGEMAPV.h \
            include/PRadEventFilter.h \
-           include/PRadDetCoor.h \
+           include/PRadCoordSystem.h \
            include/PRadDetMatch.h
 
 SOURCES += src/main.cpp \
@@ -113,7 +113,7 @@ SOURCES += src/main.cpp \
            src/PRadGEMFEC.cpp \
            src/PRadGEMAPV.cpp \
            src/PRadEventFilter.cpp \
-           src/PRadDetCoor.cpp \
+           src/PRadCoordSystem.cpp \
            src/PRadDetMatch.cpp
 
 LIBS += -lexpat -lgfortran \

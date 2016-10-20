@@ -20,52 +20,68 @@
 void HyCalScene::drawForeground(QPainter *painter, const QRectF &rect)
 {
     QGraphicsScene::drawForeground(painter, rect);
+
     painter->save();
 
-    // print scalar boxes
-    if(showScalers) {
-        painter->setFont(QFont("times", 16, QFont::Bold));
-        for(auto it = scalarBoxList.begin(); it != scalarBoxList.end(); ++it)
-        {
-            QPen pen(it->textColor);
-            pen.setWidth(2);
-            pen.setCosmetic(true);
-            painter->setPen(pen);
-            QPainterPath path;
-            path.addRect(it->bound);
-            painter->fillPath(path, it->bgColor);
-            painter->drawPath(path);
-            QRectF name_box = it->bound.translated(0, -it->bound.height());
-            painter->drawText(name_box,
-                              it->name,
-                              QTextOption(Qt::AlignBottom | Qt::AlignHCenter));
-             painter->drawText(it->bound,
-                              it->text,
-                              QTextOption(Qt::AlignCenter | Qt::AlignHCenter));
-        }
-    }
+    if(showScalers)
+        printScalerBoxes(painter);
 
-    // this to be impelmented to show the tdc groups and cluster reconstruction
     if(console->GetAnnoType() == ShowTDC)
+        printTDCBoxes(painter);
+
+    printReconHits(painter);
+    painter->restore();
+}
+
+
+// print scaler boxes
+void HyCalScene::printScalerBoxes(QPainter *painter)
+{
+    painter->setFont(QFont("times", 16, QFont::Bold));
+    for(auto it = scalarBoxList.begin(); it != scalarBoxList.end(); ++it)
     {
-       painter->setFont(QFont("times", 24, QFont::Bold));
-       for (auto it = tdcBoxList.begin(); it != tdcBoxList.end(); ++it)
-        {
-            QPen pen(it->textColor);
-            pen.setWidth(2);
-            pen.setCosmetic(true);
-            painter->setPen(pen);
-            QPainterPath path;
-            path.addRect(it->bound);
-            painter->fillPath(path, it->bgColor);
-            painter->drawPath(path);
-            painter->drawText(it->bound,
-                              it->name,
-                              QTextOption(Qt::AlignCenter | Qt::AlignHCenter));
-
-        }
+        QPen pen(it->textColor);
+        pen.setWidth(2);
+        pen.setCosmetic(true);
+        painter->setPen(pen);
+        QPainterPath path;
+        path.addRect(it->bound);
+        painter->fillPath(path, it->bgColor);
+        painter->drawPath(path);
+        QRectF name_box = it->bound.translated(0, -it->bound.height());
+        painter->drawText(name_box,
+                          it->name,
+                          QTextOption(Qt::AlignBottom | Qt::AlignHCenter));
+        painter->drawText(it->bound,
+                          it->text,
+                          QTextOption(Qt::AlignCenter | Qt::AlignHCenter));
     }
+}
 
+// Show the tdc groups
+void HyCalScene::printTDCBoxes(QPainter *painter)
+{
+    painter->setFont(QFont("times", 24, QFont::Bold));
+    for (auto it = tdcBoxList.begin(); it != tdcBoxList.end(); ++it)
+    {
+        QPen pen(it->textColor);
+        pen.setWidth(2);
+        pen.setCosmetic(true);
+        painter->setPen(pen);
+        QPainterPath path;
+        path.addRect(it->bound);
+        painter->fillPath(path, it->bgColor);
+        painter->drawPath(path);
+        painter->drawText(it->bound,
+                          it->name,
+                          QTextOption(Qt::AlignCenter | Qt::AlignHCenter));
+
+    }
+}
+
+void HyCalScene::printReconHits(QPainter *painter)
+{
+    // print out reconstructed hits
     if(!recon_hits.isEmpty()) {
         QPen pen(Qt::red);
         pen.setWidth(2);
@@ -76,41 +92,44 @@ void HyCalScene::drawForeground(QPainter *painter, const QRectF &rect)
             painter->drawEllipse(hit, 7., 7.);
         }
     }
-  
-    if (!module_energy.empty()){
-       QPen pen(Qt::black);
-       pen.setWidth(2);
-       pen.setCosmetic(true);
-       painter->setPen(pen);
-       painter->setFont(QFont("times", 3));
 
-       for (unsigned int i=0; i<module_energy.size(); i++){
-          painter->drawText((module_energy.at(i)).second, Qt::TextWordWrap, (module_energy.at(i)).first);
-       }
+    // print out module energy
+    if(!module_energy.empty()) {
+        QPen pen(Qt::black);
+        pen.setWidth(2);
+        pen.setCosmetic(true);
+        painter->setPen(pen);
+        painter->setFont(QFont("times", 3));
+
+        for(auto &it : module_energy)
+        {
+            painter->drawText(it.second, Qt::TextWordWrap, it.first);
+        }
      }
-     
-     if (!gem_hits.empty()){
-        std::map< int, QList<QPointF> >::iterator it;
+
+     // print out gem hits
+     if (!gem_hits.empty()) {
         QPen pen1(Qt::blue);
         pen1.setWidth(2);
         pen1.setCosmetic(true);
         QPen pen2(Qt::magenta);
         pen2.setWidth(2);
         pen2.setCosmetic(true);
-        
-        for(it = gem_hits.begin(); it != gem_hits.end(); it++)
+
+        for(auto &it : gem_hits)
         {
-          if (it->first == 0) painter->setPen(pen1);
-          else painter->setPen(pen2);
-          for (auto &hit : it->second ){
-              painter->drawEllipse(hit, 3.5, 3.5);
-          }
+            if(it.first == 0) {
+                painter->setPen(pen1);
+            } else {
+                painter->setPen(pen2);
+            }
+
+            for (auto &hit : it.second)
+            {
+                painter->drawEllipse(hit, 3.5, 3.5);
+            }
         }
      }
-
-
-
-    painter->restore();
 }
 
 void HyCalScene::addItem(QGraphicsItem *item)
@@ -193,8 +212,7 @@ void HyCalScene::AddHyCalHits(const QPointF &p)
 
 void HyCalScene::AddGEMHits(int igem, const QPointF &hit)
 {
-    std::map< int, QList<QPointF> >::iterator it;
-    it = gem_hits.find(igem);
+    auto it = gem_hits.find(igem);
     if (it != gem_hits.end()){
       (it->second).append(hit);
     }else{

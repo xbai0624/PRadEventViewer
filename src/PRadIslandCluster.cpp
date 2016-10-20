@@ -23,7 +23,7 @@ void PRadIslandCluster::Configure(const std::string &c_path)
     fMinHitE = GetConfigValue("MIN_BLOCK_ENERGY", "0.005").Float();
 
     // default value is 3.6, suggested by the study with GEM by Weizhi
-    fLogWeightThres = GetConfigValue("LOG_WEIGHT_THRESHOLD", "3.6").Float();
+    fLogWeightThres = GetConfigValue("WEIGHT_FREE_PAR", "3.6").Float();
 
     path = GetConfigValue("BLOCK_INFO_FILE", "config/blockinfo.dat");
     LoadBlockInfo(path);

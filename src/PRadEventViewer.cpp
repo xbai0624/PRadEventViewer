@@ -41,7 +41,7 @@
 #include "PRadTDCGroup.h"
 #include "PRadLogBox.h"
 #include "PRadBenchMark.h"
-#include "PRadDetCoor.h"
+#include "PRadCoordSystem.h"
 #include "PRadDetMatch.h"
 #include "PRadIslandCluster.h"
 #include "PRadSquareCluster.h"
@@ -1366,20 +1366,20 @@ void PRadEventViewer::reconCurrentEvent()
     int nHyCalHits = 0;
     HyCalHit* thisHit = handler->GetHyCalCluster(nHyCalHits);
 
-    fDetMatch->Clear();
-    fDetCoor->HyCalClustersToLab(nHyCalHits, thisHit);
-    fDetMatch->LoadHyCalClusters(nHyCalHits, thisHit);
+    detMatch->Clear();
+    coordSystem->HyCalClustersToLab(nHyCalHits, thisHit);
+    detMatch->LoadHyCalClusters(nHyCalHits, thisHit);
 
     for (int i=0; i<NGEM; i++){
         int type = i*NGEM;
-        fDetCoor->GEMClustersToLab(type, gem_srs->GetDetectorPlane(Form("pRadGEM%dX", i+1))->GetPlaneCluster());
-        fDetCoor->GEMClustersToLab(type+1, gem_srs->GetDetectorPlane(Form("pRadGEM%dY", i+1))->GetPlaneCluster());
-        fDetMatch->LoadGEMClusters(type, gem_srs->GetDetectorPlane(Form("pRadGEM%dX", i+1))->GetPlaneCluster());
-        fDetMatch->LoadGEMClusters(type+1, gem_srs->GetDetectorPlane(Form("pRadGEM%dY", i+1))->GetPlaneCluster());
+        coordSystem->GEMClustersToLab(type, gem_srs->GetDetectorPlane(Form("pRadGEM%dX", i+1))->GetPlaneCluster());
+        coordSystem->GEMClustersToLab(type+1, gem_srs->GetDetectorPlane(Form("pRadGEM%dY", i+1))->GetPlaneCluster());
+        detMatch->LoadGEMClusters(type, gem_srs->GetDetectorPlane(Form("pRadGEM%dX", i+1))->GetPlaneCluster());
+        detMatch->LoadGEMClusters(type+1, gem_srs->GetDetectorPlane(Form("pRadGEM%dY", i+1))->GetPlaneCluster());
     }
 
-    fDetMatch->DetectorMatch();
-    fDetMatch->ProjectGEMToHyCal();
+    detMatch->DetectorMatch();
+    detMatch->ProjectGEMToHyCal();
 
     std::map<unsigned short, vector< pair<int, QString> > > thisMap;
 
@@ -1422,7 +1422,7 @@ void PRadEventViewer::reconCurrentEvent()
     }
 
 
-    std::map<int, vector<GEMDetCluster> > & gemClusters = fDetMatch->GetGEM2DClusters();
+    std::map<int, vector<GEMDetCluster> > & gemClusters = detMatch->GetGEM2DClusters();
 
 
     if (!fShowMatchedGEM){

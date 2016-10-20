@@ -3,7 +3,8 @@
 #include <cmath>
 
 #include "PRadDetMatch.h"
-#include "PRadDetCoor.h"
+#include "PRadCoordSystem.h"
+#include "TObject.h"
 
 PRadDetMatch::PRadDetMatch()
 :fGEMXYMatchMode(0), fProjectToGEM2(0), fHyCalGEMMatchMode(0), fGEMPeakCharge(0),

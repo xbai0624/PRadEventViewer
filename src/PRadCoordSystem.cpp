@@ -1,4 +1,4 @@
-#include "PRadDetCoor.h"
+#include "PRadCoordSystem.h"
 
 #include <cmath>
 #include <cstdio>
@@ -6,18 +6,20 @@
 #include <list>
 #include <cassert>
 
-PRadDetCoor::PRadDetCoor()
+using namespace std;
+
+PRadCoordSystem::PRadCoordSystem()
 : fGEMOriginShift(0.), fBeamOffsetX(0.), fBeamOffsetY(0.),
   fGEMOffsetX(0.), fGEMOffsetY(0.), fHyCalOffsetX(0.),fHyCalOffsetY(0.)
 {
 
 }
 //_______________________________________________________________________
-PRadDetCoor::~PRadDetCoor()
+PRadCoordSystem::~PRadCoordSystem()
 {
 }
 //_______________________________________________________________________
-void PRadDetCoor::ReadConfigFile(const string &path)
+void PRadCoordSystem::ReadConfigFile(const string &path)
 {
     ConfigParser c_parser(": ,\t="); // self-defined splitters
 
@@ -38,7 +40,7 @@ void PRadDetCoor::ReadConfigFile(const string &path)
     }
 }
 //________________________________________________________________________
-ConfigValue PRadDetCoor::GetConfigValue(const string &name,
+ConfigValue PRadCoordSystem::GetConfigValue(const string &name,
                                               const string &def_value,
                                               bool verbose)
 {
@@ -55,7 +57,7 @@ ConfigValue PRadDetCoor::GetConfigValue(const string &name,
     return it->second;
 }
 //________________________________________________________________________
-void PRadDetCoor::Configurate(const string & path)
+void PRadCoordSystem::Configurate(const string & path)
 {
     ReadConfigFile(path);
 
@@ -75,7 +77,7 @@ void PRadDetCoor::Configurate(const string & path)
     fHyCalOffsetY      = GetConfigValue("HYCAL_OFFSET_Y", "0.").Float();
 }
 //_________________________________________________________________________
-void PRadDetCoor::HyCalClustersToLab(int &nclusters, HyCalHit* clusters)
+void PRadCoordSystem::HyCalClustersToLab(int &nclusters, HyCalHit* clusters)
 {
     //simply transform HyCal hits from internal coordinate to lab
 
@@ -87,7 +89,7 @@ void PRadDetCoor::HyCalClustersToLab(int &nclusters, HyCalHit* clusters)
     }
 }
 //__________________________________________________________________________
-template<class T> void PRadDetCoor::HyCalClustersToLab(int &nclusters, T* x, T*y)
+template<class T> void PRadCoordSystem::HyCalClustersToLab(int &nclusters, T* x, T*y)
 {
     //template function for transfroming HyCal hit in array format
 
@@ -97,14 +99,14 @@ template<class T> void PRadDetCoor::HyCalClustersToLab(int &nclusters, T* x, T*y
     }
 }
 //__________________________________________________________________________
-void PRadDetCoor::GEMClustersToLab(int type, list<GEMPlaneCluster>& clusters)
+void PRadCoordSystem::GEMClustersToLab(int type, list<GEMPlaneCluster>& clusters)
 {
     for (list<GEMPlaneCluster>::iterator i = clusters.begin();
          i != clusters.end(); i++)
         (*i).position = CoordinateTransform((CoordinateType)type, (*i).position);
 }
 //________________________________________________________________________
-template<class T> void PRadDetCoor::GEMClustersToLab(int type, int &nclusters, T* pos)
+template<class T> void PRadCoordSystem::GEMClustersToLab(int type, int &nclusters, T* pos)
 {
     //template function for transforming GEM hits in array format
 
@@ -112,7 +114,7 @@ template<class T> void PRadDetCoor::GEMClustersToLab(int type, int &nclusters, T
     pos[i] = CoordinateTransform((CoordinateType)type, pos[i]);
 }
 //________________________________________________________________________
-template <class T> inline T PRadDetCoor::CoordinateTransform(CoordinateType type, T& coor)
+template <class T> inline T PRadCoordSystem::CoordinateTransform(CoordinateType type, T& coor)
 {
     switch (type) {
         case kHyCalX:
@@ -146,7 +148,7 @@ template <class T> inline T PRadDetCoor::CoordinateTransform(CoordinateType type
     return 0.;
 }
 //____________________________________________________________________________
-template<class T> void PRadDetCoor::LinesIntersect(const T* xa, const T* ya, const T* xb,
+template<class T> void PRadCoordSystem::LinesIntersect(const T* xa, const T* ya, const T* xb,
                                                    const T* yb, const T* x,  const T* y,
                                                    int ndim)
 {
