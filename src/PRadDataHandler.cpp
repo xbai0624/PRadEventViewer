@@ -669,6 +669,17 @@ PRadDAQUnit *PRadDataHandler::GetChannel(const unsigned short &id)
     return channelList[id];
 }
 
+PRadDAQUnit *PRadDataHandler::GetChannelPrimex(const unsigned short &id)
+{
+    string channelName;
+    if (id <= 1000){
+      channelName = "G" + to_string(id);
+    }else{
+      channelName = "W" + to_string(id-1000);
+    }
+    return GetChannel(channelName);
+}
+
 PRadTDCGroup *PRadDataHandler::GetTDCGroup(const string &name)
 {
     auto it = map_name_tdc.find(name);
@@ -845,7 +856,7 @@ throw(PRadException)
 
     if(verbose)
         cout << "Fit histogram " << hist->GetTitle()
-             << " with expression " << myfit->GetFormula()->GetExpFormula().Data()
+             //<< " with expression " << myfit->GetFormula()->GetExpFormula().Data()
              << endl;
 
     for(int i = 0; i < myfit->GetNpar(); ++i)
