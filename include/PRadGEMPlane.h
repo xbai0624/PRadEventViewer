@@ -64,7 +64,6 @@ public:
     void AddPlaneHit(const int &plane_strip, const std::vector<float> &charges);
     void ClearPlaneHits();
     void CollectAPVHits();
-    void ReconstructHits();
 
     // set parameter
     void SetDetector(PRadGEMDetector *det) {detector = det;};
@@ -82,17 +81,8 @@ public:
     int &GetCapacity() {return connector;};
     int &GetOrientation() {return orientation;};
     std::vector<PRadGEMAPV*> GetAPVList();
-    std::vector<GEMPlaneHit> &GetPlaneHits();
-    std::list<GEMPlaneCluster> &GetPlaneCluster() {return cluster_list;};
-
-private:
-    void clusterHits();
-    void filterClusters();
-    void splitClusters();
-    void reconstructClusters();
-    bool filterCluster(const GEMPlaneCluster &c);
-    bool splitCluster(GEMPlaneCluster &c, GEMPlaneCluster &c1);
-    void reconstructCluster(GEMPlaneCluster &c);
+    std::vector<GEMPlaneHit> &GetPlaneHits() {return hit_list;};
+    std::list<GEMPlaneCluster> &GetPlaneClusters() {return cluster_list;};
 
 private:
     PRadGEMDetector *detector;
@@ -106,6 +96,11 @@ private:
     // there will be requent remove, split operations for clusters in the middle
     // thus use list instead of vector
     std::list<GEMPlaneCluster> cluster_list;
+
+    // some parameters
+    double cluster_split_diff;
+    size_t min_cluster_hits;
+    size_t max_cluster_hits;
 };
 
 #endif

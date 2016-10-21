@@ -11,7 +11,7 @@
 #include "PRadGEMPlane.h"
 #include "PRadGEMFEC.h"
 #include "PRadGEMAPV.h"
-
+#include "PRadGEMCluster.h"
 
 #ifdef MULTI_THREAD
 #include <thread>
@@ -44,6 +44,7 @@ public:
     void ChooseEvent(const EventData &data);
     void Reconstruct(const EventData &data);
     void LoadConfiguration(const std::string &path) throw(PRadException);
+    void LoadClusterConfiguration(const std::string &path);
     void LoadPedestal(const std::string &path) throw(PRadException);
     void RegisterDetector(PRadGEMDetector *det);
     void RegisterFEC(PRadGEMFEC *fec);
@@ -62,6 +63,7 @@ public:
     void SaveHistograms(const std::string &path);
     void ClearAPVData();
 
+    PRadGEMCluster *GetClusterMethod() {return gem_recon;};
     PRadGEMDetector *GetDetector(const int &id);
     PRadGEMDetector *GetDetector(const std::string &name);
     PRadGEMPlane *GetDetectorPlane(const std::string &plane);
@@ -75,6 +77,7 @@ public:
     std::vector<PRadGEMAPV*> GetAPVList();
 
 private:
+    PRadGEMCluster *gem_recon;
     std::vector<PRadGEMDetector*> det_list;
     std::unordered_map<std::string, PRadGEMDetector*> det_map_name;
     std::unordered_map<std::string, PRadGEMPlane*> det_plane_map;

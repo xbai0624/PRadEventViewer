@@ -81,6 +81,7 @@ HEADERS += include/PRadEventViewer.h \
            include/PRadGEMPlane.h \
            include/PRadGEMFEC.h \
            include/PRadGEMAPV.h \
+           include/PRadGEMCluster.h \
            include/PRadEventFilter.h \
            include/PRadCoordSystem.h \
            include/PRadDetMatch.h
@@ -112,6 +113,7 @@ SOURCES += src/main.cpp \
            src/PRadGEMPlane.cpp \
            src/PRadGEMFEC.cpp \
            src/PRadGEMAPV.cpp \
+           src/PRadGEMCluster.cpp \
            src/PRadEventFilter.cpp \
            src/PRadCoordSystem.cpp \
            src/PRadDetMatch.cpp

@@ -70,6 +70,7 @@ LIB_OBJECTS   = $(LIB_OBJ_DIR)/PRadDAQUnit.o \
                 $(LIB_OBJ_DIR)/PRadGEMPlane.o \
                 $(LIB_OBJ_DIR)/PRadGEMFEC.o \
                 $(LIB_OBJ_DIR)/PRadGEMAPV.o \
+                $(LIB_OBJ_DIR)/PRadGEMCluster.o \
                 $(LIB_OBJ_DIR)/PRadEventFilter.o \
                 $(LIB_OBJ_DIR)/PRadCoordSystem.o \
                 $(LIB_OBJ_DIR)/PRadDetMatch.o

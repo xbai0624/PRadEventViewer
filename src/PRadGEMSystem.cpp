@@ -22,7 +22,8 @@
 
 using namespace std;
 
-PRadGEMSystem::PRadGEMSystem(const std::string &config_file)
+PRadGEMSystem::PRadGEMSystem(const string &config_file)
+: gem_recon(new PRadGEMCluster())
 {
     if(!config_file.empty())
         LoadConfiguration(config_file);
@@ -31,18 +32,19 @@ PRadGEMSystem::PRadGEMSystem(const std::string &config_file)
 PRadGEMSystem::~PRadGEMSystem()
 {
     Clear();
+    delete gem_recon;
 }
 
 void PRadGEMSystem::Clear()
 {
     for(auto &det : det_list)
     {
-        delete det;
+        delete det, det = nullptr;
     }
 
     for(auto &fec : fec_list)
     {
-        delete fec;
+        delete fec, fec = nullptr;
     }
 
     det_list.clear();
@@ -73,7 +75,7 @@ void PRadGEMSystem::LoadConfiguration(const string &path) throw(PRadException)
 
             string readout, detector_type, name;
             c_parser >> readout >> detector_type >> name;
-            PRadGEMDetector *new_det = new PRadGEMDetector(readout, detector_type, name);
+            PRadGEMDetector *new_det = new PRadGEMDetector(this, readout, detector_type, name);
 
             if(readout == "CARTESIAN") {
 
@@ -137,6 +139,11 @@ void PRadGEMSystem::LoadConfiguration(const string &path) throw(PRadException)
     }
 
     SortFECList();
+}
+
+void PRadGEMSystem::LoadClusterConfiguration(const string &path)
+{
+    gem_recon->Configure(path);
 }
 
 void PRadGEMSystem::SortFECList()
@@ -366,8 +373,8 @@ void PRadGEMSystem::FillRawData(GEMRawData &raw, vector<GEM_Data> &container, co
     }
 }
 
-void PRadGEMSystem::FillZeroSupData(std::vector<GEMZeroSupData> &data_pack,
-                                    std::vector<GEM_Data> &container)
+void PRadGEMSystem::FillZeroSupData(vector<GEMZeroSupData> &data_pack,
+                                    vector<GEM_Data> &container)
 {
     // clear all the APVs' hits
     for(auto &fec : fec_list)
@@ -444,9 +451,9 @@ void PRadGEMSystem::Reconstruct(const EventData &data)
 
         auto plane = apv->GetPlane();
         if(plane == nullptr) {
-            std::cout << "GEM System Warning: APV " << apv->GetAddress()
-                      << " is not connected to any detector plane."
-                      << std::endl;
+            cout << "GEM System Warning: APV " << apv->GetAddress()
+                 << " is not connected to any detector plane."
+                 << endl;
             continue;
         }
 
@@ -455,7 +462,7 @@ void PRadGEMSystem::Reconstruct(const EventData &data)
 
     for(auto &det : det_list)
     {
-        det->ReconstructHits();
+        det->ReconstructHits(gem_recon);
     }
 }
 

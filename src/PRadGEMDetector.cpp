@@ -7,14 +7,17 @@
 //============================================================================//
 
 #include "PRadGEMDetector.h"
+#include "PRadGEMSystem.h"
+#include "PRadGEMCluster.h"
 #include "PRadGEMAPV.h"
 #include <algorithm>
 #include <iostream>
 
-PRadGEMDetector::PRadGEMDetector(const std::string &readoutBoard,
+PRadGEMDetector::PRadGEMDetector(PRadGEMSystem *g,
+                                 const std::string &readoutBoard,
                                  const std::string &detectorType,
                                  const std::string &detector)
-: name (detector), type(detectorType), readout_board(readoutBoard)
+: gem_srs(g), name(detector), type(detectorType), readout_board(readoutBoard)
 {
     planes.resize(PRadGEMPlane::Plane_Max, nullptr);
 }
@@ -62,15 +65,19 @@ void PRadGEMDetector::AddPlane(const PRadGEMPlane::PlaneType &type,
     planes[(int)type] = plane;
 }
 
-void PRadGEMDetector::ReconstructHits()
+void PRadGEMDetector::ReconstructHits(PRadGEMCluster *gem_recon)
 {
     for(auto &plane : planes)
     {
-        if(plane == nullptr)
-            continue;
-
-        plane->ReconstructHits();
+        if(plane != nullptr)
+            gem_recon->Reconstruct(plane);
     }
+}
+
+void PRadGEMDetector::ReconstructHits()
+{
+    PRadGEMCluster *gem_recon = gem_srs->GetClusterMethod();
+    ReconstructHits(gem_recon);
 }
 
 void PRadGEMDetector::ClearHits()
@@ -115,13 +122,13 @@ std::vector<PRadGEMAPV*> PRadGEMDetector::GetAPVList(const PRadGEMPlane::PlaneTy
     return planes[(int)type]->GetAPVList();
 }
 
-std::list<GEMPlaneCluster> &PRadGEMDetector::GetPlaneCluster(const PRadGEMPlane::PlaneType &type)
+std::list<GEMPlaneCluster> &PRadGEMDetector::GetPlaneClusters(const PRadGEMPlane::PlaneType &type)
 throw (PRadException)
 {
     if(planes[(int)type] == nullptr)
         throw PRadException("PRadGEMDetector Error", "Plane does not exist!");
 
-    return planes[(int)type]->GetPlaneCluster();
+    return planes[(int)type]->GetPlaneClusters();
 }
 
 std::vector<std::list<GEMPlaneCluster>*> PRadGEMDetector::GetDetectorClusters()
@@ -131,7 +138,7 @@ std::vector<std::list<GEMPlaneCluster>*> PRadGEMDetector::GetDetectorClusters()
     for(auto &plane : planes)
     {
         if(plane != nullptr)
-            plane_clusters.push_back(&plane->GetPlaneCluster());
+            plane_clusters.push_back(&plane->GetPlaneClusters());
         else
             plane_clusters.push_back(nullptr);
     }

@@ -129,10 +129,10 @@ int main()
 
       //Getting GEM 1D cluster
       vector< list< GEMPlaneCluster >* > vlist;
-      vlist.push_back(&(gem_srs->GetDetectorPlane("pRadGEM1X")->GetPlaneCluster()));
-      vlist.push_back(&(gem_srs->GetDetectorPlane("pRadGEM1Y")->GetPlaneCluster()));
-      vlist.push_back(&(gem_srs->GetDetectorPlane("pRadGEM2X")->GetPlaneCluster()));
-      vlist.push_back(&(gem_srs->GetDetectorPlane("pRadGEM2Y")->GetPlaneCluster()));
+      vlist.push_back(&(gem_srs->GetDetectorPlane("pRadGEM1X")->GetPlaneClusters()));
+      vlist.push_back(&(gem_srs->GetDetectorPlane("pRadGEM1Y")->GetPlaneClusters()));
+      vlist.push_back(&(gem_srs->GetDetectorPlane("pRadGEM2X")->GetPlaneClusters()));
+      vlist.push_back(&(gem_srs->GetDetectorPlane("pRadGEM2Y")->GetPlaneClusters()));
 
       for (unsigned int i=0; i<vlist.size(); i++){
         nGEM1DHit[i] = vlist.at(i)->size();
