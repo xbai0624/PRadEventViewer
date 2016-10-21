@@ -1,12 +1,10 @@
-#ifndef PRAD_HYCAL_BLOCK_H
-#define PRAD_HYCAL_BLOCK_H
+#ifndef PRAD_HYCAL_MODULE_H
+#define PRAD_HYCAL_MODULE_H
 
 #include <QGraphicsItem>
 #include <QStyleOptionGraphicsItem>
 #include <QFont>
 #include "PRadDAQUnit.h"
-
-#define HYCAL_SHIFT 50
 
 class PRadEventViewer;
 

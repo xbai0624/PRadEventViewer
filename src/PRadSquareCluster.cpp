@@ -135,7 +135,8 @@ unsigned short PRadSquareCluster::getMaxEChannel()
 
         double distance = 1e4;
         bool merged = false;
-        for (unsigned int j = 0; j < fClusterCenterID.size(); ++j){
+        for (unsigned int j = 0; j < fClusterCenterID.size(); ++j)
+        {
             PRadDAQUnit* lastCenterModule = fModuleList.at( fClusterCenterID.at(j) );
             distance = Distance( thisModule, lastCenterModule ) ;
             if (distance < 2*theClusterRadius) {

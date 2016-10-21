@@ -15,7 +15,6 @@
 #include <QtGui>
 #endif
 
-
 HyCalModule::HyCalModule(PRadEventViewer* const p,
                          const std::string &rid,
                          const ChannelAddress &daqAddr,
@@ -42,7 +41,9 @@ void HyCalModule::Initialize()
     // calculate position of this module
     // CalcGeometry(); no longer needed since we read everything from list
 
-    setPos(geometry.x - HYCAL_SHIFT, geometry.y);
+    // flip Y axis to transform Cartesian coords to QtWidget Coords
+    // add HYCAL_SHIFT to make the HyCal display in center
+    setPos(geometry.x + HYCAL_SHIFT, -geometry.y);
 
     sparsify = (unsigned short)(pedestal.mean + 5*pedestal.sigma);
 

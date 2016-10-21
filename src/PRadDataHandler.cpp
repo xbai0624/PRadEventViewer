@@ -672,10 +672,10 @@ PRadDAQUnit *PRadDataHandler::GetChannel(const unsigned short &id)
 PRadDAQUnit *PRadDataHandler::GetChannelPrimex(const unsigned short &id)
 {
     string channelName;
-    if (id <= 1000){
-      channelName = "G" + to_string(id);
-    }else{
-      channelName = "W" + to_string(id-1000);
+    if(id <= 1000) {
+        channelName = "G" + to_string(id);
+    } else {
+        channelName = "W" + to_string(id - 1000);
     }
     return GetChannel(channelName);
 }

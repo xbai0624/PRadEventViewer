@@ -1,7 +1,7 @@
 //============================================================================//
 // Main class for PRad Event Viewer, derived from QMainWindow                 //
 //                                                                            //
-// Chao Peng                                                                  //
+// Chao Peng, Weizhi Xiong                                                    //
 // 02/27/2016                                                                 //
 //============================================================================//
 
@@ -18,6 +18,7 @@
 #include <fstream>
 #include <iostream>
 #include <iomanip>
+#include <unordered_map>
 
 #if QT_VERSION >= 0x050000
 #include <QtWidgets>
@@ -43,9 +44,6 @@
 #include "PRadBenchMark.h"
 #include "PRadCoordSystem.h"
 #include "PRadDetMatch.h"
-#include "PRadIslandCluster.h"
-#include "PRadSquareCluster.h"
-#include "Rtypes.h"
 #include "PRadGEMSystem.h"
 #ifdef USE_ONLINE_MODE
 #include "PRadETChannel.h"
@@ -72,6 +70,7 @@ PRadEventViewer::PRadEventViewer()
 {
     initView();
     setupUI();
+    ListModules();
 }
 
 PRadEventViewer::~PRadEventViewer()
@@ -280,10 +279,10 @@ void PRadEventViewer::createMainMenu()
 
     menuBar()->addMenu(toolMenu);
 #ifdef RECON_DISPLAY
-    QMenu *reconMenu = new QMenu(tr("&Recon Display"));
+    QMenu *reconMenu = new QMenu(tr("&Reconstruct Event"));
 
-    QAction *useSquare = reconMenu->addAction(tr("Use Square HyCal Recon"));
-    QAction *useIsland = reconMenu->addAction(tr("Use Island HyCal Recon"));
+    QAction *useSquare = reconMenu->addAction(tr("Use Square HyCal Cluster"));
+    QAction *useIsland = reconMenu->addAction(tr("Use Island HyCal Cluster"));
     QAction *showAllGEMHit = reconMenu->addAction(tr("Show All GEM Hits"));
     QAction *showMatchedGEMHit = reconMenu->addAction(tr("Show Matched GEM Hits"));
 
@@ -466,7 +465,7 @@ void PRadEventViewer::readModuleList()
                      >> crate >> slot >> channel // daq settings
                      >> tdcGroup // tdc group name
                      >> type >> size_x >> size_y >> x >> y; // geometry
- 
+
             ChannelAddress daqAddr(crate, slot, channel);
             PRadDAQUnit::Geometry geo(PRadDAQUnit::ChannelType(type), size_x, size_y, x, y);
 
@@ -540,7 +539,7 @@ void PRadEventViewer::setTDCGroupBox()
             ymax = std::max(geo.y + geo.size_y/2., ymax);
             ymin = std::min(geo.y - geo.size_y/2., ymin);
         }
-        QRectF groupBox = QRectF(xmin - HYCAL_SHIFT, ymin, xmax-xmin, ymax-ymin);
+        QRectF groupBox = QRectF(xmin + HYCAL_SHIFT, ymin, xmax-xmin, ymax-ymin);
         if(has_module)
             HyCal->AddTDCBox(tdcGroupName, Qt::black, groupBox, bkgColor);
     }
@@ -571,10 +570,10 @@ void PRadEventViewer::ListModules()
          << std::setw(6) << "Chan"
          << std::setw(6) << "TDC"
          << std::setw(10) << "Type"
-         << std::setw(8) << "size_x"
-         << std::setw(8) << "size_y"
-         << std::setw(8) << "x"
-         << std::setw(8) << "y"
+         << std::setw(10) << "size_x"
+         << std::setw(10) << "size_y"
+         << std::setw(10) << "x"
+         << std::setw(10) << "y"
          << std::setw(10) << "HV Crate"
          << std::setw(6) << "Slot"
          << std::setw(6) << "Chan"
@@ -589,10 +588,10 @@ void PRadEventViewer::ListModules()
              << std::setw(6)  << module->GetDAQInfo().channel
              << std::setw(6)  << module->GetTDCName()
              << std::setw(10) << (int)module->GetGeometry().type
-             << std::setw(8)  << module->GetGeometry().size_x
-             << std::setw(8)  << module->GetGeometry().size_y
-             << std::setw(8)  << module->GetGeometry().x
-             << std::setw(8)  << module->GetGeometry().y
+             << std::setw(10)  << module->GetGeometry().size_x
+             << std::setw(10)  << module->GetGeometry().size_y
+             << std::setw(10)  << module->GetGeometry().x
+             << std::setw(10)  << -module->GetGeometry().y
 //             << std::setw(10) << module->GetPedestal().mean
 //             << std::setw(8)  << module->GetPedestal().sigma
              << std::setw(10) << module->GetHVInfo().crate
@@ -1352,15 +1351,17 @@ void PRadEventViewer::useIslandRecon()
 void PRadEventViewer::reconCurrentEvent()
 {
     HyCal->ClearHits();
-    if (handler->GetEventCount() == 0) return;
+    if(handler->GetEventCount() == 0)
+        return;
 
     PRadGEMSystem *gem_srs = handler->GetSRS();
-    auto thisEvent = handler->GetEvent(currentEvent-1);
+    auto thisEvent = handler->GetEvent(currentEvent - 1);
 
-    if(!thisEvent.is_physics_event()) return;
+    if(!thisEvent.is_physics_event())
+        return;
+
     gem_srs->Reconstruct(thisEvent);
-
-    handler->HyCalReconstruct(currentEvent-1);
+    handler->HyCalReconstruct(thisEvent);
 
 
     int nHyCalHits = 0;
@@ -1370,7 +1371,8 @@ void PRadEventViewer::reconCurrentEvent()
     coordSystem->HyCalClustersToLab(nHyCalHits, thisHit);
     detMatch->LoadHyCalClusters(nHyCalHits, thisHit);
 
-    for (int i=0; i<NGEM; i++){
+    for (int i = 0; i < NGEM; i++)
+    {
         int type = i*NGEM;
         coordSystem->GEMClustersToLab(type, gem_srs->GetDetectorPlane(Form("pRadGEM%dX", i+1))->GetPlaneCluster());
         coordSystem->GEMClustersToLab(type+1, gem_srs->GetDetectorPlane(Form("pRadGEM%dY", i+1))->GetPlaneCluster());
@@ -1383,8 +1385,9 @@ void PRadEventViewer::reconCurrentEvent()
 
     std::map<unsigned short, vector< pair<int, QString> > > thisMap;
 
-    for (int i=0; i<nHyCalHits; i++){
-        QPointF h(thisHit[i].x_log - HYCAL_SHIFT, -1.*thisHit[i].y_log);
+    for(int i = 0; i < nHyCalHits; i++)
+    {
+        QPointF h(thisHit[i].x_log + HYCAL_SHIFT, -1.*thisHit[i].y_log);
         HyCal->AddHyCalHits(h);
 
         if (!fUseIsland) continue;
@@ -1399,7 +1402,7 @@ void PRadEventViewer::reconCurrentEvent()
             }
 
         }
-   }
+    }
 
     auto it = thisMap.begin();
     while (it != thisMap.end()){
@@ -1415,7 +1418,7 @@ void PRadEventViewer::reconCurrentEvent()
          thisX = handler->GetChannelPrimex((it->first))->GetX();
          thisY = handler->GetChannelPrimex((it->first))->GetY();
 
-         QRectF m(thisX - HYCAL_SHIFT - 10, thisY - 10, 20, 20);
+         QRectF m(thisX + HYCAL_SHIFT - 10, thisY - 10, 20, 20);
          HyCal->AddEnergyValue(thisString, m);
        }
       it++;
@@ -1430,7 +1433,7 @@ void PRadEventViewer::reconCurrentEvent()
 
         while(itt != gemClusters.end()){
             for(unsigned int i=0; i<(itt->second).size(); i++){
-                QPointF h((itt->second).at(i).x - HYCAL_SHIFT, -1.*(itt->second).at(i).y);
+                QPointF h((itt->second).at(i).x + HYCAL_SHIFT, -1.*(itt->second).at(i).y);
 
                 HyCal->AddGEMHits((itt->first), h);
             }
@@ -1441,7 +1444,7 @@ void PRadEventViewer::reconCurrentEvent()
             for (unsigned int j=0; j<gemClusters.size(); j++){
                 for (int k=0; k<thisHit[i].gemNClusters[j]; k++){
                     int index = thisHit[i].gemClusterID[j][k];
-                    QPointF h(gemClusters[j][index].x - HYCAL_SHIFT, -1.*gemClusters[j][index].y);
+                    QPointF h(gemClusters[j][index].x + HYCAL_SHIFT, -1.*gemClusters[j][index].y);
                     HyCal->AddGEMHits(j, h);
                 }
             }

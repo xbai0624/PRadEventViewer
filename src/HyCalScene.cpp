@@ -1,9 +1,9 @@
 //============================================================================//
 // A class derived from QGraphicsScene                                        //
 // This class is used for self-defined selection behavior                     //
-// in the future will be used for display the reconstructed clusters          //
+// It also displays the reconstructed clusters                                //
 //                                                                            //
-// Chao Peng                                                                  //
+// Chao Peng, Weizhi Xiong                                                    //
 // 02/27/2016                                                                 //
 //============================================================================//
 

@@ -6,6 +6,8 @@
 #include <QFutureWatcher>
 #include <vector>
 
+#define HYCAL_SHIFT -50
+
 class HyCalScene;
 class HyCalView;
 class HyCalModule;
