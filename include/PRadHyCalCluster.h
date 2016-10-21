@@ -25,6 +25,7 @@ public:
                                const std::string &def_value,
                                bool verbose = true);
     void SetHandler(PRadDataHandler *h);
+    std::string GetConfigPath() {return config_path;};
 
     // functions that to be overloaded
     virtual void Configure(const std::string &path);
@@ -35,6 +36,7 @@ public:
 
 protected:
     PRadDataHandler *fHandler;
+    std::string config_path;
     // configuration map
     std::unordered_map<std::string, ConfigValue> fConfigMap;
     // result array

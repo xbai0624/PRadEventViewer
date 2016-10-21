@@ -21,10 +21,16 @@ class PRadHyCalCluster;
 class PRadGEMSystem;
 class PRadCoordSystem;
 class PRadDetMatch;
+
+#ifdef RECON_DISPLAY
+class ReconSettingPanel;
+#endif
+
 #ifdef USE_ONLINE_MODE
 class PRadETChannel;
 class ETSettingPanel;
 #endif
+
 #ifdef USE_CAEN_HV
 class PRadHVSystem;
 #endif
@@ -158,8 +164,6 @@ private:
                              QFileDialog::FileMode fmode = QFileDialog::ExistingFiles);
 
     PRadDataHandler *handler;
-    PRadCoordSystem *coordSystem;
-    PRadDetMatch *detMatch;
     HistType histType;
     AnnoType annoType;
     ViewMode viewMode;
@@ -200,9 +204,6 @@ private:
     QFuture<bool> future;
     QFutureWatcher<void> watcher;
 
-    bool fUseIsland;
-    bool fShowMatchedGEM;
-
 #ifdef USE_ONLINE_MODE
 public:
     void UpdateOnlineInfo();
@@ -215,6 +216,7 @@ private slots:
 private:
     void setupOnlineMode();
     QMenu *setupOnlineMenu();
+
     PRadETChannel *etChannel;
     QTimer *onlineTimer;
     ETSettingPanel *etSetting;
@@ -233,9 +235,10 @@ private slots:
     void saveHVSetting();
     void restoreHVSetting();
 private:
-    PRadHVSystem *hvSystem;
-    QMenu *setupHVMenu();
     void setupHVSystem();
+    QMenu *setupHVMenu();
+
+    PRadHVSystem *hvSystem;
     QAction *hvEnableAction;
     QAction *hvDisableAction;
     QAction *hvSaveAction;
@@ -244,11 +247,17 @@ private:
 
 #ifdef RECON_DISPLAY
 private slots:
-    void useSquareRecon();
-    void useIslandRecon();
     void showReconEvent(int evt);
-    void showAllGEMHits() { fShowMatchedGEM = false; }
-    void showMatchedGEMHits() { fShowMatchedGEM = true; }
+    void setupReconMethods();
+    void enableReconstruct();
+private:
+    void setupReconDisplay();
+    QMenu *setupReconMenu();
+
+    PRadCoordSystem *coordSystem;
+    PRadDetMatch *detMatch;
+    ReconSettingPanel *reconSetting;
+    QAction *enableRecon;
 #endif
 };
 

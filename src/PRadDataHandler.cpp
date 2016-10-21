@@ -1435,13 +1435,31 @@ void PRadDataHandler::SetHyCalClusterMethod(const string &name)
     }
 }
 
-void PRadDataHandler::ListHyCalClusterMethods()
+std::string PRadDataHandler::GetHyCalClusterMethodName()
 {
+    if(hycal_recon == nullptr)
+        return "";
+
+    for(auto &it : hycal_recon_map)
+    {
+        if(it.second == hycal_recon)
+            return it.first;
+    }
+
+    return "";
+}
+
+vector<string> PRadDataHandler::GetHyCalClusterMethodsList()
+{
+    vector<string> result;
+
     for(auto &it : hycal_recon_map)
     {
         if(it.second != nullptr)
-            cout << it.first << endl;
+            result.push_back(it.first);
     }
+
+    return result;
 }
 
 void PRadDataHandler::HyCalReconstruct(const int &event_index)
@@ -1461,6 +1479,10 @@ HyCalHit *PRadDataHandler::GetHyCalCluster(int &size)
         size = hycal_recon->GetNClusters();
         return hycal_recon->GetCluster();
     }
+
+    std::cerr << "PRad Data Handler Error: HyCal Clustering Method does not exist!"
+              << std::endl;
+    size = 0;
     return nullptr;
 }
 
@@ -1468,12 +1490,12 @@ HyCalHit *PRadDataHandler::GetHyCalCluster(int &size)
 vector<HyCalHit> PRadDataHandler::GetHyCalCluster()
 {
     vector<HyCalHit> hits;
-    if(hycal_recon) {
-        HyCalHit* hitp = hycal_recon->GetCluster();
-        int Nhits = hycal_recon->GetNClusters();
-        for(int i = 0; i < Nhits; ++i)
-            hits.push_back(hitp[i]);
-    }
+
+    int Nhits;
+    HyCalHit *hitp = GetHyCalCluster(Nhits);
+    for(int i = 0; i < Nhits; ++i)
+        hits.push_back(hitp[i]);
+
     return hits;
 }
 

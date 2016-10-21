@@ -28,7 +28,7 @@ COMPONENTS =
 
 # use standard evio libraries instead of self-defined function to read
 # evio data files
-COMPONENTS += STANDARD_EVIO
+#COMPONENTS += STANDARD_EVIO
 
 # enable the reconstruction display in GUI
 COMPONENTS += RECON_DISPLAY
@@ -176,6 +176,8 @@ contains(COMPONENTS, STANDARD_EVIO) {
 
 contains(COMPONENTS, RECON_DISPLAY) {
     DEFINES += RECON_DISPLAY
+    HEADERS += include/ReconSettingPanel.h
+    SOURCES += src/ReconSettingPanel.cpp
 }
 
 ######################################################################

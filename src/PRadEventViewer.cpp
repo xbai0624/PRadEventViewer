@@ -42,11 +42,17 @@
 #include "PRadTDCGroup.h"
 #include "PRadLogBox.h"
 #include "PRadBenchMark.h"
+
+#ifdef RECON_DISPLAY
+#include "PRadHyCalCluster.h"
 #include "PRadIslandCluster.h"
 #include "PRadSquareCluster.h"
 #include "PRadCoordSystem.h"
 #include "PRadDetMatch.h"
 #include "PRadGEMSystem.h"
+#include "ReconSettingPanel.h"
+#endif
+
 #ifdef USE_ONLINE_MODE
 #include "PRadETChannel.h"
 #include "ETSettingPanel.h"
@@ -95,12 +101,6 @@ void PRadEventViewer::initView()
     generateSpectrum();
     generateHyCalModules();
 
-#ifdef USE_ONLINE_MODE
-    setupOnlineMode();
-#endif
-#ifdef USE_CAEN_HV
-    setupHVSystem();
-#endif
     view = new HyCalView;
     view->setScene(HyCal);
 
@@ -108,6 +108,19 @@ void PRadEventViewer::initView()
     QTimer *rootTimer = new QTimer(this);
     connect(rootTimer, SIGNAL(timeout()), this, SLOT(handleRootEvents()));
     rootTimer->start(50);
+
+    // setup optional components
+#ifdef RECON_DISPLAY
+    setupReconDisplay();
+#endif
+
+#ifdef USE_ONLINE_MODE
+    setupOnlineMode();
+#endif
+
+#ifdef USE_CAEN_HV
+    setupHVSystem();
+#endif
 }
 
 // set up the UI
@@ -222,14 +235,6 @@ void PRadEventViewer::createMainMenu()
     connect(quitAction, SIGNAL(triggered()), qApp, SLOT(quit()));
     menuBar()->addMenu(fileMenu);
 
-#ifdef USE_ONLINE_MODE
-    menuBar()->addMenu(setupOnlineMenu());
-#endif
-
-#ifdef USE_CAEN_HV
-    menuBar()->addMenu(setupHVMenu());
-#endif
-
     // calibration related
     QMenu *caliMenu = new QMenu(tr("&Calibration"));
 
@@ -279,23 +284,20 @@ void PRadEventViewer::createMainMenu()
     connect(findEventAction, SIGNAL(triggered()), this, SLOT(findEvent()));
 
     menuBar()->addMenu(toolMenu);
+
+    // menu for optional components
 #ifdef RECON_DISPLAY
-    handler->AddHyCalClusterMethod(new PRadIslandCluster(), "Island", "config/island.conf");
-    handler->AddHyCalClusterMethod(new PRadSquareCluster(), "Square", "config/square.conf");
-    QMenu *reconMenu = new QMenu(tr("&Reconstruct Event"));
-
-    QAction *useSquare = reconMenu->addAction(tr("Use Square HyCal Cluster"));
-    QAction *useIsland = reconMenu->addAction(tr("Use Island HyCal Cluster"));
-//    QAction *showAllGEMHit = reconMenu->addAction(tr("Show All GEM Hits"));
-//    QAction *showMatchedGEMHit = reconMenu->addAction(tr("Show Matched GEM Hits"));
-
-    connect(useSquare, SIGNAL(triggered()), this, SLOT(useSquareRecon()));
-    connect(useIsland, SIGNAL(triggered()), this, SLOT(useIslandRecon()));
-//    connect(showAllGEMHit, SIGNAL(triggered()), this, SLOT(showAllGEMHits()));
-//    connect(showMatchedGEMHit, SIGNAL(triggered()), this, SLOT(showMatchedGEMHits()));
-
-    menuBar()->addMenu(reconMenu);
+    menuBar()->addMenu(setupReconMenu());
 #endif
+
+#ifdef USE_ONLINE_MODE
+    menuBar()->addMenu(setupOnlineMenu());
+#endif
+
+#ifdef USE_CAEN_HV
+    menuBar()->addMenu(setupHVMenu());
+#endif
+
 }
 
 // tool box
@@ -393,7 +395,6 @@ void PRadEventViewer::createStatusWindow()
 void PRadEventViewer::setupInfoWindow()
 {
     statusInfoWidget = new QTreeWidget;
-    statusInfoWidget->setStyleSheet("QTreeWidget {background: #FFFFF8;}");
     statusInfoWidget->setSelectionMode(QAbstractItemView::NoSelection);
     QStringList statusInfoTitle;
     QFont font("arial", 10 , QFont::Bold );
@@ -917,7 +918,8 @@ void PRadEventViewer::handleEventChange(int evt)
 {
     handler->ChooseEvent(evt - 1); // fetch data from handler
 #ifdef RECON_DISPLAY
-    showReconEvent(evt - 1);
+    if(enableRecon->isChecked())
+        showReconEvent(evt - 1);
 #endif
     Refresh();
 }
@@ -1355,19 +1357,52 @@ void PRadEventViewer::handleRootEvents()
 // Reconstruction Display functions                                           //
 //============================================================================//
 
-void PRadEventViewer::useSquareRecon()
+void PRadEventViewer::setupReconDisplay()
 {
-    fUseIsland = false;
+    // add hycal clustering methods
+    handler->AddHyCalClusterMethod(new PRadIslandCluster(), "Island", "config/island.conf");
+    handler->AddHyCalClusterMethod(new PRadSquareCluster(), "Square", "config/square.conf");
     handler->SetHyCalClusterMethod("Square");
-    // redo the reconstruction on current event
+
+    detMatch = new PRadDetMatch();
+    coordSystem = new PRadCoordSystem();
+
+    reconSetting = new ReconSettingPanel(this);
+
+    reconSetting->ConnectDataHandler(handler);
+    reconSetting->ConnectCoordSystem(coordSystem);
+    reconSetting->ConnectMatchSystem(detMatch);
+}
+
+QMenu *PRadEventViewer::setupReconMenu()
+{
+    QMenu *reconMenu = new QMenu(tr("&Reconstruct Event"));
+
+    enableRecon = reconMenu->addAction(tr("Show Reconstructed Event"));
+    enableRecon->setCheckable(true);
+    enableRecon->setChecked(true);
+
+    QAction *setupRecon = reconMenu->addAction(tr("Reconstruction Settings"));
+
+    connect(enableRecon, SIGNAL(triggered()), this, SLOT(enableReconstruct()));
+    connect(setupRecon, SIGNAL(triggered()), this, SLOT(setupReconMethods()));
+
+    return reconMenu;
+}
+
+void PRadEventViewer::enableReconstruct()
+{
+    if(!enableRecon->isChecked())
+        HyCal->ClearHitsMarks();
+
     emit(changeCurrentEvent(eventSpin->value()));
 }
 
-void PRadEventViewer::useIslandRecon()
+void PRadEventViewer::setupReconMethods()
 {
-    fUseIsland = true;
-    handler->SetHyCalClusterMethod("Island");
-    // redo the reconstruction on current event
+    if(!reconSetting->Execute())
+        return;
+
     emit(changeCurrentEvent(eventSpin->value()));
 }
 

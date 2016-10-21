@@ -25,8 +25,14 @@ int main(int argc, char *argv[])
 
     viewer->show();
 
-    app.connect(viewer, SIGNAL( destroyed() ),
-                &app, SLOT( quit() ) );
+    app.connect(viewer, SIGNAL(destroyed()), &app, SLOT(quit()));
+
+    // load style sheet
+    QFile File("config/gui_style.qss");
+    if(File.open(QFile::ReadOnly)) {
+        QString style = QLatin1String(File.readAll());
+        app.setStyleSheet(style);
+    }
 
     return app.exec();
 }
