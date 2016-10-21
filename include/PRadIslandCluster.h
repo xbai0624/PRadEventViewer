@@ -138,7 +138,7 @@ public:
     void  LoadBlockInfo(const std::string &path);
     void  LoadCrystalProfile(const std::string &path);
     void  LoadLeadGlassProfile(const std::string &path);
-    void  LoadNonLinearity(const std::string &path);
+//    void  LoadNonLinearity(const std::string &path);
     void  Reconstruct(EventData &event);
     void  Clear();
 

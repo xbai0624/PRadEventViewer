@@ -28,18 +28,18 @@ void PRadIslandCluster::Configure(const std::string &c_path)
     }
 
     // set all the parameters
-    fDoShowerDepth = GetConfigValue("DO_SHOWER_DEPTH", "0").Int();
-    fUse2ExpWeight = GetConfigValue("USE_DOUBLE_EXP_WEIGHT", "0").Int();
-    fDoNonLinCorr  = GetConfigValue("DO_NON_LINEARITY_CORRECTION", "0").Int();
-    fMinHitE       = GetConfigValue("MIN_BLOCK_ENERGY", "0.005").Float();
+    fDoShowerDepth = getConfigValue("DO_SHOWER_DEPTH", "0", verbose).Int();
+    fUse2ExpWeight = getConfigValue("USE_DOUBLE_EXP_WEIGHT", "0", verbose).Int();
+    fDoNonLinCorr  = getConfigValue("DO_NON_LINEARITY_CORRECTION", "0", verbose).Int();
+    fMinHitE       = getConfigValue("MIN_BLOCK_ENERGY", "0.005", verbose).Float();
     // default value is 3.6, suggested by the study with GEM (Weizhi)
-    fWeightFreePar = GetConfigValue("WEIGHT_FREE_PAR", "3.6").Float();
-    fMinClusterE   = GetConfigValue("MIN_CLUSTER_E", "0.05").Float();
-    fMinCenterE    = GetConfigValue("MIN_CENTER_E", "0.01").Float();
-    fZLGToPWO      = GetConfigValue("Z_LG_TO_PWO", "-10.12").Float();
-    fZHyCal        = GetConfigValue("Z_HYCAL", "581.7").Float();
-    fCutOffThr     = GetConfigValue("CUT_OFF_THRESHOLD", "0.01").Float();
-    f2ExpFreeWeight= GetConfigValue("DOUBLE_EXP_FREE_WEIGHT", "0.4").Float();
+    fWeightFreePar = getConfigValue("WEIGHT_FREE_PAR", "3.6", verbose).Float();
+    fMinClusterE   = getConfigValue("MIN_CLUSTER_E", "0.05", verbose).Float();
+    fMinCenterE    = getConfigValue("MIN_CENTER_E", "0.01", verbose).Float();
+    fZLGToPWO      = getConfigValue("Z_LG_TO_PWO", "-10.12", verbose).Float();
+    fZHyCal        = getConfigValue("Z_HYCAL", "581.7", verbose).Float();
+    fCutOffThr     = getConfigValue("CUT_OFF_THRESHOLD", "0.01", verbose).Float();
+    f2ExpFreeWeight= getConfigValue("DOUBLE_EXP_FREE_WEIGHT", "0.4", verbose).Float();
 
     // load block info, cluster profile in the PrimEx format
     std::string path;
@@ -66,6 +66,9 @@ void PRadIslandCluster::LoadLeadGlassProfile(const std::string &path)
     strcpy(c_path, path.c_str());
     load_lg_prof_(c_path, strlen(c_path));
 }
+//FIXME
+// non-linearity is part of calibration, should not be part of the clustering
+/*
 void PRadIslandCluster::LoadNonLinearity(const std::string &path)
 {
     FILE *fp;
@@ -75,6 +78,7 @@ void PRadIslandCluster::LoadNonLinearity(const std::string &path)
     }
     fclose(fp);
 }
+*/
 //________________________________________________________________
 void PRadIslandCluster::LoadBlockInfo(const std::string &path)
 {
@@ -890,16 +894,18 @@ inline float PRadIslandCluster::Finv(float y)
     float x1 = -10.;
     float x2 = 10.;
     float y1 = Fx(x1) - y;
-    float y2 = Fx(x2) - y;
-    while(fabs(x1-x2) > 1e-6){
+    // FIXME y2 is not used? comment out to avoid warning
+    //float y2 = Fx(x2) - y;
+    while(fabs(x1-x2) > 1e-6)
+    {
         x0 = 0.5*(x1+x2);
         y0 = Fx(x0) - y;
-        if(y1*y0 > 0){
+        if(y1*y0 > 0) {
           x1 = x0;
           y1 = y0;
         }else{
           x2 = x0;
-          y2 = y0;
+          //y2 = y0;
         }
     }
     return x0;
