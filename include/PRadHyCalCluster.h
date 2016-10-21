@@ -22,9 +22,11 @@ public:
 
     void SetHandler(PRadDataHandler *h);
     std::string GetConfigPath() {return config_path;};
+    ConfigValue GetConfigValue(const std::string &var_name);
+    void SetConfigValue(const std::string &var_name, const ConfigValue &c_value);
 
     // functions that to be overloaded
-    virtual void Configure(const std::string &path);
+    virtual void Configure(const std::string &path = "");
     virtual void Clear();
     virtual void Reconstruct(EventData &event);
     virtual int GetNClusters() {return fNHyCalClusters;};

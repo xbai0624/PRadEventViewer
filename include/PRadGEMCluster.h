@@ -15,9 +15,11 @@ public:
     virtual ~PRadGEMCluster();
 
     std::string GetConfigPath() {return config_path;};
+    ConfigValue GetConfigValue(const std::string &var_name);
+    void SetConfigValue(const std::string &var_name, const ConfigValue &c_value);
 
     // functions that to be overloaded
-    virtual void Configure(const std::string &path);
+    virtual void Configure(const std::string &path = "");
     virtual void Reconstruct(PRadGEMDetector *plane);
     virtual void Reconstruct(PRadGEMPlane *plane);
 
@@ -37,7 +39,7 @@ protected:
 protected:
     std::string config_path;
     // configuration map
-    std::unordered_map<std::string, ConfigValue> fConfigMap;
+    std::unordered_map<std::string, ConfigValue> config_map;
 
     // parameters
     unsigned int min_cluster_hits;

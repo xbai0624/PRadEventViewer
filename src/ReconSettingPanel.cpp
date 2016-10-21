@@ -23,6 +23,8 @@
 #include <QLineEdit>
 #include <QPushButton>
 #include <QDialogButtonBox>
+#include <QSpinBox>
+#include <QDoubleSpinBox>
 
 ReconSettingPanel::ReconSettingPanel(QWidget *parent)
 : QDialog(parent), handler(nullptr), coordSystem(nullptr), detMatch(nullptr)
@@ -88,11 +90,18 @@ QGroupBox *ReconSettingPanel::createGEMGroup()
     gemGroup->setCheckable(true);
     gemGroup->setChecked(true);
 
-    gemLine1 = new QLineEdit;
-    gemLine1->setValidator(new QIntValidator(0, 100, gemGroup));
+    gemMinHits = new QSpinBox;
+    gemMinHits->setRange(1, 20);
+    gemMaxHits = new QSpinBox;
+    gemMaxHits->setRange(2, 100);
+    gemSplitThres = new QDoubleSpinBox;
+    gemSplitThres->setRange(1., 1000.);
+    gemSplitThres->setSingleStep(0.1);
 
     QFormLayout *layout = new QFormLayout;
-    layout->addRow(tr("Place Holder"), gemLine1);
+    layout->addRow(tr("Min. Cluster Hits"), gemMinHits);
+    layout->addRow(tr("Max, Cluster Hits"), gemMaxHits);
+    layout->addRow(tr("Split Threshold"), gemSplitThres);
 
     gemGroup->setLayout(layout);
 
@@ -131,11 +140,11 @@ void ReconSettingPanel::ConnectDataHandler(PRadDataHandler *h)
 {
     handler = h;
 
-    if(h == nullptr)
-        return;
-
     // set the methods combo box according to the data handler settings
     hyCalMethods->clear();
+
+    if(h == nullptr)
+        return;
 
     int index = -1; // means no value selected in combo box
     auto methods = handler->GetHyCalClusterMethodsList();
@@ -150,6 +159,13 @@ void ReconSettingPanel::ConnectDataHandler(PRadDataHandler *h)
     }
 
     hyCalMethods->setCurrentIndex(index);
+
+    // set the config values from GEM clustering method
+    PRadGEMCluster *gem_method = handler->GetSRS()->GetClusterMethod();
+
+    gemMinHits->setValue(gem_method->GetConfigValue("MIN_CLUSTER_HITS").Int());
+    gemMaxHits->setValue(gem_method->GetConfigValue("MAX_CLUSTER_HITS").Int());
+    gemSplitThres->setValue(gem_method->GetConfigValue("SPLIT_CLUSTER_DIFF").Double());
 }
 
 void ReconSettingPanel::ConnectCoordSystem(PRadCoordSystem *c)
@@ -198,23 +214,30 @@ void ReconSettingPanel::loadHyCalConfig()
 // open Qt dialog, and save all the settings
 int ReconSettingPanel::Execute()
 {
+    SyncSettings();
     SaveSettings();
     return exec();
 }
 
-// save current settings
+// reconnects all the objects to read their settings
+void ReconSettingPanel::SyncSettings()
+{
+    ConnectDataHandler(handler);
+    ConnectCoordSystem(coordSystem);
+    ConnectMatchSystem(detMatch);
+}
+
+// save the settings that cannot by sync
 void ReconSettingPanel::SaveSettings()
 {
     hyCalGroup_data = hyCalGroup->isChecked();
-    hyCalMethods_data = hyCalMethods->currentIndex();
     gemGroup_data = gemGroup->isChecked();
 }
 
-// restore all the settings
+// restore the saved settings
 void ReconSettingPanel::RestoreSettings()
 {
     hyCalGroup->setChecked(hyCalGroup_data);
-    hyCalMethods->setCurrentIndex(hyCalMethods_data);
     gemGroup->setChecked(gemGroup_data);
 }
 
@@ -223,8 +246,18 @@ void ReconSettingPanel::Apply()
 {
     // set data handler
     if(handler != nullptr) {
+
+        // change HyCal clustering method
         std::string method = hyCalMethods->currentText().toStdString();
         handler->SetHyCalClusterMethod(method);
+
+        // set corresponding gem cluster configuration values
+        PRadGEMCluster *gem_method = handler->GetSRS()->GetClusterMethod();
+        gem_method->SetConfigValue("MIN_CLUSTER_HITS", gemMinHits->value());
+        gem_method->SetConfigValue("MAX_CLUSTER_HITS", gemMaxHits->value());
+        gem_method->SetConfigValue("SPLIT_CLUSTER_DIFF", gemSplitThres->value());
+        // reaload the configuration
+        gem_method->Configure();
     }
 }
 

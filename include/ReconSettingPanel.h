@@ -8,6 +8,8 @@ class PRadDataHandler;
 class PRadCoordSystem;
 class PRadDetMatch;
 
+class QSpinBox;
+class QDoubleSpinBox;
 class QComboBox;
 class QGroupBox;
 class QLineEdit;
@@ -24,6 +26,7 @@ public:
     void ConnectDataHandler(PRadDataHandler *h);
     void ConnectCoordSystem(PRadCoordSystem *c);
     void ConnectMatchSystem(PRadDetMatch *m);
+    void SyncSettings();
     void SaveSettings();
     void RestoreSettings();
     void Apply();
@@ -56,15 +59,17 @@ private:
 
     QComboBox *hyCalMethods;
     QLineEdit *hyCalConfigPath;
-    QLineEdit *gemLine1;
+
+    QSpinBox *gemMinHits;
+    QSpinBox *gemMaxHits;
+    QDoubleSpinBox *gemSplitThres;
+
     QLineEdit *coordLine1;
     QLineEdit *matchLine1;
 
 private:
-    //saved settings
     bool hyCalGroup_data;
     bool gemGroup_data;
-    int hyCalMethods_data;
 };
 
 #endif

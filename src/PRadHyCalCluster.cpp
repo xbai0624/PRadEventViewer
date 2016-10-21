@@ -78,6 +78,20 @@ ConfigValue PRadHyCalCluster::getConfigValue(const std::string &name,
     return it->second;
 }
 
+ConfigValue PRadHyCalCluster::GetConfigValue(const std::string &name)
+{
+    auto it = fConfigMap.find(name);
+    if(it == fConfigMap.end())
+        return ConfigValue("0");
+    else
+        return it->second;
+}
+
+void PRadHyCalCluster::SetConfigValue(const std::string &var_name, const ConfigValue &c_value)
+{
+    fConfigMap[var_name] = c_value;
+}
+
 void PRadHyCalCluster::Configure(const std::string & /*path*/)
 {
     // to be implemented by methods

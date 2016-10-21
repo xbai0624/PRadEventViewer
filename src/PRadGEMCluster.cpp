@@ -43,6 +43,20 @@ void PRadGEMCluster::Configure(const std::string &path)
     split_cluster_diff = getConfigValue("SPLIT_CLUSTER_DIFF", "14", verbose).Double();
 }
 
+ConfigValue PRadGEMCluster::GetConfigValue(const std::string &var_name)
+{
+    auto it = config_map.find(var_name);
+    if(it == config_map.end())
+        return ConfigValue("0");
+    else
+        return it->second;
+}
+
+void PRadGEMCluster::SetConfigValue(const std::string &var_name, const ConfigValue &c_value)
+{
+    config_map[var_name] = c_value;
+}
+
 // read configuration file and build the configuration map
 void PRadGEMCluster::readConfigFile(const std::string &path)
 {
@@ -59,7 +73,7 @@ void PRadGEMCluster::readConfigFile(const std::string &path)
     config_path = path;
 
     // clear the map
-    fConfigMap.clear();
+    config_map.clear();
 
     while(c_parser.ParseLine())
     {
@@ -69,7 +83,7 @@ void PRadGEMCluster::readConfigFile(const std::string &path)
         std::string var_name;
         ConfigValue var_value;
         c_parser >> var_name >> var_value;
-        fConfigMap[var_name] = var_value;
+        config_map[var_name] = var_value;
     }
 }
 
@@ -78,14 +92,18 @@ ConfigValue PRadGEMCluster::getConfigValue(const std::string &name,
                                            const std::string &def_value,
                                            bool verbose)
 {
-    auto it = fConfigMap.find(name);
-    if(it == fConfigMap.end())
+    auto it = config_map.find(name);
+    if(it == config_map.end())
     {
-        if(verbose)
+        if(verbose) {
             std::cout << name
                       << " not defined in configuration file, set to default value "
                       << def_value
                       << std::endl;
+        }
+
+        config_map[name] = ConfigValue(def_value);
+
         return ConfigValue(def_value);
     }
     return it->second;
