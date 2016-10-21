@@ -7,6 +7,7 @@
 #include <vector>
 
 #define HYCAL_SHIFT -50
+#define CARTESIAN_TO_HYCALSCENE(x, y) x+HYCAL_SHIFT, -y
 
 class HyCalScene;
 class HyCalView;

@@ -43,7 +43,7 @@ void HyCalModule::Initialize()
 
     // flip Y axis to transform Cartesian coords to QtWidget Coords
     // add HYCAL_SHIFT to make the HyCal display in center
-    setPos(geometry.x + HYCAL_SHIFT, -geometry.y);
+    setPos(CARTESIAN_TO_HYCALSCENE(geometry.x, geometry.y));
 
     sparsify = (unsigned short)(pedestal.mean + 5*pedestal.sigma);
 
