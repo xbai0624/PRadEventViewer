@@ -593,8 +593,17 @@ void PRadDataHandler::ChooseEvent(const int &idx)
         else
             ChooseEvent(energyData.at(idx));
     } else if(!onlineMode) {
-        cout << "Data Handler: Data bank is empty, no event is chosen." << endl;
-        return;
+        cout << "Data Handler: Data bank is empty, clear all the modules." << endl;
+
+        for(auto &channel : channelList)
+        {
+            channel->UpdateADC(0);
+        }
+
+        for(auto &tdc_ch : tdcList)
+        {
+            tdc_ch->ClearTimeMeasure();
+        }
     }
 }
 
@@ -1420,7 +1429,7 @@ void PRadDataHandler::SetHyCalClusterMethod(const string &name)
     if(it != hycal_recon_map.end()) {
         hycal_recon = it->second;
     } else {
-        cerr << "Data Handler Error: Cannot find HyCal clustering method"
+        cerr << "Data Handler Error: Cannot find HyCal clustering method "
              << name
              << endl;
     }

@@ -93,10 +93,14 @@ public:
     void SelectModule(HyCalModule* module);
     PRadDataHandler *GetHandler() {return handler;};
 
+signals:
+    void currentEventChanged(int evt);
+
 public slots:
     void Refresh();
 
 private slots:
+    void handleEventChange(int event);
     void openDataFile();
     void initializeFromFile();
     void openPedFile();
@@ -119,10 +123,6 @@ private slots:
     void eraseBufferAction();
     void findEvent();
     void editCustomValueLabel(QTreeWidgetItem* item, int column);
-    void useSquareRecon();
-    void useIslandRecon();
-    void showAllGEMHits() { fShowMatchedGEM = false; }
-    void showMatchedGEMHits() { fShowMatchedGEM = true; }
 
 private:
     void initView();
@@ -134,7 +134,7 @@ private:
     void readModuleList();
     void readTDCList();
     void readSpecialChannels();
-    void eraseModuleBuffer();
+    void eraseData();
     void createMainMenu();
     void createControlPanel();
     void createStatusBar();
@@ -156,12 +156,10 @@ private:
                              const QString &suffix,
                              QFileDialog::AcceptMode mode = QFileDialog::AcceptOpen,
                              QFileDialog::FileMode fmode = QFileDialog::ExistingFiles);
-    void reconCurrentEvent();
 
     PRadDataHandler *handler;
     PRadCoordSystem *coordSystem;
     PRadDetMatch *detMatch;
-    int currentEvent;
     HistType histType;
     AnnoType annoType;
     ViewMode viewMode;
@@ -242,6 +240,15 @@ private:
     QAction *hvDisableAction;
     QAction *hvSaveAction;
     QAction *hvRestoreAction;
+#endif
+
+#ifdef RECON_DISPLAY
+private slots:
+    void useSquareRecon();
+    void useIslandRecon();
+    void showReconEvent(int evt);
+    void showAllGEMHits() { fShowMatchedGEM = false; }
+    void showMatchedGEMHits() { fShowMatchedGEM = true; }
 #endif
 };
 

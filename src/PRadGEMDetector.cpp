@@ -115,6 +115,30 @@ std::vector<PRadGEMAPV*> PRadGEMDetector::GetAPVList(const PRadGEMPlane::PlaneTy
     return planes[(int)type]->GetAPVList();
 }
 
+std::list<GEMPlaneCluster> &PRadGEMDetector::GetPlaneCluster(const PRadGEMPlane::PlaneType &type)
+throw (PRadException)
+{
+    if(planes[(int)type] == nullptr)
+        throw PRadException("PRadGEMDetector Error", "Plane does not exist!");
+
+    return planes[(int)type]->GetPlaneCluster();
+}
+
+std::vector<std::list<GEMPlaneCluster>*> PRadGEMDetector::GetDetectorClusters()
+{
+    std::vector<std::list<GEMPlaneCluster>*> plane_clusters;
+
+    for(auto &plane : planes)
+    {
+        if(plane != nullptr)
+            plane_clusters.push_back(&plane->GetPlaneCluster());
+        else
+            plane_clusters.push_back(nullptr);
+    }
+
+    return plane_clusters;
+}
+
 void PRadGEMDetector::ConnectAPV(const PRadGEMPlane::PlaneType &type, PRadGEMAPV *apv)
 {
     if(planes[(int)type] == nullptr)

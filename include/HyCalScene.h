@@ -7,17 +7,14 @@
 
 class PRadEventViewer;
 class HyCalModule;
-class QString;
-class QPoint;
-class QRectF;
-class QColor;
 
 class HyCalScene : public QGraphicsScene
 {
     Q_OBJECT
 
 public:
-    struct TextBox {
+    struct TextBox
+    {
         QString name;
         QString text;
         QColor textColor;
@@ -29,7 +26,24 @@ public:
         : name(n), text(t), textColor(tc), bound(b), bgColor(c) {};
         TextBox(const QString &n, const QColor &tc, const QRectF &b, const QColor &c)
         : name(n), text(""), textColor(tc), bound(b), bgColor(c) {};
-     };
+    };
+
+    struct HitsMark
+    {
+        QString name;
+        QString text;
+        QColor textColor;
+        QRectF textBox;
+        QPointF hitPos;
+        QColor hitColor;
+        float size;
+
+        HitsMark() {};
+        HitsMark(const QString &n, const QString &t, const QPointF &p, const QColor &c, const float &s)
+        : name(n), text(t), textColor(Qt::black), textBox(QRectF(p.x()-50., p.y()-20., 100., 40.)),
+          hitPos(p), hitColor(c), size(s)
+        {};
+    };
 
     HyCalScene(PRadEventViewer *p, QObject *parent = 0)
     : QGraphicsScene(parent), console(p),
@@ -48,16 +62,14 @@ public:
 
     void AddTDCBox(const QString &name, const QColor &textColor, const QRectF &textBox, const QColor &bgColor);
     void AddScalerBox(const QString &name, const QColor &textColor, const QRectF &textBox, const QColor &bgColor);
+    void AddHitsMark(const QString &name, const QPointF &position, const QColor &markColor, const float &markSize, const QString &text = "");
+    void ClearHitsMarks();
     void UpdateScalerBox(const QString &text, const int &group = 0);
     void UpdateScalerBox(const QStringList &texts);
     void ShowScalers(const bool &s = true) {showScalers = s;};
     void addModule(HyCalModule *module);
     void addItem(QGraphicsItem *item);
     QVector<HyCalModule *> GetModuleList() {return moduleList;};
-    void ClearHits();
-    void AddHyCalHits(const QPointF &hit);
-    void AddGEMHits(int igem, const QPointF &hit);
-    void AddEnergyValue(QString s, const QRectF &module);
 
 protected:
     void drawForeground(QPainter *painter, const QRectF &rect);
@@ -65,9 +77,9 @@ protected:
     void mouseReleaseEvent(QGraphicsSceneMouseEvent *event);
 
 private:
-    void printScalerBoxes(QPainter *painter);
-    void printTDCBoxes(QPainter *painter);
-    void printReconHits(QPainter *painter);
+    void drawScalerBoxes(QPainter *painter);
+    void drawTDCBoxes(QPainter *painter);
+    void drawHitsMarks(QPainter *painter);
 
 private:
     PRadEventViewer *console;
@@ -75,10 +87,8 @@ private:
     bool showScalers;
     QList<TextBox> tdcBoxList;
     QVector<TextBox> scalarBoxList;
+    QVector<HitsMark> hitsMarkList;
     QVector<HyCalModule *> moduleList;
-    QList<QPointF> recon_hits;
-    std::unordered_map< int, QList<QPointF> > gem_hits;
-    std::vector< std::pair<QString, const QRectF> > module_energy;
 };
 
 #endif

@@ -24,18 +24,19 @@ void HyCalScene::drawForeground(QPainter *painter, const QRectF &rect)
     painter->save();
 
     if(showScalers)
-        printScalerBoxes(painter);
+        drawScalerBoxes(painter);
 
     if(console->GetAnnoType() == ShowTDC)
-        printTDCBoxes(painter);
+        drawTDCBoxes(painter);
 
-    printReconHits(painter);
+    drawHitsMarks(painter);
+
     painter->restore();
 }
 
 
-// print scaler boxes
-void HyCalScene::printScalerBoxes(QPainter *painter)
+// show scaler boxes
+void HyCalScene::drawScalerBoxes(QPainter *painter)
 {
     painter->setFont(QFont("times", 16, QFont::Bold));
     for(auto it = scalarBoxList.begin(); it != scalarBoxList.end(); ++it)
@@ -58,11 +59,11 @@ void HyCalScene::printScalerBoxes(QPainter *painter)
     }
 }
 
-// Show the tdc groups
-void HyCalScene::printTDCBoxes(QPainter *painter)
+// show the tdc groups
+void HyCalScene::drawTDCBoxes(QPainter *painter)
 {
     painter->setFont(QFont("times", 24, QFont::Bold));
-    for (auto it = tdcBoxList.begin(); it != tdcBoxList.end(); ++it)
+    for(auto it = tdcBoxList.begin(); it != tdcBoxList.end(); ++it)
     {
         QPen pen(it->textColor);
         pen.setWidth(2);
@@ -79,57 +80,26 @@ void HyCalScene::printTDCBoxes(QPainter *painter)
     }
 }
 
-void HyCalScene::printReconHits(QPainter *painter)
+// draw hits marks
+void HyCalScene::drawHitsMarks(QPainter *painter)
 {
-    // print out reconstructed hits
-    if(!recon_hits.isEmpty()) {
-        QPen pen(Qt::red);
+    for(auto &mark : hitsMarkList)
+    {
+        // draw a circle mark
+        QPen pen(mark.hitColor);
         pen.setWidth(2);
-        pen.setCosmetic(true);
         painter->setPen(pen);
-        for(auto &hit : recon_hits)
-        {
-            painter->drawEllipse(hit, 7., 7.);
-        }
+        painter->drawEllipse(mark.hitPos, mark.size, mark.size);
+
+        // draw text
+        if(mark.text.isEmpty())
+            continue;
+
+        pen.setColor(mark.textColor);
+        painter->setPen(pen);
+        painter->setFont(QFont("times", 9));
+        painter->drawText(mark.textBox, mark.text, QTextOption(Qt::AlignTop | Qt::AlignHCenter));
     }
-
-    // print out module energy
-    if(!module_energy.empty()) {
-        QPen pen(Qt::black);
-        pen.setWidth(2);
-        pen.setCosmetic(true);
-        painter->setPen(pen);
-        painter->setFont(QFont("times", 3));
-
-        for(auto &it : module_energy)
-        {
-            painter->drawText(it.second, Qt::TextWordWrap, it.first);
-        }
-     }
-
-     // print out gem hits
-     if (!gem_hits.empty()) {
-        QPen pen1(Qt::blue);
-        pen1.setWidth(2);
-        pen1.setCosmetic(true);
-        QPen pen2(Qt::magenta);
-        pen2.setWidth(2);
-        pen2.setCosmetic(true);
-
-        for(auto &it : gem_hits)
-        {
-            if(it.first == 0) {
-                painter->setPen(pen1);
-            } else {
-                painter->setPen(pen2);
-            }
-
-            for (auto &hit : it.second)
-            {
-                painter->drawEllipse(hit, 3.5, 3.5);
-            }
-        }
-     }
 }
 
 void HyCalScene::addItem(QGraphicsItem *item)
@@ -143,14 +113,29 @@ void HyCalScene::addModule(HyCalModule *module)
     moduleList.push_back(module);
 }
 
-void HyCalScene::AddTDCBox(const QString &text, const QColor &textColor, const QRectF &textBox, const QColor &bkgColor)
+void HyCalScene::AddTDCBox(const QString &text,
+                           const QColor &textColor,
+                           const QRectF &textBox,
+                           const QColor &bkgColor)
 {
     tdcBoxList.append(TextBox(text, textColor, textBox, bkgColor));
 }
 
-void HyCalScene::AddScalerBox(const QString &text, const QColor &textColor, const QRectF &textBox, const QColor &bkgColor)
+void HyCalScene::AddScalerBox(const QString &text,
+                              const QColor &textColor,
+                              const QRectF &textBox,
+                              const QColor &bkgColor)
 {
     scalarBoxList.push_back(TextBox(text, textColor, textBox, bkgColor));
+}
+
+void HyCalScene::AddHitsMark(const QString &name,
+                             const QPointF &position,
+                             const QColor &markColor,
+                             const float &markSize,
+                             const QString &text)
+{
+    hitsMarkList.push_back(HitsMark(name, text, position, markColor, markSize));
 }
 
 void HyCalScene::UpdateScalerBox(const QString &text, const int &group)
@@ -205,34 +190,9 @@ void HyCalScene::mouseReleaseEvent(QGraphicsSceneMouseEvent *event)
         }
     }
 }
-void HyCalScene::AddHyCalHits(const QPointF &p)
+
+void HyCalScene::ClearHitsMarks()
 {
-    recon_hits.append(p);
+    hitsMarkList.clear();
 }
-
-void HyCalScene::AddGEMHits(int igem, const QPointF &hit)
-{
-    auto it = gem_hits.find(igem);
-    if (it != gem_hits.end()){
-      (it->second).append(hit);
-    }else{
-      QList<QPointF> thisList;
-      thisList.append(hit);
-      gem_hits[igem] = thisList;
-    }
-
-}
-
-void HyCalScene::ClearHits()
-{
-    recon_hits.clear();
-    module_energy.clear();
-    gem_hits.clear();
-}
-
-void HyCalScene::AddEnergyValue(QString s, const QRectF &p)
-{
-    module_energy.push_back(std::pair<QString, QRectF>(s, p) );
-}
-
 

@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <string>
+#include "PRadException.h"
 #include "PRadGEMPlane.h"
 
 class PRadGEMAPV;
@@ -30,6 +31,8 @@ public:
     PRadGEMPlane *GetPlane(const PRadGEMPlane::PlaneType &type);
     std::vector<PRadGEMPlane*> GetPlaneList();
     std::vector<PRadGEMAPV*> GetAPVList(const PRadGEMPlane::PlaneType &type);
+    std::list<GEMPlaneCluster> &GetPlaneCluster(const PRadGEMPlane::PlaneType &type) throw(PRadException);
+    std::vector<std::list<GEMPlaneCluster>*> GetDetectorClusters();
 
     // set parameters
     void AssignID(const int &i);

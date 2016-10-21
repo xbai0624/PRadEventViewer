@@ -42,6 +42,8 @@
 #include "PRadTDCGroup.h"
 #include "PRadLogBox.h"
 #include "PRadBenchMark.h"
+#include "PRadIslandCluster.h"
+#include "PRadSquareCluster.h"
 #include "PRadCoordSystem.h"
 #include "PRadDetMatch.h"
 #include "PRadGEMSystem.h"
@@ -66,11 +68,10 @@
 // constructor                                                                //
 //============================================================================//
 PRadEventViewer::PRadEventViewer()
-: handler(new PRadDataHandler()), currentEvent(0)
+: handler(new PRadDataHandler())
 {
     initView();
     setupUI();
-    ListModules();
 }
 
 PRadEventViewer::~PRadEventViewer()
@@ -279,17 +280,19 @@ void PRadEventViewer::createMainMenu()
 
     menuBar()->addMenu(toolMenu);
 #ifdef RECON_DISPLAY
+    handler->AddHyCalClusterMethod(new PRadIslandCluster(), "Island", "config/island.conf");
+    handler->AddHyCalClusterMethod(new PRadSquareCluster(), "Square", "config/square.conf");
     QMenu *reconMenu = new QMenu(tr("&Reconstruct Event"));
 
     QAction *useSquare = reconMenu->addAction(tr("Use Square HyCal Cluster"));
     QAction *useIsland = reconMenu->addAction(tr("Use Island HyCal Cluster"));
-    QAction *showAllGEMHit = reconMenu->addAction(tr("Show All GEM Hits"));
-    QAction *showMatchedGEMHit = reconMenu->addAction(tr("Show Matched GEM Hits"));
+//    QAction *showAllGEMHit = reconMenu->addAction(tr("Show All GEM Hits"));
+//    QAction *showMatchedGEMHit = reconMenu->addAction(tr("Show Matched GEM Hits"));
 
     connect(useSquare, SIGNAL(triggered()), this, SLOT(useSquareRecon()));
     connect(useIsland, SIGNAL(triggered()), this, SLOT(useIslandRecon()));
-    connect(showAllGEMHit, SIGNAL(triggered()), this, SLOT(showAllGEMHits()));
-    connect(showMatchedGEMHit, SIGNAL(triggered()), this, SLOT(showMatchedGEMHits()));
+//    connect(showAllGEMHit, SIGNAL(triggered()), this, SLOT(showAllGEMHits()));
+//    connect(showMatchedGEMHit, SIGNAL(triggered()), this, SLOT(showMatchedGEMHits()));
 
     menuBar()->addMenu(reconMenu);
 #endif
@@ -303,6 +306,8 @@ void PRadEventViewer::createControlPanel()
     eventSpin->setPrefix("Event # ");
     connect(eventSpin, SIGNAL(valueChanged(int)),
             this, SLOT(changeCurrentEvent(int)));
+    connect(this, SIGNAL(currentEventChanged(int)),
+            this, SLOT(handleEventChange(int)));
 
     histTypeBox = new QComboBox();
     histTypeBox->addItem(tr("Energy&TDC Hist"));
@@ -653,7 +658,6 @@ void PRadEventViewer::Refresh()
     }
 #endif
     case EnergyView:
-        handler->ChooseEvent(currentEvent - 1); // fetch data from handler
         ModuleAction(&HyCalModule::ShowEnergy);
         break;
     case CustomView:
@@ -668,7 +672,7 @@ void PRadEventViewer::Refresh()
 }
 
 // clean all the data buffer
-void PRadEventViewer::eraseModuleBuffer()
+void PRadEventViewer::eraseData()
 {
     handler->Clear();
     updateEventRange();
@@ -695,7 +699,7 @@ void PRadEventViewer::openDataFile()
     if (fileList.isEmpty())
         return;
 
-    eraseModuleBuffer();
+    eraseData();
 
     PRadBenchMark timer;
 
@@ -719,7 +723,6 @@ void PRadEventViewer::openDataFile()
               << std::endl;
 
     updateEventRange();
-
 }
 
 // open pedestal file
@@ -884,7 +887,7 @@ void PRadEventViewer::eraseBufferAction()
                                    "Clear all the events, including histograms?",
                                     QMessageBox::Yes|QMessageBox::No);
     if(confirm == QMessageBox::Yes)
-        eraseModuleBuffer();
+        eraseData();
 }
 
 void PRadEventViewer::UpdateStatusBar(ViewerStatus mode)
@@ -907,7 +910,15 @@ void PRadEventViewer::UpdateStatusBar(ViewerStatus mode)
 
 void PRadEventViewer::changeCurrentEvent(int evt)
 {
-    currentEvent = evt;
+    emit currentEventChanged(evt);
+}
+
+void PRadEventViewer::handleEventChange(int evt)
+{
+    handler->ChooseEvent(evt - 1); // fetch data from handler
+#ifdef RECON_DISPLAY
+    showReconEvent(evt - 1);
+#endif
     Refresh();
 }
 
@@ -915,13 +926,16 @@ void PRadEventViewer::updateEventRange()
 {
     int total = handler->GetEventCount();
 
-    eventSpin->setRange(1, total);
-    if(total)
+    if(total) {
         eventCntLabel->setText(tr("Total events: ") + QString::number(total));
-    else
+        eventSpin->setRange(1, total);
+    } else {
         eventCntLabel->setText(tr("No events data loaded."));
+        eventSpin->setRange(0, 0);
+    }
     UpdateHistCanvas();
-    Refresh();
+
+    emit currentEventChanged(eventSpin->value());
 }
 
 void PRadEventViewer::UpdateHistCanvas()
@@ -1336,26 +1350,35 @@ void PRadEventViewer::handleRootEvents()
     gSystem->ProcessEvents();
 }
 
+#ifdef RECON_DISPLAY
+//============================================================================//
+// Reconstruction Display functions                                           //
+//============================================================================//
+
 void PRadEventViewer::useSquareRecon()
 {
     fUseIsland = false;
     handler->SetHyCalClusterMethod("Square");
+    // redo the reconstruction on current event
+    emit(changeCurrentEvent(eventSpin->value()));
 }
 
 void PRadEventViewer::useIslandRecon()
 {
     fUseIsland = true;
     handler->SetHyCalClusterMethod("Island");
+    // redo the reconstruction on current event
+    emit(changeCurrentEvent(eventSpin->value()));
 }
 
-void PRadEventViewer::reconCurrentEvent()
+void PRadEventViewer::showReconEvent(int evt)
 {
-    HyCal->ClearHits();
+    HyCal->ClearHitsMarks();
     if(handler->GetEventCount() == 0)
         return;
 
     PRadGEMSystem *gem_srs = handler->GetSRS();
-    auto thisEvent = handler->GetEvent(currentEvent - 1);
+    auto thisEvent = handler->GetEvent(evt);
 
     if(!thisEvent.is_physics_event())
         return;
@@ -1363,10 +1386,19 @@ void PRadEventViewer::reconCurrentEvent()
     gem_srs->Reconstruct(thisEvent);
     handler->HyCalReconstruct(thisEvent);
 
-
     int nHyCalHits = 0;
     HyCalHit* thisHit = handler->GetHyCalCluster(nHyCalHits);
+    for(int i = 0; i < nHyCalHits; ++i)
+    {
+        QPointF p(CARTESIAN_TO_HYCALSCENE(thisHit[i].x_log, thisHit[i].y_log));
+        HyCal->AddHitsMark("HyCal Hit", p, Qt::black, 7., QString::number(thisHit[i].E) + " MeV");
+    }
 
+
+    // display hits
+    Refresh();
+
+/*
     detMatch->Clear();
     coordSystem->HyCalClustersToLab(nHyCalHits, thisHit);
     detMatch->LoadHyCalClusters(nHyCalHits, thisHit);
@@ -1450,7 +1482,9 @@ void PRadEventViewer::reconCurrentEvent()
             }
         }
     }
+*/
 }
+#endif
 
 #ifdef USE_ONLINE_MODE
 //============================================================================//
@@ -1537,7 +1571,7 @@ void PRadEventViewer::startOnlineMode()
     handler->SetOnlineMode(true);
 
     // Clean buffer
-    eraseModuleBuffer();
+    eraseData();
 
     // Update to status bar
     UpdateStatusBar(ONLINE_MODE);
