@@ -210,7 +210,30 @@ void PRadEventViewer::generateScalerBoxes()
 // main menu
 void PRadEventViewer::createMainMenu()
 {
-    // file menu, open, save, quit
+    menuBar()->addMenu(setupFileMenu());
+
+    menuBar()->addMenu(setupCalibMenu());
+
+    menuBar()->addMenu(setupToolMenu());
+
+    // menu for optional components
+#ifdef RECON_DISPLAY
+    menuBar()->addMenu(setupReconMenu());
+#endif
+
+#ifdef USE_ONLINE_MODE
+    menuBar()->addMenu(setupOnlineMenu());
+#endif
+
+#ifdef USE_CAEN_HV
+    menuBar()->addMenu(setupHVMenu());
+#endif
+
+}
+
+// file menu, open, save, quit
+QMenu *PRadEventViewer::setupFileMenu()
+{
     QMenu *fileMenu = new QMenu(tr("&File"));
 
     openDataAction = fileMenu->addAction(tr("&Open Data File"));
@@ -233,9 +256,14 @@ void PRadEventViewer::createMainMenu()
     connect(saveHistAction, SIGNAL(triggered()), this, SLOT(saveHistToFile()));
     connect(savePedAction, SIGNAL(triggered()), this, SLOT(savePedestalFile()));
     connect(quitAction, SIGNAL(triggered()), qApp, SLOT(quit()));
-    menuBar()->addMenu(fileMenu);
 
-    // calibration related
+    return fileMenu;
+}
+
+
+// calibration related menu
+QMenu *PRadEventViewer::setupCalibMenu()
+{
     QMenu *caliMenu = new QMenu(tr("&Calibration"));
 
     QAction *initializeAction = caliMenu->addAction(tr("Initialize From Data File"));
@@ -253,9 +281,13 @@ void PRadEventViewer::createMainMenu()
     connect(openGainFileAction, SIGNAL(triggered()), this, SLOT(openGainFactorFile()));
     connect(correctGainAction, SIGNAL(triggered()), this, SLOT(correctGainFactor()));
     connect(fitPedAction, SIGNAL(triggered()), this, SLOT(fitPedestal()));
-    menuBar()->addMenu(caliMenu);
 
-    // tool menu, useful tools
+    return caliMenu;
+}
+
+// tool menu, useful tools
+QMenu *PRadEventViewer::setupToolMenu()
+{
     QMenu *toolMenu = new QMenu(tr("&Tools"));
 
     QAction *eraseAction = toolMenu->addAction(tr("Erase Buffer"));
@@ -283,21 +315,7 @@ void PRadEventViewer::createMainMenu()
     connect(showCustomAction, SIGNAL(triggered()), this, SLOT(openCustomMap()));
     connect(findEventAction, SIGNAL(triggered()), this, SLOT(findEvent()));
 
-    menuBar()->addMenu(toolMenu);
-
-    // menu for optional components
-#ifdef RECON_DISPLAY
-    menuBar()->addMenu(setupReconMenu());
-#endif
-
-#ifdef USE_ONLINE_MODE
-    menuBar()->addMenu(setupOnlineMenu());
-#endif
-
-#ifdef USE_CAEN_HV
-    menuBar()->addMenu(setupHVMenu());
-#endif
-
+    return toolMenu;
 }
 
 // tool box

@@ -149,8 +149,11 @@ private:
     void updateEventRange();
     void readEventFromFile(const QString &filepath);
     void readCustomValue(const QString &filepath);
-    bool onlineSettings();
     void onlineUpdate(const size_t &max_events);
+    bool onlineSettings();
+    QMenu *setupFileMenu();
+    QMenu *setupCalibMenu();
+    QMenu *setupToolMenu();
     QString getFileName(const QString &title,
                         const QString &dir,
                         const QStringList &filter,
