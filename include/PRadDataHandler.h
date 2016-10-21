@@ -122,6 +122,8 @@ public:
     void UpdateRunInfo(const RunInfo &ri) {runInfo = ri;};
     void AddHyCalClusterMethod(PRadHyCalCluster *r, const std::string &name, const std::string &c_path);
     void SetHyCalClusterMethod(const std::string &name);
+    PRadHyCalCluster *GetHyCalClusterMethod(const std::string &name);
+    PRadHyCalCluster *GetHyCalClusterMethod() {return hycal_recon;};
     std::string GetHyCalClusterMethodName();
     std::vector<std::string> GetHyCalClusterMethodsList();
 

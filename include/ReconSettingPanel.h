@@ -2,6 +2,7 @@
 #define RECON_SETTING_PANEL_H
 
 #include <QDialog>
+#include <string>
 
 class PRadDataHandler;
 class PRadCoordSystem;
@@ -26,6 +27,8 @@ public:
     void SaveSettings();
     void RestoreSettings();
     void Apply();
+    bool ShowHyCalCluster();
+    bool ShowGEMCluster();
 
 public slots:
     void accept();
@@ -38,6 +41,11 @@ private:
     QGroupBox *createMatchGroup();
     QDialogButtonBox *createStandardButtons();
 
+private slots:
+    void updateHyCalPath();
+    void loadHyCalConfig();
+    void openHyCalConfig();
+
 private:
     PRadDataHandler *handler;
     PRadCoordSystem *coordSystem;
@@ -47,12 +55,15 @@ private:
     QGroupBox *gemGroup;
 
     QComboBox *hyCalMethods;
+    QLineEdit *hyCalConfigPath;
     QLineEdit *gemLine1;
     QLineEdit *coordLine1;
     QLineEdit *matchLine1;
 
 private:
     //saved settings
+    bool hyCalGroup_data;
+    bool gemGroup_data;
     int hyCalMethods_data;
 };
 

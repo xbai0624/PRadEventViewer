@@ -25,12 +25,12 @@ ReconSettingPanel::ReconSettingPanel(QWidget *parent)
 {
     setWindowTitle(tr("Reconstruction Settings"));
 
-    QGridLayout *grid = new QGridLayout;
-    grid->addWidget(createHyCalGroup(), 0, 0);
-    grid->addWidget(createGEMGroup(), 0, 1);
-    grid->addWidget(createCoordGroup(), 1, 0, 1, 2);
-    grid->addWidget(createMatchGroup(), 2, 0, 1, 2);
-    grid->addWidget(createStandardButtons(), 4, 0, 1, 2);
+    QVBoxLayout *grid = new QVBoxLayout;
+    grid->addWidget(createHyCalGroup());
+    grid->addWidget(createGEMGroup());
+    grid->addWidget(createCoordGroup());
+    grid->addWidget(createMatchGroup());
+    grid->addWidget(createStandardButtons());
 
     setLayout(grid);
 }
@@ -52,15 +52,26 @@ QDialogButtonBox *ReconSettingPanel::createStandardButtons()
 
 QGroupBox *ReconSettingPanel::createHyCalGroup()
 {
-    QGroupBox *hyCalGroup = new QGroupBox(tr("Show HyCal Clusters"));
+    hyCalGroup = new QGroupBox(tr("Show HyCal Clusters"));
     hyCalGroup->setCheckable(true);
     hyCalGroup->setChecked(true);
 
     // methods combo box
     hyCalMethods = new QComboBox;
+    // configuration file
+    QPushButton *hyCalLoadConfig = new QPushButton(tr("Reload"));
+    QPushButton *hyCalFindPath = new QPushButton(tr("Open Configuration File"));
+    hyCalConfigPath = new QLineEdit;
 
-    QVBoxLayout *layout = new QVBoxLayout;
-    layout->addWidget(hyCalMethods);
+    connect(hyCalMethods, SIGNAL(currentIndexChanged(int)), this, SLOT(updateHyCalPath()));
+    connect(hyCalLoadConfig, SIGNAL(clicked()), this, SLOT(loadHyCalConfig()));
+    connect(hyCalFindPath, SIGNAL(clicked()), this, SLOT(openHyCalConfig()));
+
+    QGridLayout *layout = new QGridLayout;
+    layout->addWidget(hyCalMethods, 0, 0);
+    layout->addWidget(hyCalFindPath, 0, 1, 1, 2);
+    layout->addWidget(hyCalConfigPath, 1, 0, 1, 2);
+    layout->addWidget(hyCalLoadConfig, 1, 2);
 
     hyCalGroup->setLayout(layout);
 
@@ -69,7 +80,7 @@ QGroupBox *ReconSettingPanel::createHyCalGroup()
 
 QGroupBox *ReconSettingPanel::createGEMGroup()
 {
-    QGroupBox *gemGroup = new QGroupBox(tr("GEM Cluster Setting"));
+    gemGroup = new QGroupBox(tr("GEM Cluster Setting"));
     gemGroup->setCheckable(true);
     gemGroup->setChecked(true);
 
@@ -147,6 +158,41 @@ void ReconSettingPanel::ConnectMatchSystem(PRadDetMatch *m)
     detMatch = m;
 }
 
+void ReconSettingPanel::updateHyCalPath()
+{
+    std::string name = hyCalMethods->currentText().toStdString();
+    PRadHyCalCluster *method = handler->GetHyCalClusterMethod(name);
+
+    if(method)
+        hyCalConfigPath->setText(QString::fromStdString(method->GetConfigPath()));
+    else
+        hyCalConfigPath->setText("");
+}
+
+// open the configuration file for selected method
+void ReconSettingPanel::openHyCalConfig()
+{
+    QString path = QFileDialog::getOpenFileName(this,
+                                                "HyCal Cluster Configuration File",
+                                                "config/",
+                                                "text config file (*.conf *.txt)");
+
+    if(path.isEmpty())
+        return;
+
+    hyCalConfigPath->setText(path);
+    loadHyCalConfig();
+}
+
+// load the configuration file for selected method
+void ReconSettingPanel::loadHyCalConfig()
+{
+    std::string name = hyCalMethods->currentText().toStdString();
+    PRadHyCalCluster *method = handler->GetHyCalClusterMethod(name);
+    if(method)
+        method->Configure(hyCalConfigPath->text().toStdString());
+}
+
 // open Qt dialog, and save all the settings
 int ReconSettingPanel::Execute()
 {
@@ -157,13 +203,17 @@ int ReconSettingPanel::Execute()
 // save current settings
 void ReconSettingPanel::SaveSettings()
 {
+    hyCalGroup_data = hyCalGroup->isChecked();
     hyCalMethods_data = hyCalMethods->currentIndex();
+    gemGroup_data = gemGroup->isChecked();
 }
 
 // restore all the settings
 void ReconSettingPanel::RestoreSettings()
 {
+    hyCalGroup->setChecked(hyCalGroup_data);
     hyCalMethods->setCurrentIndex(hyCalMethods_data);
+    gemGroup->setChecked(gemGroup_data);
 }
 
 // apply all the changes
@@ -188,4 +238,14 @@ void ReconSettingPanel::reject()
 {
     RestoreSettings();
     QDialog::reject();
+}
+
+bool ReconSettingPanel::ShowHyCalCluster()
+{
+    return hyCalGroup->isChecked();
+}
+
+bool ReconSettingPanel::ShowGEMCluster()
+{
+    return gemGroup->isChecked();
 }

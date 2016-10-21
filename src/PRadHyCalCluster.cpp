@@ -46,6 +46,9 @@ void PRadHyCalCluster::ReadConfigFile(const std::string &path)
     // save the path
     config_path = path;
 
+    // clear the map
+    fConfigMap.clear();
+
     while(c_parser.ParseLine())
     {
         if (c_parser.NbofElements() != 2)

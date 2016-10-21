@@ -1435,6 +1435,17 @@ void PRadDataHandler::SetHyCalClusterMethod(const string &name)
     }
 }
 
+PRadHyCalCluster *PRadDataHandler::GetHyCalClusterMethod(const string &name)
+{
+    PRadHyCalCluster *result = nullptr;
+
+    auto it = hycal_recon_map.find(name);
+    if(it != hycal_recon_map.end())
+        result = it->second;
+
+    return result;
+}
+
 std::string PRadDataHandler::GetHyCalClusterMethodName()
 {
     if(hycal_recon == nullptr)

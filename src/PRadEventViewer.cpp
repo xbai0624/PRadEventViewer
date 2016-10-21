@@ -1436,17 +1436,24 @@ void PRadEventViewer::showReconEvent(int evt)
     if(!thisEvent.is_physics_event())
         return;
 
-    gem_srs->Reconstruct(thisEvent);
-    handler->HyCalReconstruct(thisEvent);
+    // display HyCal
+    if(reconSetting->ShowHyCalCluster()) {
+        handler->HyCalReconstruct(thisEvent);
 
-    int nHyCalHits = 0;
-    HyCalHit* thisHit = handler->GetHyCalCluster(nHyCalHits);
-    for(int i = 0; i < nHyCalHits; ++i)
-    {
-        QPointF p(CARTESIAN_TO_HYCALSCENE(thisHit[i].x_log, thisHit[i].y_log));
-        HyCal->AddHitsMark("HyCal Hit", p, Qt::black, 7., QString::number(thisHit[i].E) + " MeV");
+        int nHyCalHits = 0;
+        HyCalHit* thisHit = handler->GetHyCalCluster(nHyCalHits);
+        for(int i = 0; i < nHyCalHits; ++i)
+        {
+            QPointF p(CARTESIAN_TO_HYCALSCENE(thisHit[i].x_log, thisHit[i].y_log));
+            HyCal->AddHitsMark("HyCal Hit", p, Qt::black, 7., QString::number(thisHit[i].E) + " MeV");
+        }
     }
 
+    // display GEM
+    if(reconSetting->ShowGEMCluster()) {
+        // TODO unfinished
+        gem_srs->Reconstruct(thisEvent);
+    }
 
     // display hits
     Refresh();
