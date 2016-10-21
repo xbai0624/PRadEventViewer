@@ -20,10 +20,6 @@ public:
     PRadHyCalCluster(PRadDataHandler *h = nullptr);
     virtual ~PRadHyCalCluster();
 
-    void ReadConfigFile(const std::string &path);
-    ConfigValue GetConfigValue(const std::string &var_name,
-                               const std::string &def_value,
-                               bool verbose = true);
     void SetHandler(PRadDataHandler *h);
     std::string GetConfigPath() {return config_path;};
 
@@ -33,6 +29,12 @@ public:
     virtual void Reconstruct(EventData &event);
     virtual int GetNClusters() {return fNHyCalClusters;};
     virtual HyCalHit *GetCluster() {return fHyCalCluster;};
+
+protected:
+    void readConfigFile(const std::string &path);
+    ConfigValue getConfigValue(const std::string &var_name,
+                               const std::string &def_value,
+                               bool verbose = true);
 
 protected:
     PRadDataHandler *fHandler;

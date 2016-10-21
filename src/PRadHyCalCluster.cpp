@@ -32,7 +32,7 @@ void PRadHyCalCluster::SetHandler(PRadDataHandler *h)
     fHandler = h;
 }
 
-void PRadHyCalCluster::ReadConfigFile(const std::string &path)
+void PRadHyCalCluster::readConfigFile(const std::string &path)
 {
     ConfigParser c_parser(": ,\t="); // self-defined splitters
 
@@ -61,7 +61,7 @@ void PRadHyCalCluster::ReadConfigFile(const std::string &path)
     }
 }
 
-ConfigValue PRadHyCalCluster::GetConfigValue(const std::string &name,
+ConfigValue PRadHyCalCluster::getConfigValue(const std::string &name,
                                              const std::string &def_value,
                                              bool verbose)
 {

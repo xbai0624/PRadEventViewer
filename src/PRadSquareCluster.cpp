@@ -24,18 +24,24 @@ PRadSquareCluster::~PRadSquareCluster()
 
 void PRadSquareCluster::Configure(const string &c_path)
 {
-    ReadConfigFile(c_path);
+    // if no configuration file specified, load the default value quietly
+    bool verbose = false;
 
-    fMoliereCrystal = GetConfigValue("MOLIERE_CRYSTAL", "20.5").Double();
-    fMoliereLeadGlass = GetConfigValue("MOLIERE_LEADGLASS", "38.2").Double();
+    if(!c_path.empty()) {
+        readConfigFile(c_path);
+        verbose = true;
+    }
+
+    fMoliereCrystal = getConfigValue("MOLIERE_CRYSTAL", "20.5", verbose).Double();
+    fMoliereLeadGlass = getConfigValue("MOLIERE_LEADGLASS", "38.2", verbose).Double();
     fMoliereRatio = fMoliereLeadGlass/fMoliereCrystal;
 
-    fBaseR = GetConfigValue("CLUSTER_SEP_DISTANCE", "60.0").Double();
-    fMinClusterCenterE = GetConfigValue("MIN_CLUSTER_CENTER_E", "10.0").Double();
-    fMinClusterE = GetConfigValue("MIN_CLUSTER_TOTAL_E", "50.0").Double();
+    fBaseR = getConfigValue("CLUSTER_SEP_DISTANCE", "60.0", verbose).Double();
+    fMinClusterCenterE = getConfigValue("MIN_CLUSTER_CENTER_E", "10.0", verbose).Double();
+    fMinClusterE = getConfigValue("MIN_CLUSTER_TOTAL_E", "50.0", verbose).Double();
 
     // default value is 3.6, suggested by the study with GEM by Weizhi
-    fLogWeightThres = GetConfigValue("WEIGHT_FREE_PAR", "3.6").Double();
+    fLogWeightThres = getConfigValue("WEIGHT_FREE_PAR", "3.6", verbose).Double();
 }
 
 void PRadSquareCluster::Clear()

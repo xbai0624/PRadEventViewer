@@ -14,11 +14,15 @@
 #include "PRadDetMatch.h"
 #include "PRadGEMSystem.h"
 
-#if QT_VERSION >= 0x500000
-#include <QtWidgets>
-#else
-#include <QtGui>
-#endif
+#include <QFileDialog>
+#include <QVBoxLayout>
+#include <QFormLayout>
+#include <QGridLayout>
+#include <QComboBox>
+#include <QGroupBox>
+#include <QLineEdit>
+#include <QPushButton>
+#include <QDialogButtonBox>
 
 ReconSettingPanel::ReconSettingPanel(QWidget *parent)
 : QDialog(parent), handler(nullptr), coordSystem(nullptr), detMatch(nullptr)
@@ -187,10 +191,8 @@ void ReconSettingPanel::openHyCalConfig()
 // load the configuration file for selected method
 void ReconSettingPanel::loadHyCalConfig()
 {
-    std::string name = hyCalMethods->currentText().toStdString();
-    PRadHyCalCluster *method = handler->GetHyCalClusterMethod(name);
-    if(method)
-        method->Configure(hyCalConfigPath->text().toStdString());
+    handler->ConfigureHyCalClusterMethod(hyCalMethods->currentText().toStdString(),
+                                         hyCalConfigPath->text().toStdString());
 }
 
 // open Qt dialog, and save all the settings

@@ -120,8 +120,11 @@ public:
     void UpdateLiveTimeScaler(EventData &event);
     void UpdateOnlineInfo(EventData &event);
     void UpdateRunInfo(const RunInfo &ri) {runInfo = ri;};
-    void AddHyCalClusterMethod(PRadHyCalCluster *r, const std::string &name, const std::string &c_path);
+    void AddHyCalClusterMethod(PRadHyCalCluster *r,
+                               const std::string &name,
+                               const std::string &c_path = "");
     void SetHyCalClusterMethod(const std::string &name);
+    void ConfigureHyCalClusterMethod(const std::string &name, const std::string &path);
     PRadHyCalCluster *GetHyCalClusterMethod(const std::string &name);
     PRadHyCalCluster *GetHyCalClusterMethod() {return hycal_recon;};
     std::string GetHyCalClusterMethodName();

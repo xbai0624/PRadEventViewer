@@ -50,6 +50,9 @@ PRadDataHandler::PRadDataHandler()
     onlineInfo.add_trigger("LMS Alpha Source", 3);
     onlineInfo.add_trigger("Tagger Master OR", 4);
     onlineInfo.add_trigger("Scintillator", 5);
+
+    AddHyCalClusterMethod(new PRadIslandCluster(), "Island");
+    AddHyCalClusterMethod(new PRadSquareCluster(), "Square");
 }
 
 PRadDataHandler::~PRadDataHandler()
@@ -132,16 +135,14 @@ void PRadDataHandler::ReadConfig(const string &path)
         if((func_name.find("Island Cluster Configuration") != string::npos)) {
             const string var1 = "Island";
             const string var2 = c_parser.TakeFirst().String();
-            ExecuteConfigCommand(&PRadDataHandler::AddHyCalClusterMethod,
-                                 (PRadHyCalCluster *) new PRadIslandCluster(),
+            ExecuteConfigCommand(&PRadDataHandler::ConfigureHyCalClusterMethod,
                                  var1,
                                  var2);
         }
         if((func_name.find("Square Cluster Configuration") != string::npos)) {
             const string var1 = "Square";
             const string var2 = c_parser.TakeFirst().String();
-            ExecuteConfigCommand(&PRadDataHandler::AddHyCalClusterMethod,
-                                 (PRadHyCalCluster *) new PRadSquareCluster(),
+            ExecuteConfigCommand(&PRadDataHandler::ConfigureHyCalClusterMethod,
                                  var1,
                                  var2);
         }
@@ -1431,6 +1432,18 @@ void PRadDataHandler::SetHyCalClusterMethod(const string &name)
     } else {
         cerr << "Data Handler Error: Cannot find HyCal clustering method "
              << name
+             << endl;
+    }
+}
+
+void PRadDataHandler::ConfigureHyCalClusterMethod(const string &name, const string &path)
+{
+    PRadHyCalCluster *method = GetHyCalClusterMethod(name);
+    if(method) {
+        method->Configure(path);
+    } else {
+        cerr << "Data Handler Error: Cannot find HyCal clustering method "
+             << name << ", stop configuration."
              << endl;
     }
 }

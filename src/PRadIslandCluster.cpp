@@ -16,22 +16,28 @@ PRadIslandCluster::PRadIslandCluster(PRadDataHandler *h)
 //________________________________________________________________
 void PRadIslandCluster::Configure(const std::string &c_path)
 {
-    ReadConfigFile(c_path);
+    // if no configuration file specified, load the default value quietly
+    bool verbose = false;
+
+    if(!c_path.empty()) {
+        readConfigFile(c_path);
+        verbose = true;
+    }
 
     std::string path;
 
-    fMinHitE = GetConfigValue("MIN_BLOCK_ENERGY", "0.005").Float();
+    fMinHitE = getConfigValue("MIN_BLOCK_ENERGY", "0.005", verbose).Float();
 
     // default value is 3.6, suggested by the study with GEM by Weizhi
-    fLogWeightThres = GetConfigValue("WEIGHT_FREE_PAR", "3.6").Float();
+    fLogWeightThres = getConfigValue("WEIGHT_FREE_PAR", "3.6", verbose).Float();
 
-    path = GetConfigValue("BLOCK_INFO_FILE", "config/blockinfo.dat");
+    path = getConfigValue("BLOCK_INFO_FILE", "config/blockinfo.dat", verbose);
     LoadBlockInfo(path);
 
-    path = GetConfigValue("CRYSTAL_PROFILE", "config/prof_pwo.dat");
+    path = getConfigValue("CRYSTAL_PROFILE", "config/prof_pwo.dat", verbose);
     LoadCrystalProfile(path);
 
-    path = GetConfigValue("LEADGLASS_PROFILE", "config/prof_lg.dat");
+    path = getConfigValue("LEADGLASS_PROFILE", "config/prof_lg.dat", verbose);
     LoadLeadGlassProfile(path);
 }
 //________________________________________________________________

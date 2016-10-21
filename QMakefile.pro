@@ -6,8 +6,9 @@
 # 10/07/2016
 ######################################################################
 
-greaterThan(4, QT_MAJOR_VERSION):
+greaterThan(QT_MAJOR_VERSION, 4) {
     QT += widgets concurrent
+}
 
 # enable multi threading
 DEFINES += MULTI_THREAD

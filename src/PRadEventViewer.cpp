@@ -1378,10 +1378,6 @@ void PRadEventViewer::handleRootEvents()
 void PRadEventViewer::setupReconDisplay()
 {
     // add hycal clustering methods
-    handler->AddHyCalClusterMethod(new PRadIslandCluster(), "Island", "config/island.conf");
-    handler->AddHyCalClusterMethod(new PRadSquareCluster(), "Square", "config/square.conf");
-    handler->SetHyCalClusterMethod("Square");
-
     detMatch = new PRadDetMatch();
     coordSystem = new PRadCoordSystem();
 
