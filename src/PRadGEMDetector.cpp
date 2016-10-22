@@ -17,7 +17,8 @@ PRadGEMDetector::PRadGEMDetector(PRadGEMSystem *g,
                                  const std::string &readoutBoard,
                                  const std::string &detectorType,
                                  const std::string &detector)
-: gem_srs(g), name(detector), type(detectorType), readout_board(readoutBoard)
+: gem_srs(g), name(detector), type(detectorType), readout_board(readoutBoard),
+  NClusters(0)
 {
     planes.resize(PRadGEMPlane::Plane_Max, nullptr);
 }
@@ -69,9 +70,14 @@ void PRadGEMDetector::ReconstructHits(PRadGEMCluster *gem_recon)
 {
     for(auto &plane : planes)
     {
-        if(plane != nullptr)
-            gem_recon->Reconstruct(plane);
+        if(plane == nullptr)
+            continue;
+        gem_recon->Reconstruct(plane);
     }
+
+    NClusters = gem_recon->FormClusters(gem_clusters, // pointer to container
+                                        planes[(int)PRadGEMPlane::Plane_X], // x plane
+                                        planes[(int)PRadGEMPlane::Plane_Y]);// y plane
 }
 
 void PRadGEMDetector::ReconstructHits()
@@ -87,6 +93,8 @@ void PRadGEMDetector::ClearHits()
         if(plane != nullptr)
             plane->ClearPlaneHits();
     }
+
+    NClusters = 0;
 }
 
 void PRadGEMDetector::AssignID(const int &i)
@@ -152,4 +160,22 @@ void PRadGEMDetector::ConnectAPV(const PRadGEMPlane::PlaneType &type, PRadGEMAPV
         return;
 
     planes[(int)type]->ConnectAPV(apv);
+}
+
+GEMHit *PRadGEMDetector::GetClusters(int &n)
+{
+    n = NClusters;
+    return gem_clusters;
+}
+
+std::vector<GEMHit> PRadGEMDetector::GetClusters()
+{
+    std::vector<GEMHit> result;
+
+    for(int i = 0; i < NClusters; ++i)
+    {
+        result.push_back(gem_clusters[i]);
+    }
+
+    return result;
 }

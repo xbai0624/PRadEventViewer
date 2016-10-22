@@ -37,7 +37,7 @@ void PRadIslandCluster::Configure(const std::string &c_path)
     fMinClusterE   = getConfigValue("MIN_CLUSTER_E", "0.05", verbose).Float();
     fMinCenterE    = getConfigValue("MIN_CENTER_E", "0.01", verbose).Float();
     fZLGToPWO      = getConfigValue("Z_LG_TO_PWO", "-10.12", verbose).Float();
-    fZHyCal        = getConfigValue("Z_HYCAL", "581.7", verbose).Float();
+//    fZHyCal        = getConfigValue("Z_HYCAL", "581.7", verbose).Float();
     fCutOffThr     = getConfigValue("CUT_OFF_THRESHOLD", "0.01", verbose).Float();
     f2ExpFreeWeight= getConfigValue("DOUBLE_EXP_FREE_WEIGHT", "0.4", verbose).Float();
 
@@ -219,7 +219,7 @@ void PRadIslandCluster::CallIsland(int isect)
     SET_EMAX  = 9.9;    // banks->CONFIG->config->CLUSTER_ENERGY_MAX;
     SET_HMIN  = 1;      // banks->CONFIG->config->CLUSTER_MIN_HITS_NUMBER;
     SET_MINM  = 0.01;   // banks->CONFIG->config->CLUSTER_MAX_CELL_MIN_ENERGY;
-    ZHYCAL    = fZHyCal;   // ALignment[1].al.z;
+//    ZHYCAL    = fZHyCal;   // ALignment[1].al.z;
     ISECT     = isect;
 
     for(int icol = 1; icol <= MCOL; ++icol)
@@ -376,19 +376,22 @@ void PRadIslandCluster::CallIsland(int isect)
         fHyCalCluster[n].sigma_E    = ecellmax;  // use it temproraly
 
         if(sW) {
-            //adding shower depth correction here
-            float zk = 1.;
-            if (fDoShowerDepth){
-                if(idmax<999) {
-                    fHyCalCluster[n].dz = GetShowerDepth(0,e);
-                    fHyCalCluster[n].dz -= 10.12; // set common z for both part
-                }else{
-                    fHyCalCluster[n].dz = GetShowerDepth(1,e);
+            // FIXME looks like there is no special treatment on projecting z to z = 0
+            // after shower depth correction, so it is better to leave depth information
+            // and let the coordinate system take care of the projection
+            // adding shower depth correction here
+            //float zk = 1.;
+            if(fDoShowerDepth) {
+                if(idmax < 999) {
+                    fHyCalCluster[n].z = GetShowerDepth(0, e);
+                    fHyCalCluster[n].z -= 10.12; // surface diff between PWO and Pb-Glass
+                } else {
+                    fHyCalCluster[n].z = GetShowerDepth(1, e);
                 }
-                zk = 1. / (1. + fHyCalCluster[n].dz/ZHYCAL);
+                //zk /= (1. + fHyCalCluster[n].dz/ZHYCAL);
             }
-            fHyCalCluster[n].x_log = zk*xpos/sW;
-            fHyCalCluster[n].y_log = zk*ypos/sW;
+            fHyCalCluster[n].x_log = xpos/sW;
+            fHyCalCluster[n].y_log = ypos/sW;
         } else {
             printf("WRN bad cluster log. coord , center id = %i %f\n", idmax, fHyCalCluster[n].E);
             fHyCalCluster[n].x_log = 0.;
@@ -848,7 +851,7 @@ void PRadIslandCluster::FinalProcessing()
         fHyCalCluster[i].y *= 10.; // cm to mm
         fHyCalCluster[i].x_log *= -10.; // cm to mm
         fHyCalCluster[i].y_log *= 10.; // cm to mm
-        fHyCalCluster[i].dz *= 10.; //cm to mm
+        fHyCalCluster[i].z *= 10.; //cm to mm
 
 
         PRadDAQUnit *module =

@@ -1,184 +1,164 @@
+//============================================================================//
+// Transform the HyCal and GEM to beam center frame                           //
+//                                                                            //
+// Weizhi XIong, Xinzhan Bai, Chao Peng                                       //
+// 10/21/2016                                                                 //
+//============================================================================//
+
 #include "PRadCoordSystem.h"
-
+#include "ConfigParser.h"
 #include <cmath>
-#include <cstdio>
-#include <cstring>
-#include <list>
-#include <cassert>
+#include <fstream>
+#include <iomanip>
 
-using namespace std;
-
-PRadCoordSystem::PRadCoordSystem()
-: fGEMOriginShift(0.), fBeamOffsetX(0.), fBeamOffsetY(0.),
-  fGEMOffsetX(0.), fGEMOffsetY(0.), fHyCalOffsetX(0.),fHyCalOffsetY(0.)
+std::ostream &operator << (std::ostream &os, const PRadCoordSystem::Offsets &off)
 {
-
+    return os << std::setw(12) << off.x_ori
+              << std::setw(12) << off.y_ori
+              << std::setw(12) << off.z_ori
+              << std::setw(12) << off.theta_x
+              << std::setw(12) << off.theta_y
+              << std::setw(12) << off.theta_z;
 }
-//_______________________________________________________________________
+
+PRadCoordSystem::PRadCoordSystem(const std::string &path, const int &run)
+{
+    if(!path.empty())
+        LoadCoordData(path, run);
+}
+
 PRadCoordSystem::~PRadCoordSystem()
 {
+    // place holder
 }
-//_______________________________________________________________________
-void PRadCoordSystem::ReadConfigFile(const string &path)
+
+// load coordinates data, the format should be
+// run_number, detector_name, origin_x, origin_y, origin_z, theta_x, theta_y, theta_z
+// it reads the coordinates of the origin in the detector frame and its tilting angles
+void PRadCoordSystem::LoadCoordData(const std::string &path, const int &chosen_run)
 {
-    ConfigParser c_parser(": ,\t="); // self-defined splitters
+    ConfigParser c_parser;
 
     if(!c_parser.OpenFile(path)) {
-         cout << "Cannot open file " << path << endl;
-     }
+        std::cerr << "PRad Coord System Error: Cannot open data file "
+                  << "\"" << path << "\"."
+                  << std::endl;
+        return;
+    }
 
-    unordered_map<string, float> variable_map;
+    offsets_data.clear();
 
     while(c_parser.ParseLine())
     {
-        if (c_parser.NbofElements() != 2)
+        if(c_parser.NbofElements() < 8)
             continue;
 
-        string var_name = c_parser.TakeFirst();
-        ConfigValue var_value = c_parser.TakeFirst();
-        fConfigMap[var_name] = var_value;
+        int run;
+        std::string det_name;
+        double x, y, z, theta_x, theta_y, theta_z;
+
+        c_parser >> run >> det_name
+                 >> x >> y >> z >> theta_x >> theta_y >> theta_z;
+
+        size_t index = 0;
+        for(; index < (size_t) Max_CoordinateType; ++index)
+        {
+            if(det_name.find(CoordTypeName[index]) != std::string::npos)
+                break;
+        }
+
+        if(index >= (size_t) Max_CoordinateType) {
+            std::cout << "PRad Coord System Warning: Unrecognized detector "
+                      << det_name << ", skipped reading its offsets."
+                      << std::endl;
+            continue;
+        }
+        Offsets new_off(run, x, y, z, theta_x, theta_y, theta_z);
+
+        auto it = offsets_data.find(run);
+        if(it == offsets_data.end()) {
+            // create a new entry
+            std::vector<Offsets> new_entry((size_t)Max_CoordinateType);
+            new_entry[index] = new_off;
+
+            offsets_data[run] = new_entry;
+        } else {
+            it->second[index] = new_off;
+        }
+    }
+
+    auto  it = offsets_data.find(chosen_run);
+    if((it == offsets_data.end()) && offsets_data.size()) {
+    // set the first one as default offset
+        current_offsets = offsets_data.begin()->second;
+    } else {
+        current_offsets = it->second;
     }
 }
-//________________________________________________________________________
-ConfigValue PRadCoordSystem::GetConfigValue(const string &name,
-                                              const string &def_value,
-                                              bool verbose)
+
+void PRadCoordSystem::SaveCoordData(const std::string &path)
 {
-    auto it = fConfigMap.find(name);
-    if(it == fConfigMap.end())
+    std::ofstream output(path);
+
+    // output headers
+    output << "# The least run will be chosen as the default offset" << std::endl
+           << "# Lists the origin offsets of detectors to beam center and the tilting angles" << std::endl
+           << "# Units are in mm and radian" << std::endl
+           << "#" << std::setw(7) << "run"
+           << std::setw(10) << "detector"
+           << std::setw(12) << "x_origin"
+           << std::setw(12) << "y_origin"
+           << std::setw(12) << "z_origin"
+           << std::setw(12) << "x_tilt"
+           << std::setw(12) << "y_tilt"
+           << std::setw(12) << "z_tilt"
+           << std::endl;
+
+    for(auto &it : offsets_data)
     {
-        if(verbose)
-            cout << name
-                 << " not defined in configuration file, set to default value "
-                 << def_value
-                 << endl;
-        return ConfigValue(def_value);
-    }
-    return it->second;
-}
-//________________________________________________________________________
-void PRadCoordSystem::Configurate(const string & path)
-{
-    ReadConfigFile(path);
-
-    fGEMZ[0]           = GetConfigValue("GEM1_Z", "5304.").Float();
-    fGEMZ[1]           = GetConfigValue("GEM2_Z", "5264.").Float();
-    fHyCalZ            = GetConfigValue("HYCAL_Z", "5817.").Float();
-    fGEMOriginShift    = GetConfigValue("GEM_ORIGIN_SHIFT", "253.2").Float();
-    fZLGToPWO          = GetConfigValue("Z_LG_TO_PWO", "-101.2").Float();
-
-    //the following should probably go to a seperated function because
-    //each run gets a different offset value
-    fBeamOffsetX       = GetConfigValue("BEAM_OFFSET_X", "0.").Float();
-    fBeamOffsetY       = GetConfigValue("BEAM_OFFSET_Y", "0.").Float();
-    fGEMOffsetX        = GetConfigValue("GEM_OFFSET_X", "0.").Float();
-    fGEMOffsetY        = GetConfigValue("GEM_OFFSET_Y", "0.").Float();
-    fHyCalOffsetX      = GetConfigValue("HYCAL_OFFSET_X", "0.").Float();
-    fHyCalOffsetY      = GetConfigValue("HYCAL_OFFSET_Y", "0.").Float();
-}
-//_________________________________________________________________________
-void PRadCoordSystem::HyCalClustersToLab(int &nclusters, HyCalHit* clusters)
-{
-    //simply transform HyCal hits from internal coordinate to lab
-
-    for (int i=0; i<nclusters; i++){
-        clusters[i].x     = CoordinateTransform(kHyCalX, clusters[i].x);
-        clusters[i].x_log = CoordinateTransform(kHyCalX, clusters[i].x_log);
-        clusters[i].y     = CoordinateTransform(kHyCalY, clusters[i].y);
-        clusters[i].y_log = CoordinateTransform(kHyCalY, clusters[i].y_log);
-    }
-}
-//__________________________________________________________________________
-template<class T> void PRadCoordSystem::HyCalClustersToLab(int &nclusters, T* x, T*y)
-{
-    //template function for transfroming HyCal hit in array format
-
-    for (int i=0; i<nclusters; i++){
-        x[i] = CoordinateTransform(kHyCalX, x[i]);
-        y[i] = CoordinateTransform(kHyCalY, y[i]);
-    }
-}
-//__________________________________________________________________________
-void PRadCoordSystem::GEMClustersToLab(int type, list<GEMPlaneCluster>& clusters)
-{
-    for (list<GEMPlaneCluster>::iterator i = clusters.begin();
-         i != clusters.end(); i++)
-        (*i).position = CoordinateTransform((CoordinateType)type, (*i).position);
-}
-//________________________________________________________________________
-template<class T> void PRadCoordSystem::GEMClustersToLab(int type, int &nclusters, T* pos)
-{
-    //template function for transforming GEM hits in array format
-
-    for (int i=0; i<nclusters; i++)
-    pos[i] = CoordinateTransform((CoordinateType)type, pos[i]);
-}
-//________________________________________________________________________
-template <class T> inline T PRadCoordSystem::CoordinateTransform(CoordinateType type, T& coor)
-{
-    switch (type) {
-        case kHyCalX:
-        return coor + fHyCalOffsetX - fBeamOffsetX;
-        break;
-
-        case kHyCalY:
-        return coor + fHyCalOffsetY - fBeamOffsetY;
-        break;
-
-        case kGEM1X:
-        return coor - fGEMOriginShift + fGEMOffsetX   - fBeamOffsetX;
-        break;
-
-        case kGEM1Y:
-        return -1*coor + fGEMOffsetY   - fBeamOffsetY;
-        break;
-
-        case kGEM2X:
-        return -1*coor + fGEMOriginShift - fBeamOffsetX;
-        break;
-
-        case kGEM2Y:
-        return coor - fBeamOffsetY;
-        break;
-
-        default:
-        cout<<"should never happen, call expert"<<endl;
-        break;
-    }
-    return 0.;
-}
-//____________________________________________________________________________
-template<class T> void PRadCoordSystem::LinesIntersect(const T* xa, const T* ya, const T* xb,
-                                                   const T* yb, const T* x,  const T* y,
-                                                   int ndim)
-{
-    //finding the intersection point (x, y) of two straight line in 2D space
-    //can be used to determine the beam spot position
-    assert(ndim == 2);
-
-    T m[2];
-    T b[2];
-
-    for (int i=0; i<ndim; i++){
-      m[i] = (yb[i] - ya[i]) / (xb[i] - xa[i]);
-      b[i] = m[i]*xa[i] - ya[i];
+        for(size_t i = 0; i < it.second.size(); ++i)
+        {
+            output << std::setw(8) << it.first
+                   << std::setw(10) << CoordTypeName[i]
+                   << it.second.at(i)
+                   << std::endl;
+        }
     }
 
-    x = (b[1] - b[0])/(m[0] - m[1]);
-    y = (m[1]*b[0] - m[0]*b[1])/(m[1] - m[0]);
+    output.close();
 }
 
+// Transform the detector frame to beam frame
+// it corrects the tilting angle first, and then correct origin
+void PRadCoordSystem::Transform(PRadCoordSystem::CoordinateType type,
+                                double &x, double &y, double &z)
+{
+    int index = (int)type;
 
+    Offsets &coord = current_offsets[index];
 
+    // firstly do the angle tilting
+    // basic rotation matrix
+    // Rx(a) = ( 1           0         0  )
+    //         ( 0       cos(a)   -sin(a) )
+    //         ( 0       sin(a)    cos(a) )
+    y = y*cos(coord.theta_x) + z*sin(coord.theta_x);
+    z = -y*sin(coord.theta_x) + z*cos(coord.theta_x);
 
+    // Ry(a) = ( cos(a)      0     sin(a) )
+    //         ( 0           1         0  )
+    //         (-sin(a)      0     cos(a) )
+    x = x*cos(coord.theta_y) - z*sin(coord.theta_y);
+    z = x*sin(coord.theta_y) + z*cos(coord.theta_x);
 
+    // Rz(a) = ( cos(a) -sin(a)        0  )
+    //         ( sin(a)  cos(a)        0  )
+    //         ( 0           0         1  )
+    x = x*cos(coord.theta_z) + y*sin(coord.theta_z);
+    y = -x*sin(coord.theta_z) + y*cos(coord.theta_z);
 
-
-
-
-
-
-
-
-
-
+    // then correct the origin
+    x += coord.x_ori;
+    y += coord.y_ori;
+    z += coord.z_ori;
+}

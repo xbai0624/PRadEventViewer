@@ -11,7 +11,7 @@ greaterThan(QT_MAJOR_VERSION, 4) {
 }
 
 # enable multi threading
-DEFINES += MULTI_THREAD
+#DEFINES += MULTI_THREAD
 
 ######################################################################
 # optional components

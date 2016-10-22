@@ -13,14 +13,12 @@
 #include "PRadGEMPlane.h"
 #include "ConfigParser.h"
 
-using namespace std;
-
 class PRadDetMatch
 {
 public:
-    PRadDetMatch();
-    ~PRadDetMatch();;
-
+    PRadDetMatch() {};
+    virtual ~PRadDetMatch() {};
+/*
     void ReadConfigFile(const std::string &path);
     ConfigValue GetConfigValue(const std::string &var_name,
                                const std::string &def_value,
@@ -79,7 +77,7 @@ protected:
     map<int,
         vector<GEMDetCluster> >   fGEM2DClusters;
 
-
+*/
 };
 
 #endif

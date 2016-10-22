@@ -1,3 +1,11 @@
+//============================================================================//
+// Match the HyCal Clusters and GEM clusters                                  //
+// The clusters are required to be in the same frame (beam center frame)      //
+//                                                                            //
+//                                                                            //
+// Weizhi XIong, Xinzhan Bai, Chao Peng                                       //
+// 10/21/2016                                                                 //
+//============================================================================//
 #include <list>
 #include <cassert>
 #include <cmath>
@@ -5,7 +13,7 @@
 #include "PRadDetMatch.h"
 #include "PRadCoordSystem.h"
 #include "TObject.h"
-
+/*
 PRadDetMatch::PRadDetMatch()
 :fGEMXYMatchMode(0), fProjectToGEM2(0), fHyCalGEMMatchMode(0), fGEMPeakCharge(0),
   fDoMatchProcessing(0), fMatchCut(0.)
@@ -339,17 +347,4 @@ float PRadDetMatch::Distance2Points(float& x1, float &y1, float &x2, float &y2)
     return sqrt((x1-x2)*(x1-x2) + (y1-y2)*(y1-y2));
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+*/

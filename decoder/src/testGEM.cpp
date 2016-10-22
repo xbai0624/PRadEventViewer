@@ -27,9 +27,15 @@ int main(int /*argc*/, char * /*argv*/ [])
     handler->ReadConfig("config.txt");
 
     PRadBenchMark timer;
-
     // get GEM system
     PRadGEMSystem *gem_srs = handler->GetSRS();
+
+    /* save gem pedestal
+    gem_srs->SetPedestalMode(true);
+    handler->InitializeByData("prad_001287.evio.0");
+    gem_srs->SavePedestal("gem_ped.dat");
+    gem_srs->SetPedestalMode(false);
+    */
 
 /* show the APVs and their strip numbers on planes
     // show the plane list

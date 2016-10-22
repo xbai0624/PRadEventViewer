@@ -13,7 +13,7 @@
 #include <iomanip>
 #include <algorithm>
 #include "PRadGEMCluster.h"
-#include "PRadGEMSystem.h"
+#include "PRadGEMDetector.h"
 
 // constructor
 PRadGEMCluster::PRadGEMCluster(const std::string &config_path)
@@ -125,7 +125,6 @@ void PRadGEMCluster::Reconstruct(PRadGEMPlane *plane)
     cluster_list.clear();
 
     auto &hits_list = plane->GetPlaneHits();
-
     // group consecutive hits as the preliminary clusters
     clusterHits(hits_list, cluster_list);
 
@@ -308,3 +307,38 @@ void PRadGEMCluster::reconstructCluster_sub(GEMPlaneCluster &c, PRadGEMPlane *pl
     c.position = weight_pos/c.total_charge;
 }
 
+// this function accepts x, y clusters from detectors and then form GEM Cluster
+// it return the number of clusters
+int PRadGEMCluster::FormClusters(GEMHit *hits,
+                                 PRadGEMPlane *x_plane,
+                                 PRadGEMPlane *y_plane)
+{
+    if(x_plane == nullptr || y_plane == nullptr) {
+        std::cerr << "PRad GEM Cluster Error: Input plane is not instanced, cannot "
+                  << "form clusters"
+                  << std::endl;
+        return 0;
+    }
+
+    // TODO, probably add some criteria here to form less clusters
+
+    auto x_cluster = x_plane->GetPlaneClusters();
+    auto y_cluster = y_plane->GetPlaneClusters();
+
+    int Nhits = 0;
+    for(auto &xc : x_cluster)
+    {
+        for(auto &yc : y_cluster)
+        {
+            hits[Nhits++] = GEMHit(xc.position, yc.position, 0., // by default z = 0
+                                   xc.peak_charge, yc.peak_charge, // fill in peak charge
+                                   xc.hits.size(), yc.hits.size()); // number of hits
+
+            // defined in PRadGEMDetector
+            if(Nhits >= MAX_GCLUSTERS)
+                return MAX_GCLUSTERS; // reached limit, return
+        }
+    }
+
+    return Nhits;
+}

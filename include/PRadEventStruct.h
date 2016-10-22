@@ -19,6 +19,9 @@
 #define MAX_GEM_MATCH 100
 #define NGEM 2
 
+//============================================================================//
+// *BEGIN* RUN INFORMATION STRUCTURE                                          //
+//============================================================================//
 struct RunInfo
 {
     int run_number;
@@ -42,7 +45,13 @@ struct RunInfo
         ungated_count = 0.;
     }
 };
+//============================================================================//
+// *END* RUN INFORMATION STRUCTURE                                            //
+//============================================================================//
 
+//============================================================================//
+// *BEGIN* ONLINE INFORMATION STRUCTURE                                       //
+//============================================================================//
 struct TriggerChannel
 {
     std::string name;
@@ -73,7 +82,37 @@ struct OnlineInfo
         trigger_info.emplace_back(n, i);
     };
 };
+//============================================================================//
+// *END* ONLINE INFORMATION STRUCTURE                                         //
+//============================================================================//
 
+//============================================================================//
+// *BEGIN* RAW EPICS DATA STRUCTURE                                           //
+//============================================================================//
+struct EPICSData
+{
+    int event_number;
+    std::vector<float> values;
+
+    EPICSData()
+    {};
+    EPICSData(const int &ev, std::vector<float> &val)
+    : event_number(ev), values(val)
+    {};
+
+    void clear()
+    {
+        event_number = 0;
+        values.clear();
+    };
+};
+//============================================================================//
+// *END* RAW EPICS DATA STRUCTURE                                             //
+//============================================================================//
+
+//============================================================================//
+// *BEGIN* RAW EVENT DATA COMPONENTS                                          //
+//============================================================================//
 typedef struct ChannelData
 {
     unsigned short channel_id;
@@ -141,25 +180,13 @@ struct GEM_Data
         values.push_back(v);
     }
 };
+//============================================================================//
+// *END* RAW EVENT DATA COMPONENTS                                            //
+//============================================================================//
 
-struct EPICSData
-{
-    int event_number;
-    std::vector<float> values;
-
-    EPICSData()
-    {};
-    EPICSData(const int &ev, std::vector<float> &val)
-    : event_number(ev), values(val)
-    {};
-
-    void clear()
-    {
-        event_number = 0;
-        values.clear();
-    };
-};
-
+//============================================================================//
+// *BEGIN* RAW EVENT DATA STRUCTURE                                           //
+//============================================================================//
 struct EventData
 {
     // event info
@@ -328,8 +355,15 @@ struct EventData
         return other.event_number < event_number;
     };
 };
+//============================================================================//
+// *END* RAW EVENT DATA STRUCTURE                                             //
+//============================================================================//
 
-enum HyCalClusterStatus{
+//============================================================================//
+// *BEGIN* HYCAL HIT STRUCTURE                                                //
+//============================================================================//
+enum HyCalClusterStatus
+{
     kPWO = 0,     //cluster center at PWO region
     kLG,          //cluster center at LG region
     kTransition,  //cluster center at LG region
@@ -355,6 +389,7 @@ struct HyCalHit
     float E;            // Cluster's energy (MeV)
     float x;            // Cluster's x-position (mm)
     float y;            // Cluster's y-position (mm)
+    float z;            // Cluster's z-position (mm)
     float x_log;        // x reconstruct with log scale (mm)
     float y_log;        // y reconstruct with log scale (mm)
     float x_gem;        // x coor from GEM after match
@@ -372,8 +407,8 @@ struct HyCalHit
     unsigned short gemNClusters[NGEM];
 
     HyCalHit()
-    : flag(0), type(0), status(0), nblocks(0), cid(0), E(0), x(0), y(0), x_log(0),
-      y_log(0), chi2(0), sigma_E(0), dz(0)
+    : flag(0), type(0), status(0), nblocks(0), cid(0), E(0), x(0), y(0), z(0),
+      x_log(0), y_log(0), chi2(0), sigma_E(0), dz(0)
     {
         clear_time();
         clear_gem();
@@ -438,8 +473,15 @@ struct HyCalHit
         flag = 0;
     }
 };
+//============================================================================//
+// *END* HYCAL HIT STRUCTURE                                                  //
+//============================================================================//
 
-struct GEMDetCluster {
+//============================================================================//
+// *BEGIN* GEM HIT STRUCTURE                                                  //
+//============================================================================//
+struct GEMHit
+{
     float x;
     float y;
     float z;
@@ -447,52 +489,17 @@ struct GEMDetCluster {
     float y_charge;
     int x_size;
     int y_size;
-    int chamber_id;
 
-    GEMDetCluster()
-    :x(0.), y(0.), z(0.), x_charge(0.), y_charge(0.),
-     x_size(0), y_size(0), chamber_id(-1) {}
+    GEMHit()
+    : x(0.), y(0.), z(0.), x_charge(0.), y_charge(0.), x_size(0), y_size(0)
+    {};
 
-    GEMDetCluster(const float& cx, const float& cy, const float& cz,
-                  const float& cx_charge, const float& cy_charge,
-                  const int& cx_size, const int& cy_size, const int& cchamber_id)
-    :x(cx), y(cy), z(cz), x_charge(cx_charge), y_charge(cy_charge),
-     x_size(cx_size), y_size(cy_size), chamber_id(cchamber_id) {}
-
-    GEMDetCluster(const GEMDetCluster& rhs)
-    :x(rhs.x), y(rhs.y), z(rhs.z), x_charge(rhs.x_charge), y_charge(rhs.y_charge),
-     x_size(rhs.x_size), y_size(rhs.y_size), chamber_id(rhs.chamber_id) {}
+    GEMHit(float xx, float yy, float zz, float xc, float yc, int xs, int ys)
+    : x(xx), y(yy), z(zz), x_charge(xc), y_charge(yc), x_size(xs), y_size(ys)
+    {};
 };
-
-// DST file related info
-enum PRadDSTInfo
-{
-    // event types
-    PRad_DST_Event = 0,
-    PRad_DST_Epics,
-    PRad_DST_Epics_Map,
-    PRad_DST_Run_Info,
-    PRad_DST_HyCal_Info,
-    PRad_DST_GEM_Info,
-    PRad_DST_Undefined,
-};
-
-enum PRadDSTHeader
-{
-    // headers
-    PRad_DST_Header = 0xc0c0c0,
-    PRad_DST_EvHeader = 0xe0e0e0,
-};
-
-enum PRadDSTMode
-{
-    DST_UPDATE_ALL = 0,
-    NO_GEM_PED_UPDATE = 1 << 0,
-    NO_HYCAL_PED_UPDATE = 1 << 1,
-    NO_HYCAL_CAL_UPDATE = 1 << 2,
-    NO_RUN_INFO_UPDATE = 1 << 3,
-    NO_EPICS_MAP_UPDATE = 1 << 4,
-    DST_UPDATE_NONE = 0xffffffff,
-};
+//============================================================================//
+// *END* GEM HIT STRUCTURE                                                    //
+//============================================================================//
 
 #endif

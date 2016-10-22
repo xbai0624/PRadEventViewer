@@ -1,0 +1,7 @@
+# The least run will be chosen as the default offset
+# Lists the origin offsets of detectors to beam center and the tilting angles
+# Units are in mm and radian
+#    run  detector    x_origin    y_origin    z_origin      x_tilt      y_tilt      z_tilt
+       0  PRadGEM1     -1.1258      0.6634        5304           0           0           0
+       0  PRadGEM2      -1.463       0.475        5264           0           0           0
+       0     HyCal       0.664      1.4057        5817           0           0           0

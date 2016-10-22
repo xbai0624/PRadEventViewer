@@ -1,76 +1,60 @@
-//============================================================================//
-//this class serve purpose of coordinate tranformation between the internal   //
-//coordinate system and the lab system (beam spot at the origin)              //
-//============================================================================//
-
 #ifndef PRAD_DET_COOR_H
 #define PRAD_DET_COOR_H
-#include <iostream>
+
 #include <string>
-#include <unordered_map>
+#include <vector>
+#include <iostream>
 #include <map>
-#include <list>
-#include "PRadEventStruct.h"
-#include "ConfigParser.h"
-#include "PRadGEMPlane.h"
 
 class PRadCoordSystem
 {
 public:
-    enum CoordinateType{
-        kGEM1X = 0,
-        kGEM1Y,
-        kGEM2X,
-        kGEM2Y,
-        kHyCalX,
-        kHyCalY
+    enum CoordinateType
+    {
+        GEM1 = 0,
+        GEM2,
+        HyCal,
+        Max_CoordinateType
+    };
+    std::string CoordTypeName[Max_CoordinateType] = {"PRadGEM1", "PRadGEM2", "HyCal"};
+
+    struct Offsets
+    {
+        int run_number; // associated run
+        double x_ori;   // origin x
+        double y_ori;   // origin y
+        double z_ori;   // origin z
+        double theta_x; // tilting angle on x axis
+        double theta_y; // tilting angle on y axis
+        double theta_z; // tilting angle on z axis
+
+        Offsets()
+        : run_number(0), x_ori(0), y_ori(0), z_ori(0), theta_x(0), theta_y(0), theta_z(0)
+        {};
+        Offsets(int r, double x, double y, double z)
+        : run_number(r), x_ori(x), y_ori(y), z_ori(z), theta_x(0), theta_y(0), theta_z(0)
+        {};
+        Offsets(int r, double x, double y, double z, double tx, double ty, double tz)
+        : run_number(r), x_ori(x), y_ori(y), z_ori(z), theta_x(tx), theta_y(ty), theta_z(tz)
+        {};
     };
 
+public:
+    PRadCoordSystem(const std::string &path = "", const int &run = 0);
+    virtual ~PRadCoordSystem();
 
-    PRadCoordSystem();
-    ~PRadCoordSystem();
+    void LoadCoordData(const std::string &path, const int &run = 0);
+    void SaveCoordData(const std::string &path);
 
-    void ReadConfigFile(const std::string &path);
-    ConfigValue GetConfigValue(const std::string &var_name,
-                               const std::string &def_value,
-                               bool verbose = true);
-    void Configurate(const std::string &path);
-    void HyCalClustersToLab(int &nclusters, HyCalHit* clusters);
+    const std::vector<Offsets> &GetCurrentOffsets() const {return current_offsets;};
 
-    float & GetHyCalZ() { return fHyCalZ; }
-    float & GetGEMZ(int i) { return fGEMZ[i]; }
-
-    template<class T> void HyCalClustersToLab(int &nclusters, T* x, T*y);
-
-    void GEMClustersToLab(int type, std::list<GEMPlaneCluster>& clusters);
-
-    template<class T> void GEMClustersToLab(int type, int &nclusters, T* pos);
-
-    template<class T> void LinesIntersect(const T* xa, const T* ya, const T* xb,
-                                          const T* yb, const T* x, const T* y, int ndim);
+    void Transform(CoordinateType type, double &x, double &y, double &z);
 
 protected:
-
-    template<class T> T CoordinateTransform(CoordinateType type, T & coor);  //transform the coordinate according to type
-
-    // configuration map
-    std::unordered_map<std::string, ConfigValue> fConfigMap;
-
-    //geometric parameters
-    float                fGEMZ[NGEM];
-    float                fHyCalZ;
-    float                fZLGToPWO;
-    //if there is not relative rotation between GEM plane and
-    //HyCal, then we only need four parameters to align everything
-    //in beam coordinate
-    float                fGEMOriginShift;
-    float                fBeamOffsetX;
-    float                fBeamOffsetY;
-    float                fGEMOffsetX;
-    float                fGEMOffsetY;
-    float                fHyCalOffsetX;
-    float                fHyCalOffsetY;
+    // offsets data, run number as key, order is important, thus use map instead of hash map
+    std::map<int, std::vector<Offsets>> offsets_data;
+    std::vector<Offsets> current_offsets;
 };
 
-
+std::ostream &operator << (std::ostream &os, const PRadCoordSystem::Offsets &off);
 #endif

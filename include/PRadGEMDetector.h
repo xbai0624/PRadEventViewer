@@ -5,6 +5,9 @@
 #include <string>
 #include "PRadException.h"
 #include "PRadGEMPlane.h"
+#include "PRadEventStruct.h"
+
+#define MAX_GCLUSTERS 250
 
 class PRadGEMSystem;
 class PRadGEMCluster;
@@ -26,6 +29,8 @@ public:
     void ReconstructHits(PRadGEMCluster *c);
     void ReconstructHits();
     void ClearHits();
+    GEMHit *GetClusters(int &n);
+    std::vector<GEMHit> GetClusters();
 
     // get parameters
     int GetID() {return id;};
@@ -48,6 +53,8 @@ private:
     std::string type;
     std::string readout_board;
     std::vector<PRadGEMPlane*> planes;
+    GEMHit gem_clusters[MAX_GCLUSTERS];
+    int NClusters;
 };
 
 #endif
