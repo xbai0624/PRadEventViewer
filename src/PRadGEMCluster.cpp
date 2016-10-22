@@ -310,6 +310,7 @@ void PRadGEMCluster::reconstructCluster_sub(GEMPlaneCluster &c, PRadGEMPlane *pl
 // this function accepts x, y clusters from detectors and then form GEM Cluster
 // it return the number of clusters
 int PRadGEMCluster::FormClusters(GEMHit *hits,
+                                 int MaxHits,
                                  PRadGEMPlane *x_plane,
                                  PRadGEMPlane *y_plane)
 {
@@ -334,9 +335,8 @@ int PRadGEMCluster::FormClusters(GEMHit *hits,
                                    xc.peak_charge, yc.peak_charge, // fill in peak charge
                                    xc.hits.size(), yc.hits.size()); // number of hits
 
-            // defined in PRadGEMDetector
-            if(Nhits >= MAX_GCLUSTERS)
-                return MAX_GCLUSTERS; // reached limit, return
+            if(Nhits >= MaxHits)
+                return MaxHits; // reached limit, return
         }
     }
 

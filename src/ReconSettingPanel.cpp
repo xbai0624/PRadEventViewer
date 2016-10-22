@@ -25,6 +25,7 @@
 #include <QDialogButtonBox>
 #include <QSpinBox>
 #include <QDoubleSpinBox>
+#include <QLabel>
 
 ReconSettingPanel::ReconSettingPanel(QWidget *parent)
 : QDialog(parent), handler(nullptr), coordSystem(nullptr), detMatch(nullptr)
@@ -112,12 +113,62 @@ QGroupBox *ReconSettingPanel::createCoordGroup()
 {
     QGroupBox *typeGroup = new QGroupBox(tr("Coordinates Setting"));
 
-    coordLine1 = new QLineEdit;
+    QLabel *ax = new QLabel("Axis");
+    QLabel *xl = new QLabel("  X");
+    QLabel *yl = new QLabel("  Y");
+    QLabel *zl = new QLabel("  Z");
+    QLabel *off = new QLabel("Origin (mm)");
+    QLabel *tilt = new QLabel("Angle (mrad)");
 
-    QFormLayout *layout = new QFormLayout;
-    layout->addRow(tr("Place Holder"), coordLine1);
+    coordType = new QComboBox;
+    coordRun = new QComboBox;
+    QPushButton *restoreCoord = new QPushButton("Restore");
+    QPushButton *saveCoord = new QPushButton("Save");
+    QPushButton *loadCoordFile = new QPushButton("Open Coord File");
+    QPushButton *saveCoordFile = new QPushButton("Save Coord File");
+
+    int decimals[]     = {    4,     4,     1,     4,     4,     4};
+    double step[]      = { 1e-4,  1e-4,  1e-1,  1e-4,  1e-4,  1e-4};
+    double min_range[] = {  -20,   -20,     0,   -20,   -20,   -20};
+    double max_range[] = {   20,    20, 10000,    20,    20,    20};
+
+    // coordinates
+    for(int i = 0; i < 6; ++i)
+    {
+        coordBox[i] = new QDoubleSpinBox;
+        coordBox[i]->setDecimals(decimals[i]);
+        coordBox[i]->setRange(min_range[i], max_range[i]);
+        coordBox[i]->setSingleStep(step[i]);
+    }
+
+    QGridLayout *layout = new QGridLayout;
+    layout->addWidget(coordRun, 0, 0);
+    layout->addWidget(loadCoordFile, 0, 2);
+    layout->addWidget(saveCoordFile, 0, 3);
+    layout->addWidget(coordType, 1, 0);
+    layout->addWidget(saveCoord, 1, 2);
+    layout->addWidget(restoreCoord, 1, 3);
+    layout->addWidget(ax, 2, 0);
+    layout->addWidget(xl, 2, 1);
+    layout->addWidget(yl, 2, 2);
+    layout->addWidget(zl, 2, 3);
+    layout->addWidget(off,3, 0);
+    layout->addWidget(tilt, 4, 0);
+    for(int i = 0; i < 6; ++i)
+    {
+        int row = 3 + i/3;
+        int col = 1 + i%3;
+        layout->addWidget(coordBox[i], row, col);
+    }
 
     typeGroup->setLayout(layout);
+
+    connect(coordRun, SIGNAL(currentIndexChanged(int)), this, SLOT(selectCoordData(int)));
+    connect(coordType, SIGNAL(currentIndexChanged(int)), this, SLOT(changeCoordType(int)));
+    connect(restoreCoord, SIGNAL(clicked()), this, SLOT(restoreCoordData()));
+    connect(saveCoord, SIGNAL(clicked()), this, SLOT(saveCoordData()));
+    connect(loadCoordFile, SIGNAL(clicked()), this, SLOT(openCoordFile()));
+    connect(saveCoordFile, SIGNAL(clicked()), this, SLOT(saveCoordFile()));
 
     return typeGroup;
 }
@@ -171,6 +222,26 @@ void ReconSettingPanel::ConnectDataHandler(PRadDataHandler *h)
 void ReconSettingPanel::ConnectCoordSystem(PRadCoordSystem *c)
 {
     coordSystem = c;
+
+    coordRun->clear();
+    coordType->clear();
+
+    if(c == nullptr)
+        return;
+
+    for(auto &it : c->GetCoordsData())
+    {
+        coordRun->addItem(QString::number(it.first));
+    }
+
+    det_coords = c->GetCurrentCoords();
+
+    for(auto &coord : det_coords)
+    {
+        coordType->addItem(getCoordTypeName(coord.det_enum));
+    }
+
+    coordType->setCurrentIndex(0);
 }
 
 void ReconSettingPanel::ConnectMatchSystem(PRadDetMatch *m)
@@ -211,12 +282,80 @@ void ReconSettingPanel::loadHyCalConfig()
                                          hyCalConfigPath->text().toStdString());
 }
 
-// open Qt dialog, and save all the settings
-int ReconSettingPanel::Execute()
+void ReconSettingPanel::changeCoordType(int t)
 {
-    SyncSettings();
-    SaveSettings();
-    return exec();
+    if(coordSystem == nullptr)
+        return;
+
+    if(t < 0) {
+        for(int i = 0; i < 6; ++i)
+            coordBox[i]->setValue(0);
+        return;
+    }
+
+    auto &coord = det_coords[t];
+
+    for(int i = 0; i < 6; ++i)
+        coordBox[i]->setValue(coord.get_dim_coord(i));
+}
+
+void ReconSettingPanel::selectCoordData(int r)
+{
+    if(r < 0 || coordSystem == nullptr)
+        return;
+
+    coordSystem->ChooseCoord(r);
+    det_coords = coordSystem->GetCurrentCoords();
+    changeCoordType(coordType->currentIndex());
+}
+
+void ReconSettingPanel::saveCoordData()
+{
+    size_t idx = (size_t)coordType->currentIndex();
+    if(idx >= det_coords.size())
+        return;
+
+    auto &coord = det_coords[idx];
+    for(int i = 0; i < 6; ++i)
+        coord.set_dim_coord(i, coordBox[i]->value());
+}
+
+void ReconSettingPanel::saveCoordFile()
+{
+    QString path = QFileDialog::getSaveFileName(this,
+                                                "Coordinates File",
+                                                "config/",
+                                                "text data file (*.dat *.txt)");
+    if(path.isEmpty())
+        return;
+
+    saveCoordData();
+    coordSystem->SetCurrentCoord(det_coords);
+    coordSystem->SaveCoordData(path.toStdString());
+}
+
+void ReconSettingPanel::openCoordFile()
+{
+    QString path = QFileDialog::getOpenFileName(this,
+                                                "Coordinates File",
+                                                "config/",
+                                                "text data file (*.dat *.txt)");
+    if(path.isEmpty())
+        return;
+
+    coordSystem->LoadCoordData(path.toStdString());
+
+    // re-connect to apply changes
+    ConnectCoordSystem(coordSystem);
+}
+
+void ReconSettingPanel::restoreCoordData()
+{
+    if(coordSystem == nullptr)
+        return;
+
+    det_coords = coordSystem->GetCurrentCoords();
+    changeCoordType(coordType->currentIndex());
 }
 
 // reconnects all the objects to read their settings
@@ -242,7 +381,7 @@ void ReconSettingPanel::RestoreSettings()
 }
 
 // apply all the changes
-void ReconSettingPanel::Apply()
+void ReconSettingPanel::ApplyChanges()
 {
     // set data handler
     if(handler != nullptr) {
@@ -259,20 +398,12 @@ void ReconSettingPanel::Apply()
         // reaload the configuration
         gem_method->Configure();
     }
-}
 
-// overloaded, apply the settings if dialog is accepted
-void ReconSettingPanel::accept()
-{
-    Apply();
-    QDialog::accept();
-}
-
-// overloaded, restore the settings if dialog is rejected
-void ReconSettingPanel::reject()
-{
-    RestoreSettings();
-    QDialog::reject();
+    // set coordinate system
+    if(coordSystem != nullptr) {
+        saveCoordData();
+        coordSystem->SetCurrentCoord(det_coords);
+    }
 }
 
 bool ReconSettingPanel::ShowHyCalCluster()

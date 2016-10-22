@@ -23,7 +23,7 @@ public:
     virtual void Configure(const std::string &path = "");
     virtual void Reconstruct(PRadGEMDetector *plane);
     virtual void Reconstruct(PRadGEMPlane *plane);
-    virtual int FormClusters(GEMHit *hits, PRadGEMPlane *x_plane, PRadGEMPlane *y_plane);
+    virtual int FormClusters(GEMHit *hits, int MaxHits, PRadGEMPlane *x_plane, PRadGEMPlane *y_plane);
 
 protected:
     void readConfigFile(const std::string &path);

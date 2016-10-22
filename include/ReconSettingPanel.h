@@ -3,9 +3,9 @@
 
 #include <QDialog>
 #include <string>
+#include "PRadCoordSystem.h"
 
 class PRadDataHandler;
-class PRadCoordSystem;
 class PRadDetMatch;
 
 class QSpinBox;
@@ -22,20 +22,15 @@ class ReconSettingPanel : public QDialog
 public:
     ReconSettingPanel(QWidget *parent = 0);
     ~ReconSettingPanel() {};
-    int Execute();
     void ConnectDataHandler(PRadDataHandler *h);
     void ConnectCoordSystem(PRadCoordSystem *c);
     void ConnectMatchSystem(PRadDetMatch *m);
     void SyncSettings();
     void SaveSettings();
     void RestoreSettings();
-    void Apply();
+    void ApplyChanges();
     bool ShowHyCalCluster();
     bool ShowGEMCluster();
-
-public slots:
-    void accept();
-    void reject();
 
 private:
     QGroupBox *createHyCalGroup();
@@ -48,6 +43,12 @@ private slots:
     void updateHyCalPath();
     void loadHyCalConfig();
     void openHyCalConfig();
+    void selectCoordData(int r);
+    void changeCoordType(int t);
+    void saveCoordData();
+    void saveCoordFile();
+    void openCoordFile();
+    void restoreCoordData();
 
 private:
     PRadDataHandler *handler;
@@ -64,12 +65,15 @@ private:
     QSpinBox *gemMaxHits;
     QDoubleSpinBox *gemSplitThres;
 
-    QLineEdit *coordLine1;
+    QComboBox *coordRun;
+    QComboBox *coordType;
+    QDoubleSpinBox *coordBox[6]; // X, Y, Z, thetaX, thetaY, thetaZ
     QLineEdit *matchLine1;
 
 private:
     bool hyCalGroup_data;
     bool gemGroup_data;
+    std::vector<PRadCoordSystem::DetCoord> det_coords;
 };
 
 #endif

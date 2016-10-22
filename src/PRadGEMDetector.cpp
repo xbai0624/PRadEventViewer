@@ -76,6 +76,7 @@ void PRadGEMDetector::ReconstructHits(PRadGEMCluster *gem_recon)
     }
 
     NClusters = gem_recon->FormClusters(gem_clusters, // pointer to container
+                                        MAX_GCLUSTERS, // size of the container
                                         planes[(int)PRadGEMPlane::Plane_X], // x plane
                                         planes[(int)PRadGEMPlane::Plane_Y]);// y plane
 }

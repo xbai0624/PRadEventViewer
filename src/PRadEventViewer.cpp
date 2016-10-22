@@ -88,6 +88,10 @@ PRadEventViewer::~PRadEventViewer()
 #ifdef USE_CAEN_HV
     delete hvSystem;
 #endif
+#ifdef RECON_DISPLAY
+    delete coordSystem;
+    delete detMatch;
+#endif
     delete handler;
 }
 
@@ -1381,13 +1385,14 @@ void PRadEventViewer::setupReconDisplay()
     handler->ReadGEMConfiguration("config/gem_map.cfg");
     handler->ReadGEMPedestalFile("config/gem_ped.dat");
     // add hycal clustering methods
-    detMatch = new PRadDetMatch();
     coordSystem = new PRadCoordSystem("config/coordinates.dat");
-    reconSetting = new ReconSettingPanel(this);
+    detMatch = new PRadDetMatch();
 
+    reconSetting = new ReconSettingPanel(this);
     reconSetting->ConnectDataHandler(handler);
     reconSetting->ConnectCoordSystem(coordSystem);
     reconSetting->ConnectMatchSystem(detMatch);
+
 }
 
 QMenu *PRadEventViewer::setupReconMenu()
@@ -1416,8 +1421,19 @@ void PRadEventViewer::enableReconstruct()
 
 void PRadEventViewer::setupReconMethods()
 {
-    if(!reconSetting->Execute())
+    // sync settings with the connected objects
+    reconSetting->SyncSettings();
+
+    // save for restore
+    reconSetting->SaveSettings();
+
+    if(!reconSetting->exec()) {
+        reconSetting->RestoreSettings();
         return;
+    }
+
+    // apply the changes to connected objects
+    reconSetting->ApplyChanges();
 
     emit(changeCurrentEvent(eventSpin->value()));
 }
