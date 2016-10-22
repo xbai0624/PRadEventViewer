@@ -299,8 +299,8 @@ void PRadIslandCluster::CallIsland(int isect)
         }
 
         float e     = adcgam_cbk_.u.fadcgam[k][0];
-        float x     = adcgam_cbk_.u.fadcgam[k][1];
-        float y     = adcgam_cbk_.u.fadcgam[k][2];
+//        float x     = adcgam_cbk_.u.fadcgam[k][1];
+//        float y     = adcgam_cbk_.u.fadcgam[k][2];
         float xc    = adcgam_cbk_.u.fadcgam[k][4];
         float yc    = adcgam_cbk_.u.fadcgam[k][5];
 
@@ -318,13 +318,13 @@ void PRadIslandCluster::CallIsland(int isect)
             printf("island warning: cluster with nhits %i truncated\n",dime);
             continue;
         }
-        fHyCalCluster[n].DistClean();
 
+        fHyCalCluster[n].flag     = 0;
         fHyCalCluster[n].type     = type;
         fHyCalCluster[n].nblocks  = dime;
         fHyCalCluster[n].E        = e;
-        fHyCalCluster[n].x        = x;        // biased, unaligned
-        fHyCalCluster[n].y        = y;
+//        fHyCalCluster[n].x        = x;        // biased, unaligned
+//        fHyCalCluster[n].y        = y;
         fHyCalCluster[n].chi2     = chi2;
         fHyCalCluster[n].status   = status;
         float ecellmax = -1.; int idmax = -1;
@@ -389,13 +389,16 @@ void PRadIslandCluster::CallIsland(int isect)
                     fHyCalCluster[n].z = GetShowerDepth(1, e);
                 }
                 //zk /= (1. + fHyCalCluster[n].dz/ZHYCAL);
+            } else {
+                fHyCalCluster[n].z = 0.; // no correction on depth, all at the surface
             }
-            fHyCalCluster[n].x_log = xpos/sW;
-            fHyCalCluster[n].y_log = ypos/sW;
+
+            fHyCalCluster[n].x = xpos/sW;
+            fHyCalCluster[n].y = ypos/sW;
         } else {
             printf("WRN bad cluster log. coord , center id = %i %f\n", idmax, fHyCalCluster[n].E);
-            fHyCalCluster[n].x_log = 0.;
-            fHyCalCluster[n].y_log = 0.;
+            fHyCalCluster[n].x = 0.;
+            fHyCalCluster[n].y = 0.;
         }
 
         fHyCalCluster[n].cid = idmax;
@@ -518,7 +521,7 @@ void PRadIslandCluster::GlueTransitionClusters()
                 continue;
             }
 
-            MergeClusters(i0,k0);
+            MergeClusters(i0, k0);
             fHyCalCluster[k0].status = -1;
         }
     }
@@ -614,8 +617,8 @@ void PRadIslandCluster::MergeClusters(int i, int j)
 
     fHyCalCluster[i].cid     = fHyCalCluster[i1].cid;
     fHyCalCluster[i].sigma_E = fHyCalCluster[i1].sigma_E;
-    fHyCalCluster[i].x       = fHyCalCluster[i1].x;
-    fHyCalCluster[i].y       = fHyCalCluster[i1].y;
+//    fHyCalCluster[i].x       = fHyCalCluster[i1].x;
+//    fHyCalCluster[i].y       = fHyCalCluster[i1].y;
     fHyCalCluster[i].chi2    = (fHyCalCluster[i].chi2*dime1 + fHyCalCluster[j].chi2*dime2)/(dime1+dime2);
 
     if(fHyCalCluster[i].status >= 2)
@@ -689,18 +692,18 @@ void PRadIslandCluster::MergeClusters(int i, int j)
     }
 
     if(sW) {
-        float dx = fHyCalCluster[i1].x_log;
-        float dy = fHyCalCluster[i1].y_log;
-        fHyCalCluster[i].x_log = xpos/sW;
-        fHyCalCluster[i].y_log = ypos/sW;
-        dx = fHyCalCluster[i1].x_log - dx;
-        dy = fHyCalCluster[i1].y_log - dy;
-        fHyCalCluster[i].x += dx;      // shift x0,y0 for glued cluster by x1,y1 shift values
-        fHyCalCluster[i].y += dy;
+//        float dx = fHyCalCluster[i1].x_log;
+//        float dy = fHyCalCluster[i1].y_log;
+        fHyCalCluster[i].x = xpos/sW;
+        fHyCalCluster[i].y = ypos/sW;
+//        dx = fHyCalCluster[i1].x_log - dx;
+//        dy = fHyCalCluster[i1].y_log - dy;
+//        fHyCalCluster[i].x += dx;      // shift x0,y0 for glued cluster by x1,y1 shift values
+//        fHyCalCluster[i].y += dy;
     } else {
         printf("WRN bad cluster log. coord\n");
-        fHyCalCluster[i].x_log = 0.;
-        fHyCalCluster[i].y_log = 0.;
+        fHyCalCluster[i].x = 0.;
+        fHyCalCluster[i].y = 0.;
     }
 
     // update cluster_storage
@@ -816,30 +819,30 @@ void PRadIslandCluster::FinalProcessing()
     for(int i = 0; i < fNHyCalClusters; ++i)
     {
         if (fHyCalCluster[i].type == 0  || fHyCalCluster[i].type == 1)
-        SETBIT(fHyCalCluster[i].flag, kPWO);
+        SET_BIT(fHyCalCluster[i].flag, kPWO);
         if (fHyCalCluster[i].type == 10 || fHyCalCluster[i].type == 11)
-        SETBIT(fHyCalCluster[i].flag, kLG);
+        SET_BIT(fHyCalCluster[i].flag, kLG);
         if (fHyCalCluster[i].type == 2  || fHyCalCluster[i].type == 12)
-        SETBIT(fHyCalCluster[i].flag, kTransition);
+        SET_BIT(fHyCalCluster[i].flag, kTransition);
         if (fHyCalCluster[i].type == 1){
-            SETBIT(fHyCalCluster[i].flag, kInnerBound);
-            SETBIT(fHyCalCluster[i].flag, kPWO);
+            SET_BIT(fHyCalCluster[i].flag, kInnerBound);
+            SET_BIT(fHyCalCluster[i].flag, kPWO);
         }
         if (fHyCalCluster[i].type == 11){
-            SETBIT(fHyCalCluster[i].flag, kOuterBound);
-            SETBIT(fHyCalCluster[i].flag, kLG);
+            SET_BIT(fHyCalCluster[i].flag, kOuterBound);
+            SET_BIT(fHyCalCluster[i].flag, kLG);
         }
         if (fHyCalCluster[i].status == 10 || fHyCalCluster[i].status == 30)
-        SETBIT(fHyCalCluster[i].flag, kSplit);
+        SET_BIT(fHyCalCluster[i].flag, kSplit);
 
-        for (unsigned int j=0; j<fDeadModules.size(); j++){
+        for (unsigned int j = 0; j < fDeadModules.size(); j++){
             float r = sqrt( pow((fDeadModules.at(j).x - fHyCalCluster[i].x_log), 2) +
                             pow((fDeadModules.at(j).y - fHyCalCluster[i].y_log), 2) );
             float size = 0;
             if (fDeadModules.at(j).sector == 0) size = CRYS_SIZE_X;
             else size = GLASS_SIZE;
 
-            if (r/size < 1.5) SETBIT(fHyCalCluster[i].flag, kDeadModule);
+            if (r/size < 1.5) SET_BIT(fHyCalCluster[i].flag, kDeadModule);
         }
 
 
@@ -849,35 +852,30 @@ void PRadIslandCluster::FinalProcessing()
         fHyCalCluster[i].sigma_E *= 1000.; // GeV to MeV
         fHyCalCluster[i].x *= -10.; // cm to mm
         fHyCalCluster[i].y *= 10.; // cm to mm
-        fHyCalCluster[i].x_log *= -10.; // cm to mm
-        fHyCalCluster[i].y_log *= 10.; // cm to mm
         fHyCalCluster[i].z *= 10.; //cm to mm
+
+//        fHyCalCluster[i].x_log *= -10.; // cm to mm
+//        fHyCalCluster[i].y_log *= 10.; // cm to mm
 
 
         PRadDAQUnit *module =
         fHandler->GetChannel(PRadDAQUnit::NameFromPrimExID(fHyCalCluster[i].cid));
 
-        PRadTDCGroup *tdc = fHandler->GetTDCGroup(module->GetTDCName());
+        PRadTDCGroup *tdc = module->GetTDCGroup();
+        if(tdc)
+            fHyCalCluster[i].set_time(tdc->GetTimeMeasure());
+        else
+            fHyCalCluster[i].clear_time();
 
-        fHyCalCluster[i].clear_time();
-        fHyCalCluster[i].set_time(tdc->GetTimeMeasure());
-        //copy the module info the cluster has
-
-#ifdef RECON_DISPLAY
-        int dime   = fHyCalCluster[i].nblocks;
-        for(int k = 0; k < (dime>MAX_CC ? MAX_CC : dime); ++k){
-            fHyCalCluster[i].moduleID[k] = fClusterStorage[i].id[k];
-            fHyCalCluster[i].moduleE[k] = 1000.*fClusterStorage[i].E[k];
-        }
-#endif
     }
 }
 //_______________________________________________________________________________
 inline float PRadIslandCluster::GetShowerDepth(int type, float & E)
 {
     if (type >= 2){
-        std::cout<<"PRadIslandCluster::GetShowerDepth: unexpected type "
-        <<type<<std::endl;
+        std::cout << "PRadIslandCluster::GetShowerDepth: unexpected type "
+                  << type
+                  << std::endl;
         return 0;
     }
 

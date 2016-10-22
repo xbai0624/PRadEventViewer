@@ -80,7 +80,7 @@ void PRadSquareCluster::Reconstruct(EventData &event)
             continue;
 
         vector<unsigned short> clusterTime = GetTimeForCluster(fModuleList.at(theMaxModuleID));
-        double weightX = 0., weightY = 0., totalWeight = 0.;
+//        double weightX = 0., weightY = 0., totalWeight = 0.;
         double weightX_log = 0, weightY_log = 0., totalWeight_log = 0.;
 
         for (size_t j = 0; j < collection.size(); ++j)
@@ -94,10 +94,11 @@ void PRadSquareCluster::Reconstruct(EventData &event)
             double thisY = thisModule->GetY();
 
             double weight = thisModule->GetEnergy()/clusterEnergy;
+/*
             weightX += weight*thisX;
             weightY += weight*thisY;
             totalWeight += weight;
-
+*/
             if (double weight_log = fLogWeightThres + log(weight) > 0.) {
                 weightX_log += weight_log*thisX;
                 weightY_log += weight_log*thisY;
@@ -105,10 +106,10 @@ void PRadSquareCluster::Reconstruct(EventData &event)
             }
         }
 
-        fHyCalCluster[fNHyCalClusters].x = weightX/totalWeight;
-        fHyCalCluster[fNHyCalClusters].y = weightY/totalWeight;
-        fHyCalCluster[fNHyCalClusters].x_log = weightX_log/totalWeight_log;
-        fHyCalCluster[fNHyCalClusters].y_log = weightY_log/totalWeight_log;
+//        fHyCalCluster[fNHyCalClusters].x = weightX/totalWeight;
+//        fHyCalCluster[fNHyCalClusters].y = weightY/totalWeight;
+        fHyCalCluster[fNHyCalClusters].x = weightX_log/totalWeight_log;
+        fHyCalCluster[fNHyCalClusters].y = weightY_log/totalWeight_log;
         fHyCalCluster[fNHyCalClusters].E = clusterEnergy;
         fHyCalCluster[fNHyCalClusters].cid = fModuleList[theMaxModuleID]->GetPrimexID();
         fHyCalCluster[fNHyCalClusters].set_time(clusterTime);

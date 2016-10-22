@@ -2,8 +2,8 @@
 #define PRAD_ISLAND_CLUSTER_H
 
 #include <string>
-#include "PRadHyCalCluster.h"
 #include <vector>
+#include "PRadHyCalCluster.h"
 
 //this is a c++ wrapper around the primex island algorithm
 //used for HyCal cluster reconstruction
@@ -20,6 +20,7 @@
 #define T_BLOCKS 2156
 
 #define MAX_HHITS 1728 // For Hycal
+#define MAX_CC 60
 
 #define nint_phot_cell  5
 #define ncoef_phot_cell 3

@@ -15,10 +15,6 @@
 #define FCUP_OFFSET 100.0
 #define FCUP_SLOPE 906.2
 
-#define MAX_CC 60
-#define MAX_GEM_MATCH 100
-#define NGEM 2
-
 //============================================================================//
 // *BEGIN* RUN INFORMATION STRUCTURE                                          //
 //============================================================================//
@@ -364,6 +360,13 @@ struct EventData
 //============================================================================//
 enum HyCalClusterStatus
 {
+// this enum is for bitwise manipulation
+// the following defintions are from Rtypes.h in root (cern)
+// copied here for a clearer reference
+#define SET_BIT(n,i)  ( (n) |= (1ULL << i) )
+#define CLEAR_BIT(n,i)  ( (n) &= ~(1ULL << i) )
+#define TEST_BIT(n,i)  ( (bool)( n & (1ULL << i) ) )
+
     kPWO = 0,     //cluster center at PWO region
     kLG,          //cluster center at LG region
     kTransition,  //cluster center at LG region
@@ -392,41 +395,27 @@ struct HyCalHit
     float z;            // Cluster's z-position (mm)
     float x_log;        // x reconstruct with log scale (mm)
     float y_log;        // y reconstruct with log scale (mm)
-    float x_gem;        // x coor from GEM after match
-    float y_gem;        // y coor from GEM after match
-    float z_gem;        // z coor from GEM after match
     float chi2;         // chi2 comparing to shower profile
     float sigma_E;
-    float dz;           // z shift due to shower depth corretion
     unsigned short time[TIME_MEASURE_SIZE];      // time information from central TDC group
-    unsigned short moduleID[MAX_CC];
-    float moduleE[MAX_CC];
-
-    //for GEM HyCal match
-    unsigned short gemClusterID[NGEM][MAX_GEM_MATCH];
-    unsigned short gemNClusters[NGEM];
 
     HyCalHit()
     : flag(0), type(0), status(0), nblocks(0), cid(0), E(0), x(0), y(0), z(0),
-      x_log(0), y_log(0), chi2(0), sigma_E(0), dz(0)
+      x_log(0), y_log(0), chi2(0), sigma_E(0)
     {
         clear_time();
-        clear_gem();
-        for (int i=0; i<NGEM; i++) gemNClusters[i] = 0;
     }
 
     HyCalHit(const float &cx, const float &cy, const float &cE)
     : flag(0), type(0), status(0), nblocks(0), cid(0), E(cE), x(cx), y(cy), x_log(0),
-      y_log(0), chi2(0), sigma_E(0), dz(0)
+      y_log(0), chi2(0), sigma_E(0)
     {
         clear_time();
-        clear_gem();
-        for (int i=0; i<NGEM; i++) gemNClusters[i] = 0;
     }
 
     HyCalHit(const float &cx, const float &cy, const float &cE, const std::vector<unsigned short> &t)
     : flag(0), type(0), status(0), nblocks(0), cid(0), E(cE), x(cx), y(cy), x_log(0),
-      y_log(0), chi2(0), sigma_E(0), dz(0)
+      y_log(0), chi2(0), sigma_E(0)
     {
         set_time(t);
     }
@@ -434,17 +423,17 @@ struct HyCalHit
     HyCalHit(const short &t, const short &s, const short &n,
              const float &cx, const float &cy, const float &cE, const float &ch)
     : flag(0), type(t), status(s), nblocks(n), cid(0), E(cE), x(cx), y(cy), x_log(0),
-      y_log(0), chi2(ch), sigma_E(0), dz(0)
+      y_log(0), chi2(ch), sigma_E(0)
     {
         clear_time();
-        clear_gem();
-        for (int i=0; i<NGEM; i++) gemNClusters[i] = 0;
     }
+
     void clear_time()
     {
         for(int i = 0; i < TIME_MEASURE_SIZE; ++i)
             time[i] = 0;
     }
+
     void set_time(const std::vector<unsigned short> &t)
     {
         for(int i = 0; i < TIME_MEASURE_SIZE; ++i)
@@ -454,23 +443,6 @@ struct HyCalHit
             else
                 time[i] = 0;
         }
-    }
-
-    void add_gem_clusterID(const int & detid, const unsigned short &id){
-        if (gemNClusters[detid] >= MAX_GEM_MATCH) return;
-        gemClusterID[detid][gemNClusters[detid]] = id;
-        gemNClusters[detid]++;
-    }
-
-    void clear_gem(){
-        for (int i=0; i<NGEM; i++) gemNClusters[i] = 0;
-        x_gem = 0.; y_gem = 0.; z_gem = -1;
-    }
-
-    void DistClean(){
-        clear_time();
-        clear_gem();
-        flag = 0;
     }
 };
 //============================================================================//

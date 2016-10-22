@@ -5,10 +5,24 @@
 #include <vector>
 #include <iostream>
 #include <map>
+#include "PRadEventStruct.h"
 
 class PRadCoordSystem
 {
 public:
+    struct Point
+    {
+        float x;
+        float y;
+        float z;
+
+        Point() : x(0), y(0), z(0)
+        {};
+        Point(float xi, float yi, float zi)
+        : x(xi), y(yi), z(zi)
+        {};
+    };
+
     enum CoordType
     {
         GEM1 = 0,
@@ -21,25 +35,25 @@ public:
     {
         int run_number; // associated run
         int det_enum;   // detector index
-        double x_ori;   // origin x
-        double y_ori;   // origin y
-        double z_ori;   // origin z
-        double theta_x; // tilting angle on x axis
-        double theta_y; // tilting angle on y axis
-        double theta_z; // tilting angle on z axis
+        float x_ori;   // origin x
+        float y_ori;   // origin y
+        float z_ori;   // origin z
+        float theta_x; // tilting angle on x axis
+        float theta_y; // tilting angle on y axis
+        float theta_z; // tilting angle on z axis
 
         DetCoord()
         : run_number(0), det_enum(0), x_ori(0), y_ori(0), z_ori(0), theta_x(0), theta_y(0), theta_z(0)
         {};
-        DetCoord(int r, int i, double x, double y, double z)
+        DetCoord(int r, int i, float x, float y, float z)
         : run_number(r), det_enum(i), x_ori(x), y_ori(y), z_ori(z), theta_x(0), theta_y(0), theta_z(0)
         {};
-        DetCoord(int r, int i, double x, double y, double z, double tx, double ty, double tz)
+        DetCoord(int r, int i, float x, float y, float z, float tx, double ty, double tz)
         : run_number(r), det_enum(i), x_ori(x), y_ori(y), z_ori(z), theta_x(tx), theta_y(ty), theta_z(tz)
         {};
 
         // these functions help to retrieve values in array or set values in array
-        double get_dim_coord(int i)
+        float get_dim_coord(int i)
         {
             if(i == 0) return x_ori;
             if(i == 1) return y_ori;
@@ -50,7 +64,7 @@ public:
             return 0.;
         }
 
-        void set_dim_coord(int i, double val)
+        void set_dim_coord(int i, float val)
         {
             if(i == 0) x_ori = val;
             if(i == 1) y_ori = val;
@@ -74,7 +88,50 @@ public:
     const std::map<int ,std::vector<DetCoord>> &GetCoordsData() const {return coords_data;};
     std::vector<DetCoord> GetCurrentCoords() const {return current_coord;};
 
-    void Transform(CoordType type, double &x, double &y, double &z) const;
+    // basic transform functions
+    void Transform(CoordType type, Point &p) const;
+    void Transform(CoordType type, float &x, float &y, float &z) const;
+
+    // transform for clusters
+    template<class T>
+    void Transform(PRadCoordSystem::CoordType type, T *t, int NCluster) const;
+    void TransformGEM(GEMHit *gem1, int nGEM1, GEMHit *gem2, int nGEM2) const;
+    void TransformHyCal(HyCalHit *hit, int nHyCal) const;
+
+    // basic projection functions
+    void Projection(float &x, float &y, float &z,
+                    const float &xi, const float &yi, const float &zi,
+                    const float &zf) const;
+    void Projection(Point &p, const Point &pi, const float &zf) const;
+    void Projection(float &x, float &y, float &z, const float &zf) const;
+    void Projection(float &x, float &y, float &z, const Point &pi, const float &zf) const;
+
+    // projection for clusters
+    template<class T>
+    void Projection(T *t, int NCluster, const Point &pi, const float &zf)
+    const
+    {
+        for(int i = 0; i < NCluster; ++i)
+        {
+            Projection(t[i].x, t[i].y, t[i].z, pi.x, pi.y, pi.z, zf);
+        }
+    }
+
+    template<class T>
+    void ProjectionToHyCal(T *t, int NCluster, const Point &pi = origin())
+    const
+    {
+        float zf = current_coord[(int)HyCal].z_ori;
+        for(int i = 0; i < NCluster; ++i)
+        {
+            Projection(t[i].x, t[i].y, t[i].z, pi.x, pi.y, pi.z, zf);
+        }
+    }
+
+public:
+    //static public members
+    static Point beamLine(float z);
+    static Point origin();
 
 protected:
     // offsets data, run number as key, order is important, thus use map instead of hash map
@@ -83,6 +140,6 @@ protected:
 };
 
 std::ostream &operator << (std::ostream &os, const PRadCoordSystem::DetCoord &off);
-const char *getCoordTypeName(int enumVal);
+const char *getNameByCoordType(int enumVal);
 
 #endif

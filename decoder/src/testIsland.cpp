@@ -87,8 +87,8 @@ int main(int /*argc*/, char * /*argv*/ [])
             for (int i = 0; i < clusterN ; i++)
             {
                 HyCalHit *thisCluster = &clusterArray[i];
-                clusterX[i] = thisCluster->x_log;
-                clusterY[i] = thisCluster->y_log;
+                clusterX[i] = thisCluster->x;
+                clusterY[i] = thisCluster->y;
                 clusterE[i] = thisCluster->E;
                 totalE += clusterE[i];
                 clusterNHit[i] = thisCluster->nblocks;

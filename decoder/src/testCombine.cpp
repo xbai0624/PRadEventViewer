@@ -114,9 +114,9 @@ int main()
       totalE = 0.;
       for (int i = 0; i < clusterN ; i++){
         clusterFlag[i] = thisHit[i].flag;
-        clusterX[i] = thisHit[i].x_log;
-        clusterY[i] = thisHit[i].y_log;
-        clusterZ[i] = thisHit[i].dz;
+        clusterX[i] = thisHit[i].x;
+        clusterY[i] = thisHit[i].y;
+        clusterZ[i] = thisHit[i].z;
         clusterE[i] = thisHit[i].E;
         totalE += clusterE[i];
         clusterNHit[i] = thisHit[i].nblocks;

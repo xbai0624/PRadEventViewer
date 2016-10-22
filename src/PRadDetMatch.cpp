@@ -12,7 +12,6 @@
 
 #include "PRadDetMatch.h"
 #include "PRadCoordSystem.h"
-#include "TObject.h"
 /*
 PRadDetMatch::PRadDetMatch()
 :fGEMXYMatchMode(0), fProjectToGEM2(0), fHyCalGEMMatchMode(0), fGEMPeakCharge(0),
@@ -168,11 +167,11 @@ void PRadDetMatch::DetectorMatch()
                 fHyCalClusters[i].y_gem = fGEM2DClusters[j].at(idSave).y;
                 fHyCalClusters[i].z_gem = fGEMZ[j];
             }
-            if (countHit > 1) SETBIT(fHyCalClusters[i].flag, kMultiGEMHits);
+            if (countHit > 1) SET_BIT(fHyCalClusters[i].flag, kMultiGEMHits);
         }
 
-        if (fHyCalClusters[i].gemNClusters[0] != 0) SETBIT(fHyCalClusters[i].flag, kGEM1Match);
-        if (fHyCalClusters[i].gemNClusters[1] != 0) SETBIT(fHyCalClusters[i].flag, kGEM2Match);
+        if (fHyCalClusters[i].gemNClusters[0] != 0) SET_BIT(fHyCalClusters[i].flag, kGEM1Match);
+        if (fHyCalClusters[i].gemNClusters[1] != 0) SET_BIT(fHyCalClusters[i].flag, kGEM2Match);
     }
 
     //at the end of this function, each HyCalHit will have two vectors that collect
@@ -210,7 +209,7 @@ void PRadDetMatch::MatchProcessing()
                     fHyCalClusters[i].x_gem = (GEM1X + GEM2X)/2.;
                     fHyCalClusters[i].y_gem = (GEM1Y + GEM2Y)/2.;
                     fHyCalClusters[i].z_gem = fGEMZ[1];
-                    SETBIT(fHyCalClusters[i].flag, kOverlapMatch);
+                    SET_BIT(fHyCalClusters[i].flag, kOverlapMatch);
                 }else{
                     //will keep only on of the two hits
                     int isave = r1 < r2 ? 0 : 1;
@@ -219,13 +218,13 @@ void PRadDetMatch::MatchProcessing()
                     fHyCalClusters[i].x_gem = fGEM2DClusters[isave].at(index[isave]).x;
                     fHyCalClusters[i].y_gem = fGEM2DClusters[isave].at(index[isave]).y;
                     fHyCalClusters[i].z_gem = fGEMZ[isave];
-                    if (ikill == 0) { CLRBIT(fHyCalClusters[i].flag, kGEM1Match); }
-                    else { CLRBIT(fHyCalClusters[i].flag, kGEM2Match); }
+                    if (ikill == 0) { CLEAR_BIT(fHyCalClusters[i].flag, kGEM1Match); }
+                    else { CLEAR_BIT(fHyCalClusters[i].flag, kGEM2Match); }
                 }
 
             }
              if (fHyCalClusters[i].gemNClusters[0] > 0 || fHyCalClusters[i].gemNClusters[1] >0 )
-             SETBIT(fHyCalClusters[i].flag, kGEMMatch);
+             SET_BIT(fHyCalClusters[i].flag, kGEMMatch);
         }
     }else{
         //TODO for more advanced GEM and HyCal match processing method

@@ -48,7 +48,7 @@ void PRadCoordSystem::LoadCoordData(const std::string &path, const int &chosen_r
 
         int run;
         std::string det_name;
-        double x, y, z, theta_x, theta_y, theta_z;
+        float x, y, z, theta_x, theta_y, theta_z;
 
         c_parser >> run >> det_name
                  >> x >> y >> z >> theta_x >> theta_y >> theta_z;
@@ -149,10 +149,40 @@ void PRadCoordSystem::SetCurrentCoord(const std::vector<PRadCoordSystem::DetCoor
     coords_data[current_coord.begin()->run_number] = current_coord;
 }
 
+void PRadCoordSystem::TransformGEM(GEMHit *gem1, int nGEM1, GEMHit *gem2, int nGEM2)
+const
+{
+    Transform(GEM1, gem1, nGEM1);
+    Transform(GEM2, gem2, nGEM2);
+}
+
+void PRadCoordSystem::TransformHyCal(HyCalHit *hit, int nHyCal)
+const
+{
+    Transform(HyCal, hit, nHyCal);
+}
+
+template<class T>
+void PRadCoordSystem::Transform(PRadCoordSystem::CoordType type, T *t, int NCluster)
+const
+{
+    for(int i = 0; i < NCluster; ++i)
+    {
+        Transform(type, t[i].x, t[i].y, t[i].z);
+    }
+}
+
+void PRadCoordSystem::Transform(PRadCoordSystem::CoordType type,
+                                PRadCoordSystem::Point &p)
+const
+{
+    Transform(type, p.x, p.y, p.z);
+}
+
 // Transform the detector frame to beam frame
 // it corrects the tilting angle first, and then correct origin
 void PRadCoordSystem::Transform(PRadCoordSystem::CoordType type,
-                                double &x, double &y, double &z)
+                                float &x, float &y, float &z)
 const
 {
     const DetCoord &coord = current_coord.at((int)type);
@@ -183,6 +213,71 @@ const
     z += coord.z_ori;
 }
 
+// projection from (xi, yi, zi) to zf
+void PRadCoordSystem::Projection(float &x, float &y, float &z,
+                                 const float &xi, const float &yi, const float &zi,
+                                 const float &zf)
+const
+{
+    float kx = (xi - x)/(zi - z);
+    float ky = (yi - y)/(zi - z);
+    x += kx*(zf - z);
+    y += ky*(zf - z);
+    z = zf;
+}
+
+void PRadCoordSystem::Projection(Point &p, const Point &pi, const float &zf)
+const
+{
+    Projection(p.x, p.y, p.z, pi.x, pi.y, pi.z, zf);
+}
+
+// by default project from origin (0, 0, 0)
+void PRadCoordSystem::Projection(float &x, float &y, float &z, const float &zf)
+const
+{
+    Projection(x, y, z, 0, 0, 0, zf);
+}
+
+void PRadCoordSystem::Projection(float &x, float &y, float &z, const Point &pi, const float &zf)
+const
+{
+    Projection(x, y, z, pi.x, pi.y, pi.z, zf);
+}
+
+/*
+template<class T>
+void PRadCoordSystem::Projection(T *t,
+                                 int NCluster,
+                                 const PRadCoordSystem::Point &pi,
+                                 const float &zf)
+const
+
+template<class T>
+void PRadCoordSystem::ProjectionToHyCal(T *t,
+                                        int NCluster,
+                                        const PRadCoordSystem::Point &pi)
+const
+{
+    float zf = current_coord[(int)HyCal].z_ori;
+
+    for(int i = 0; i < NCluster; ++i)
+    {
+        Projection(t[i].x, t[i].y, t[i].z, pi.x, pi.y, pi.z, zf);
+    }
+
+}
+*/
+PRadCoordSystem::Point PRadCoordSystem::beamLine(float z)
+{
+    return Point(0, 0, z);
+}
+
+PRadCoordSystem::Point PRadCoordSystem::origin()
+{
+    return Point(0, 0, 0);
+}
+
 std::ostream &operator << (std::ostream &os, const PRadCoordSystem::DetCoord &det)
 {
     return os << std::setw(8)  << det.run_number
@@ -195,7 +290,7 @@ std::ostream &operator << (std::ostream &os, const PRadCoordSystem::DetCoord &de
               << std::setw(8) << det.theta_z;
 }
 
-const char *getCoordTypeName(int enumVal)
+const char *getNameByCoordType(int enumVal)
 {
     return CoordTypeName[enumVal];
 }

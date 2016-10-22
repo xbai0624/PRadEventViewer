@@ -57,8 +57,8 @@ int main(int /*argc*/, char * /*argv*/ [])
         for(int i = 0; i < N; ++i)
         {
             E[i] = hit[i].E;
-            x[i] = hit[i].x_log;
-            y[i] = hit[i].y_log;
+            x[i] = hit[i].x;
+            y[i] = hit[i].y;
         }
         t->Fill();
     }

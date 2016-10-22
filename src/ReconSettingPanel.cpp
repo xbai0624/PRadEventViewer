@@ -238,7 +238,7 @@ void ReconSettingPanel::ConnectCoordSystem(PRadCoordSystem *c)
 
     for(auto &coord : det_coords)
     {
-        coordType->addItem(getCoordTypeName(coord.det_enum));
+        coordType->addItem(getNameByCoordType(coord.det_enum));
     }
 
     coordType->setCurrentIndex(0);
