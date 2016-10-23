@@ -51,9 +51,9 @@ public:
 public:
     PRadGEMPlane();
     PRadGEMPlane(const std::string &n, const PlaneType &t, const double &s,
-                 const int &c, const int &o);
-    PRadGEMPlane(PRadGEMDetector *d, const std::string &n, const PlaneType &t,
-                 const double &s, const int &c, const int &o);
+                 const int &c, const int &o, const int &d = 1);
+    PRadGEMPlane(PRadGEMDetector *det, const std::string &n, const PlaneType &t,
+                 const double &s, const int &c, const int &o, const int &d = 1);
     virtual ~PRadGEMPlane();
 
     void ConnectAPV(PRadGEMAPV *apv);
@@ -91,6 +91,7 @@ private:
     double size;
     int connector;
     int orientation;
+    int direction;
     std::vector<PRadGEMAPV*> apv_list;
     std::vector<GEMPlaneHit> hit_list;
     // there will be requent remove, split operations for clusters in the middle

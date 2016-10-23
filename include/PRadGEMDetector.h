@@ -24,7 +24,7 @@ public:
 
     void AddPlane(const PRadGEMPlane::PlaneType &type, PRadGEMPlane *plane);
     void AddPlane(const PRadGEMPlane::PlaneType &type, const std::string &name,
-                  const double &size, const int &conn, const int &ori);
+                  const double &size, const int &conn, const int &ori, const int &dir);
     void ConnectAPV(const PRadGEMPlane::PlaneType &plane, PRadGEMAPV *apv);
     void ReconstructHits(PRadGEMCluster *c);
     void ReconstructHits();

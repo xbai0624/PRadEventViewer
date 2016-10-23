@@ -1249,8 +1249,8 @@ void PRadEventViewer::findPeak()
 void PRadEventViewer::fitPedestal()
 {
     handler->FitPedestal();
-    Refresh();
     UpdateHistCanvas();
+    emit currentEventChanged(eventSpin->value());
 }
 
 void PRadEventViewer::fitHistogram()
@@ -1326,8 +1326,8 @@ void PRadEventViewer::correctGainFactor()
     handler->CorrectGainFactor();
     // Refill the histogram to show the changes
     handler->RefillEnergyHist();
-    Refresh();
     UpdateHistCanvas();
+    emit currentEventChanged(eventSpin->value());
 }
 
 void PRadEventViewer::takeSnapShot()

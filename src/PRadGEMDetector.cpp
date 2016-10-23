@@ -36,9 +36,10 @@ void PRadGEMDetector::AddPlane(const PRadGEMPlane::PlaneType &type,
                                const std::string &name,
                                const double &size,
                                const int &conn,
-                               const int &ori)
+                               const int &ori,
+                               const int &dir)
 {
-    planes[(int)type] = new PRadGEMPlane(this, name, type, size, conn, ori);
+    planes[(int)type] = new PRadGEMPlane(this, name, type, size, conn, ori, dir);
 }
 
 void PRadGEMDetector::AddPlane(const PRadGEMPlane::PlaneType &type,

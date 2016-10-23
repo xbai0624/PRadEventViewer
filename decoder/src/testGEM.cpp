@@ -37,7 +37,7 @@ int main(int /*argc*/, char * /*argv*/ [])
     gem_srs->SetPedestalMode(false);
     */
 
-/* show the APVs and their strip numbers on planes
+// show the APVs and their strip numbers on planes
     // show the plane list
     auto det_list = gem_srs->GetDetectorList();
 
@@ -68,7 +68,7 @@ int main(int /*argc*/, char * /*argv*/ [])
             }
         }
     }
-*/
+
 
     dst_parser->OpenInput("/work/hallb/prad/replay/prad_001287.dst");
 

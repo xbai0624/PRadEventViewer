@@ -25,15 +25,15 @@ PRadGEMPlane::PRadGEMPlane()
 }
 
 PRadGEMPlane::PRadGEMPlane(const std::string &n, const PlaneType &t, const double &s,
-                           const int &c, const int &o)
-: detector(nullptr), name(n), type(t), size(s), connector(c), orientation(o)
+                           const int &c, const int &o, const int &d)
+: detector(nullptr), name(n), type(t), size(s), connector(c), orientation(o), direction(d)
 {
     apv_list.resize(c, nullptr);
 }
 
-PRadGEMPlane::PRadGEMPlane(PRadGEMDetector *d, const std::string &n, const PlaneType &t,
-                           const double &s, const int &c, const int &o)
-: detector(d), name(n), type(t), size(s), connector(c), orientation(o)
+PRadGEMPlane::PRadGEMPlane(PRadGEMDetector *det, const std::string &n, const PlaneType &t,
+                           const double &s, const int &c, const int &o, const int &d)
+: detector(det), name(n), type(t), size(s), connector(c), orientation(o), direction(d)
 {
     apv_list.resize(c, nullptr);
 }
@@ -109,13 +109,20 @@ std::vector<PRadGEMAPV*> PRadGEMPlane::GetAPVList()
 }
 
 // unit is mm
+// X plane did a shift to move the X origin to center hole
+// origin shift: 550.4/2 - (44-pitch)/2 = 253.2 mm
 double PRadGEMPlane::GetStripPosition(const int &plane_strip)
 {
-    double pitch = 0.4;
-    if(type == Plane_X)
-        return -0.5*(size + 31*pitch) + pitch*plane_strip;
-    else
-        return -0.5*(size - pitch) + pitch*plane_strip;
+    double pitch = 0.4, origin_shift = 253.2;
+    double position;
+
+    if(type == Plane_X) {
+        position = -0.5*(size + 31*pitch) + pitch*plane_strip - origin_shift;
+    } else {
+        position = -0.5*(size - pitch) + pitch*plane_strip;
+    }
+
+    return direction*position;
 }
 
 double PRadGEMPlane::GetMaxCharge(const std::vector<float> &charges)

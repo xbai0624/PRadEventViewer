@@ -81,13 +81,13 @@ void PRadGEMSystem::LoadConfiguration(const string &path) throw(PRadException)
 
                 string plane;
                 double size;
-                int connector, orient;
+                int connector, orient, direct;
                 PRadGEMPlane::PlaneType type;
 
                 // A planes is defined in 4 parameters
                 while(c_parser.NbofElements() >= 4)
                 {
-                    c_parser >> plane >> size >> connector >> orient;
+                    c_parser >> plane >> size >> connector >> orient >> direct;
 
                     // determine plane type
                     if(plane.find("X") != string::npos)
@@ -95,7 +95,7 @@ void PRadGEMSystem::LoadConfiguration(const string &path) throw(PRadException)
                     else
                         type = PRadGEMPlane::Plane_Y;
 
-                    new_det->AddPlane(type, plane, size, connector, orient);
+                    new_det->AddPlane(type, plane, size, connector, orient, direct);
                 }
 
                 RegisterDetector(new_det);

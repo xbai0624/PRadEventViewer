@@ -12,6 +12,7 @@
 #include "PRadDAQUnit.h"
 #include "PRadGEMSystem.h"
 #include "PRadEventStruct.h"
+#include "PRadIslandCluster.h"
 
 #include "TFile.h"
 #include "TTree.h"
