@@ -14,6 +14,8 @@
 #include <iterator>
 #include <algorithm>
 
+#define PITCH 0.4
+#define X_SHIFT 253.2
 
 PRadGEMPlane::PRadGEMPlane()
 : detector(nullptr), name("Undefined"), type(Plane_X), size(0.),
@@ -113,13 +115,12 @@ std::vector<PRadGEMAPV*> PRadGEMPlane::GetAPVList()
 // origin shift: 550.4/2 - (44-pitch)/2 = 253.2 mm
 double PRadGEMPlane::GetStripPosition(const int &plane_strip)
 {
-    double pitch = 0.4, origin_shift = 253.2;
     double position;
 
     if(type == Plane_X) {
-        position = -0.5*(size + 31*pitch) + pitch*plane_strip - origin_shift;
+        position = -0.5*(size + 31*PITCH) + PITCH*plane_strip - X_SHIFT;
     } else {
-        position = -0.5*(size - pitch) + pitch*plane_strip;
+        position = -0.5*(size - PITCH) + PITCH*plane_strip;
     }
 
     return direction*position;

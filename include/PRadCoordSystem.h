@@ -35,12 +35,12 @@ public:
     {
         int run_number; // associated run
         int det_enum;   // detector index
-        float x_ori;   // origin x
-        float y_ori;   // origin y
-        float z_ori;   // origin z
-        float theta_x; // tilting angle on x axis
-        float theta_y; // tilting angle on y axis
-        float theta_z; // tilting angle on z axis
+        float x_ori;    // origin x
+        float y_ori;    // origin y
+        float z_ori;    // origin z
+        float theta_x;  // tilting angle on x axis
+        float theta_y;  // tilting angle on y axis
+        float theta_z;  // tilting angle on z axis
 
         DetCoord()
         : run_number(0), det_enum(0), x_ori(0), y_ori(0), z_ori(0), theta_x(0), theta_y(0), theta_z(0)
@@ -79,12 +79,15 @@ public:
     PRadCoordSystem(const std::string &path = "", const int &run = 0);
     virtual ~PRadCoordSystem();
 
+    // manipulate coordinates database
     void LoadCoordData(const std::string &path, const int &run = 0);
     void SaveCoordData(const std::string &path);
-
-    void SetCurrentCoord(const std::vector<DetCoord> &coords);
     void ChooseCoord(int run_number);
 
+    // set members
+    void SetCurrentCoord(const std::vector<DetCoord> &coords);
+
+    // get members
     const std::map<int ,std::vector<DetCoord>> &GetCoordsData() const {return coords_data;};
     std::vector<DetCoord> GetCurrentCoords() const {return current_coord;};
 
@@ -92,9 +95,6 @@ public:
     void Transform(CoordType type, Point &p) const;
     void Transform(CoordType type, float &x, float &y, float &z) const;
 
-    // transform for clusters
-    template<class T>
-    void Transform(PRadCoordSystem::CoordType type, T *t, int NCluster) const;
     void TransformGEM(GEMHit *gem1, int nGEM1, GEMHit *gem2, int nGEM2) const;
     void TransformHyCal(HyCalHit *hit, int nHyCal) const;
 
@@ -106,7 +106,31 @@ public:
     void Projection(float &x, float &y, float &z, const float &zf) const;
     void Projection(float &x, float &y, float &z, const Point &pi, const float &zf) const;
 
-    // projection for clusters
+public:
+    // template functions
+    // transform for clusters, accepts array
+    template<class T>
+    void Transform(CoordType type, T *t, int NCluster)
+    const
+    {
+        for(int i = 0; i < NCluster; ++i)
+        {
+            Transform(type, t[i].x, t[i].y, t[i].z);
+        }
+    }
+
+    // transform for clusters, accepts iterator
+    template<class T_it>
+    void Transform(CoordType type, T_it first, T_it last)
+    const
+    {
+        for(T_it it = first; it != last; ++it)
+        {
+            Transform(type, (*it).x, (*it).y, (*it).z);
+        }
+    }
+
+    // projection for clusters, accepts array
     template<class T>
     void Projection(T *t, int NCluster, const Point &pi, const float &zf)
     const
@@ -127,6 +151,29 @@ public:
             Projection(t[i].x, t[i].y, t[i].z, pi.x, pi.y, pi.z, zf);
         }
     }
+
+
+    // projection for clusters, accepts iterator
+    template<class T_it>
+    void Projection(T_it first, T_it last, const Point &pi, const float &zf)
+    const
+    {
+        for(T_it it = first; it != last; ++it)
+        {
+            Projection((*it).x, (*it).y, (*it).z, pi.x, pi.y, pi.z, zf);
+        }
+    }
+
+    template<class T_it>
+    void Projection(T_it first, T_it last, const Point &pi = origin())
+    {
+        float zf = current_coord[(int)HyCal].z_ori;
+        for(T_it it = first; it != last; ++it)
+        {
+            Projection((*it).x, (*it).y, (*it).z, pi.x, pi.y, pi.z, zf);
+        }
+    }
+
 
 public:
     //static public members

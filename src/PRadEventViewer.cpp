@@ -1452,13 +1452,15 @@ void PRadEventViewer::showReconEvent(int evt)
 
     // display HyCal
     if(reconSetting->ShowHyCalCluster()) {
+
         handler->HyCalReconstruct(thisEvent);
 
         int nHyCalHits = 0;
         HyCalHit* thisHit = handler->GetHyCalCluster(nHyCalHits);
 
         // transform to beam frame
-        coordSystem->TransformHyCal(thisHit, nHyCalHits);
+        coordSystem->Transform(PRadCoordSystem::HyCal, &thisHit[0], &thisHit[nHyCalHits]);
+
         // project to hycal surface (there probably is a depth of cluster)
         coordSystem->ProjectionToHyCal(thisHit, nHyCalHits);
 
@@ -1467,11 +1469,12 @@ void PRadEventViewer::showReconEvent(int evt)
             QPointF p(CARTESIAN_TO_HYCALSCENE(thisHit[i].x, thisHit[i].y));
             HyCal->AddHitsMark("HyCal Hit", p, Qt::black, 7., QString::number(thisHit[i].E) + " MeV");
         }
+
     }
 
     // display GEM
     if(reconSetting->ShowGEMCluster()) {
-        // TODO unfinished
+
         gem_srs->Reconstruct(thisEvent);
         int nGEM1, nGEM2;
         GEMHit *gem1 = gem_srs->GetDetector(getNameByCoordType(PRadCoordSystem::GEM1))->GetClusters(nGEM1);
@@ -1492,96 +1495,13 @@ void PRadEventViewer::showReconEvent(int evt)
             QPointF p(CARTESIAN_TO_HYCALSCENE(gem2[i].x, gem2[i].y));
             HyCal->AddHitsMark("GEM2 Hit", p, Qt::magenta, 3.);
         }
+
     }
+
+    // TODO matched clusters
 
     // display hits
     Refresh();
-
-/*
-    detMatch->Clear();
-    coordSystem->HyCalClustersToLab(nHyCalHits, thisHit);
-    detMatch->LoadHyCalClusters(nHyCalHits, thisHit);
-
-    for (int i = 0; i < NGEM; i++)
-    {
-        int type = i*NGEM;
-        coordSystem->GEMClustersToLab(type, gem_srs->GetDetectorPlane(Form("pRadGEM%dX", i+1))->GetPlaneCluster());
-        coordSystem->GEMClustersToLab(type+1, gem_srs->GetDetectorPlane(Form("pRadGEM%dY", i+1))->GetPlaneCluster());
-        detMatch->LoadGEMClusters(type, gem_srs->GetDetectorPlane(Form("pRadGEM%dX", i+1))->GetPlaneCluster());
-        detMatch->LoadGEMClusters(type+1, gem_srs->GetDetectorPlane(Form("pRadGEM%dY", i+1))->GetPlaneCluster());
-    }
-
-    detMatch->DetectorMatch();
-    detMatch->ProjectGEMToHyCal();
-
-    std::map<unsigned short, vector< pair<int, QString> > > thisMap;
-
-    for(int i = 0; i < nHyCalHits; i++)
-    {
-        QPointF h(thisHit[i].x + HYCAL_SHIFT, -1.*thisHit[i].y);
-        HyCal->AddHyCalHits(h);
-
-        if (!fUseIsland) continue;
-        for (int nhit=0; nhit<thisHit[i].nblocks; nhit++){
-            auto it = thisMap.find(thisHit[i].moduleID[nhit]);
-            if (it == thisMap.end()){
-               std::vector<pair<int, QString> > thisVector;
-               thisVector.push_back(pair<int, QString>(i, QString::number(thisHit[i].moduleE[nhit])));
-               thisMap[thisHit[i].moduleID[nhit]] = thisVector;
-            }else{
-               (it->second).push_back(pair<int, QString>(i, QString::number(thisHit[i].moduleE[nhit]) ));
-            }
-
-        }
-    }
-
-    auto it = thisMap.begin();
-    while (it != thisMap.end()){
-       QString thisString;
-       for (unsigned int i=0; i<(it->second).size(); i++){
-         thisString += QString::number((it->second).at(i).first);
-         thisString += ": ";
-         thisString += (it->second).at(i).second;
-         thisString += " \r\n" ;
-         double thisX;
-         double thisY;
-
-         thisX = handler->GetChannelPrimex((it->first))->GetX();
-         thisY = handler->GetChannelPrimex((it->first))->GetY();
-
-         QRectF m(thisX + HYCAL_SHIFT - 10, thisY - 10, 20, 20);
-         HyCal->AddEnergyValue(thisString, m);
-       }
-      it++;
-    }
-
-
-    std::map<int, vector<GEMDetCluster> > & gemClusters = detMatch->GetGEM2DClusters();
-
-
-    if (!fShowMatchedGEM){
-        auto itt = gemClusters.begin();
-
-        while(itt != gemClusters.end()){
-            for(unsigned int i=0; i<(itt->second).size(); i++){
-                QPointF h((itt->second).at(i).x + HYCAL_SHIFT, -1.*(itt->second).at(i).y);
-
-                HyCal->AddGEMHits((itt->first), h);
-            }
-            itt++;
-        }
-    }else{
-        for (int i=0; i<nHyCalHits; i++){
-            for (unsigned int j=0; j<gemClusters.size(); j++){
-                for (int k=0; k<thisHit[i].gemNClusters[j]; k++){
-                    int index = thisHit[i].gemClusterID[j][k];
-                    QPointF h(gemClusters[j][index].x + HYCAL_SHIFT, -1.*gemClusters[j][index].y);
-                    HyCal->AddGEMHits(j, h);
-                }
-            }
-        }
-    }
-*/
 }
 #endif
 

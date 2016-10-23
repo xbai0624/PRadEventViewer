@@ -1,7 +1,10 @@
 //============================================================================//
 // Transform the HyCal and GEM to beam center frame                           //
 //                                                                            //
-// Weizhi XIong, Xinzhan Bai, Chao Peng                                       //
+// Weizhi Xiong, first version, framework of coordinates system               //
+// Xinzhan Bai, studied coordinates offsets, generated database               //
+// Chao Peng, changed the coordinates transform method, now all detectors     //
+//            are transformed directly to beam frame                          //
 // 10/21/2016                                                                 //
 //============================================================================//
 
@@ -162,16 +165,6 @@ const
     Transform(HyCal, hit, nHyCal);
 }
 
-template<class T>
-void PRadCoordSystem::Transform(PRadCoordSystem::CoordType type, T *t, int NCluster)
-const
-{
-    for(int i = 0; i < NCluster; ++i)
-    {
-        Transform(type, t[i].x, t[i].y, t[i].z);
-    }
-}
-
 void PRadCoordSystem::Transform(PRadCoordSystem::CoordType type,
                                 PRadCoordSystem::Point &p)
 const
@@ -245,29 +238,6 @@ const
     Projection(x, y, z, pi.x, pi.y, pi.z, zf);
 }
 
-/*
-template<class T>
-void PRadCoordSystem::Projection(T *t,
-                                 int NCluster,
-                                 const PRadCoordSystem::Point &pi,
-                                 const float &zf)
-const
-
-template<class T>
-void PRadCoordSystem::ProjectionToHyCal(T *t,
-                                        int NCluster,
-                                        const PRadCoordSystem::Point &pi)
-const
-{
-    float zf = current_coord[(int)HyCal].z_ori;
-
-    for(int i = 0; i < NCluster; ++i)
-    {
-        Projection(t[i].x, t[i].y, t[i].z, pi.x, pi.y, pi.z, zf);
-    }
-
-}
-*/
 PRadCoordSystem::Point PRadCoordSystem::beamLine(float z)
 {
     return Point(0, 0, z);

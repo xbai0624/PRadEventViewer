@@ -1,129 +1,32 @@
 //============================================================================//
 // Match the HyCal Clusters and GEM clusters                                  //
-// The clusters are required to be in the same frame (beam center frame)      //
+// The clusters are required to be in the same frame (beam center frame) and  //
+// projected to HyCal surface                                                 //
+// The frame transform and projection work can be don in PRadCoordSystem      //
 //                                                                            //
 //                                                                            //
-// Weizhi XIong, Xinzhan Bai, Chao Peng                                       //
-// 10/21/2016                                                                 //
+// Xinzhan Bai, first version                                                 //
+// Weizhi Xiong, adapted to PRad analysis software                            //
+// Chao Peng, removed coordinates manipulation, only left matching part       //
+// 10/22/2016                                                                 //
 //============================================================================//
-#include <list>
-#include <cassert>
-#include <cmath>
 
 #include "PRadDetMatch.h"
 #include "PRadCoordSystem.h"
+
 /*
 PRadDetMatch::PRadDetMatch()
-:fGEMXYMatchMode(0), fProjectToGEM2(0), fHyCalGEMMatchMode(0), fGEMPeakCharge(0),
-  fDoMatchProcessing(0), fMatchCut(0.)
 {
-    for (int i=0; i<NGEM; i++){
-        vector<GEMDetCluster> gemHits;
-        gemHits.clear();
-        fGEM2DClusters[i] = gemHits;
-    }
+
 }
-//__________________________________________________________________________________
+
 PRadDetMatch::~PRadDetMatch()
 {
 
 }
-//___________________________________________________________________________________
-void PRadDetMatch::Clear()
-{
-    fNHyCalClusters = 0;
-    fHyCalClusters = nullptr;
-    fGEM1DClusters.clear();
-    map<int, vector<GEMDetCluster> >::iterator it;
-    for (it = fGEM2DClusters.begin(); it != fGEM2DClusters.end(); it++) { (it->second).clear(); }
-}
-//___________________________________________________________________________________
-void PRadDetMatch::ReadConfigFile(const string &path)
-{
-    ConfigParser c_parser(": ,\t="); // self-defined splitters
 
-    if(!c_parser.OpenFile(path)) {
-         cout << "Cannot open file " << path << endl;
-     }
-
-    unordered_map<string, float> variable_map;
-
-    while(c_parser.ParseLine())
-    {
-        if (c_parser.NbofElements() != 2)
-            continue;
-
-        string var_name = c_parser.TakeFirst();
-        ConfigValue var_value = c_parser.TakeFirst();
-        fConfigMap[var_name] = var_value;
-    }
-}
-//________________________________________________________________________
-ConfigValue PRadDetMatch::GetConfigValue(const string &name,
-                                              const string &def_value,
-                                              bool verbose)
-{
-    auto it = fConfigMap.find(name);
-    if(it == fConfigMap.end())
-    {
-        if(verbose)
-            cout << name
-                 << " not defined in configuration file, set to default value "
-                 << def_value
-                 << endl;
-        return ConfigValue(def_value);
-    }
-    return it->second;
-}
-//________________________________________________________________________
-void PRadDetMatch::Configurate(const string & path)
-{
-    ReadConfigFile(path);
-
-    fGEMXYMatchMode    = GetConfigValue("GEM_XY_MATCH_MODE", "0").Int();
-    fProjectToGEM2     = GetConfigValue("PROJECT_TO_GEM2", "0").Int();
-    fHyCalGEMMatchMode = GetConfigValue("HYCAL_GEM_MATCH_MODE", "0").Int();
-    fGEMPeakCharge     = GetConfigValue("GEM_PEAK_CHARGE", "0").Int();
-    fDoMatchProcessing = GetConfigValue("MATCH_PROCESSING", "1").Int();
-
-    fMatchCut          = GetConfigValue("MATCH_CUT", "60.").Float();
-    fGEMResolution     = GetConfigValue("GEM_RESOLUTION", "0.1").Float();
-
-    fGEMZ[0]           = GetConfigValue("GEM1_Z", "5304.").Float();
-    fGEMZ[1]           = GetConfigValue("GEM2_Z", "5264.").Float();
-    fHyCalZ            = GetConfigValue("HYCAL_Z", "5817.").Float();
-    fZLGToPWO          = GetConfigValue("Z_LG_TO_PWO", "-101.2").Float();
-}
-//_________________________________________________________________________
-void PRadDetMatch::LoadHyCalClusters(int &nclusters, HyCalHit* clusters)
-{
-    fNHyCalClusters = nclusters;
-    fHyCalClusters  = clusters;
-}
-//________________________________________________________________________
-void PRadDetMatch::LoadGEMClusters(int type, list<GEMPlaneCluster>& clusters)
-{
-    map< int, list<GEMPlaneCluster>* >::iterator it;
-    it = fGEM1DClusters.find(type);
-    if (it != fGEM1DClusters.end()){
-        cout<<"cluster already loaded? make sure you call the Clear function of PRadDetMatch"<<endl;
-    }else{
-        fGEM1DClusters[type] = &clusters;
-    }
-}
-//_________________________________________________________________________
 void PRadDetMatch::DetectorMatch()
 {
-    //first match the X-Y coordinate of each GEM detector
-    for (int i=0; i<NGEM; i++){
-         assert(fGEM2DClusters[i].empty()); //must be cleared before filled in
-        if (fGEMXYMatchMode == 0){
-            GEMXYMatchPlusMode(i);
-        }else{
-            GEMXYMatchNormalMode(i);
-        }
-    }
-
     //for each HyCal cluster, find GEM cluster that may be able to match the coordinate
     //The matching is probably better to be done on a common plane, say coincide with
     //the second GEM, because the cut may be different depending how far the plane is
@@ -179,7 +82,7 @@ void PRadDetMatch::DetectorMatch()
     //in the fGEM2DClusters
     if (fDoMatchProcessing) MatchProcessing();
 }
-//_________________________________________________________________________
+
 void PRadDetMatch::MatchProcessing()
 {
     if (fHyCalGEMMatchMode){
@@ -230,7 +133,7 @@ void PRadDetMatch::MatchProcessing()
         //TODO for more advanced GEM and HyCal match processing method
     }
 }
-//_________________________________________________________________________
+
 void PRadDetMatch::ProjectGEMToHyCal()
 {
     //project all the GEM 2D clusters to HyCal surface, used for the purpose
@@ -244,13 +147,13 @@ void PRadDetMatch::ProjectGEMToHyCal()
         }
     }
 
-    for (int i=0; i<fNHyCalClusters; i++){
-        
+    for (int i=0; i<fNHyCalClusters; i++)
+    {
         ProjectToZ(fHyCalClusters[i].x_gem, fHyCalClusters[i].y_gem,
                    fHyCalClusters[i].z_gem, fHyCalZ);
     }
 }
-//________________________________________________________________________
+
 void  PRadDetMatch::GEMXYMatchNormalMode(int igem)
 {
     //IMPORTANCE: In the normal mode cluster matching, x and y clusters MUST be
@@ -276,7 +179,8 @@ void  PRadDetMatch::GEMXYMatchNormalMode(int igem)
         if (fProjectToGEM2) ProjectToZ(x, y, fGEMZ[igem], fGEMZ[1]);
         float c_x = 0.;
         float c_y = 0.;
-        if (fGEMPeakCharge){
+        if (fGEMPeakCharge)
+        {
             c_x = (*itx).total_charge;
             c_y = (*ity).total_charge;
         }else{
@@ -296,7 +200,7 @@ void  PRadDetMatch::GEMXYMatchNormalMode(int igem)
         *ity++;
     }
 }
-//________________________________________________________________________
+
 void  PRadDetMatch::GEMXYMatchPlusMode(int igem)
 {
     //Plus mode exhausts all the possible combination of x-y
@@ -334,13 +238,13 @@ void  PRadDetMatch::GEMXYMatchPlusMode(int igem)
         }
     }
 }
-//_________________________________________________________________________
+
 void PRadDetMatch::ProjectToZ(float& x, float& y, float& z, float&zproj)
 {
     x *= zproj/z;
     y *= zproj/z;
 }
-//_________________________________________________________________________
+
 float PRadDetMatch::Distance2Points(float& x1, float &y1, float &x2, float &y2)
 {
     return sqrt((x1-x2)*(x1-x2) + (y1-y2)*(y1-y2));
