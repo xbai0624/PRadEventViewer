@@ -10,7 +10,6 @@
 
 #include "PRadCoordSystem.h"
 #include "ConfigParser.h"
-#include <cmath>
 #include <fstream>
 #include <iomanip>
 
@@ -210,8 +209,11 @@ const
 void PRadCoordSystem::Projection(float &x, float &y, float &z,
                                  const float &xi, const float &yi, const float &zi,
                                  const float &zf)
-const
 {
+    // no need for projection
+    if(z == zf)
+        return;
+
     float kx = (xi - x)/(zi - z);
     float ky = (yi - y)/(zi - z);
     x += kx*(zf - z);
@@ -220,22 +222,35 @@ const
 }
 
 void PRadCoordSystem::Projection(Point &p, const Point &pi, const float &zf)
-const
 {
     Projection(p.x, p.y, p.z, pi.x, pi.y, pi.z, zf);
 }
 
 // by default project from origin (0, 0, 0)
 void PRadCoordSystem::Projection(float &x, float &y, float &z, const float &zf)
-const
 {
     Projection(x, y, z, 0, 0, 0, zf);
 }
 
 void PRadCoordSystem::Projection(float &x, float &y, float &z, const Point &pi, const float &zf)
-const
 {
     Projection(x, y, z, pi.x, pi.y, pi.z, zf);
+}
+
+float PRadCoordSystem::ProjectionDistance(PRadCoordSystem::Point p1, PRadCoordSystem::Point p2)
+{
+    // on the same plane
+    if(p1.z == p2.z)
+        return sqrt((p1.x - p2.x)*(p1.x - p2.x) + (p1.y - p2.y)*(p1.y - p2.y));
+
+    // project to further z
+    if(p1.z < p2.z) {
+        Projection(p1, origin(), p2.z);
+    } else {
+        Projection(p2, origin(), p1.z);
+    }
+
+    return sqrt((p1.x - p2.x)*(p1.x - p2.x) + (p1.y - p2.y)*(p1.y - p2.y));
 }
 
 PRadCoordSystem::Point PRadCoordSystem::beamLine(float z)

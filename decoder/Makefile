@@ -83,7 +83,8 @@ TARGET        = testIsland \
                 testGEM \
                 testSim \
                 replay \
-                testCombine
+                testCombine \
+                getAvgGain
 
 EXE_LIBS      = -L$(T_LIBS_DIR) -lPRadDecoder
 
@@ -127,6 +128,9 @@ replay: src/replay.cpp
 	$(CXX) $(CXXFLAGS) -o $@ $< $(INCPATH) $(LIBS) $(EXE_LIBS)
 
 testCombine: src/testCombine.cpp
+	$(CXX) $(CXXFLAGS) -o $@ $< $(INCPATH) $(LIBS) $(EXE_LIBS)
+
+getAvgGain: src/getAvgGain.cpp
 	$(CXX) $(CXXFLAGS) -o $@ $< $(INCPATH) $(LIBS) $(EXE_LIBS)
 
 ####### Clean

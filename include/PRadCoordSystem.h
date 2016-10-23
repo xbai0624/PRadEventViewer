@@ -5,6 +5,7 @@
 #include <vector>
 #include <iostream>
 #include <map>
+#include <cmath>
 #include "PRadEventStruct.h"
 
 class PRadCoordSystem
@@ -48,7 +49,7 @@ public:
         DetCoord(int r, int i, float x, float y, float z)
         : run_number(r), det_enum(i), x_ori(x), y_ori(y), z_ori(z), theta_x(0), theta_y(0), theta_z(0)
         {};
-        DetCoord(int r, int i, float x, float y, float z, float tx, double ty, double tz)
+        DetCoord(int r, int i, float x, float y, float z, float tx, float ty, float tz)
         : run_number(r), det_enum(i), x_ori(x), y_ori(y), z_ori(z), theta_x(tx), theta_y(ty), theta_z(tz)
         {};
 
@@ -97,14 +98,6 @@ public:
 
     void TransformGEM(GEMHit *gem1, int nGEM1, GEMHit *gem2, int nGEM2) const;
     void TransformHyCal(HyCalHit *hit, int nHyCal) const;
-
-    // basic projection functions
-    void Projection(float &x, float &y, float &z,
-                    const float &xi, const float &yi, const float &zi,
-                    const float &zf) const;
-    void Projection(Point &p, const Point &pi, const float &zf) const;
-    void Projection(float &x, float &y, float &z, const float &zf) const;
-    void Projection(float &x, float &y, float &z, const Point &pi, const float &zf) const;
 
 public:
     // template functions
@@ -179,6 +172,27 @@ public:
     //static public members
     static Point beamLine(float z);
     static Point origin();
+    // basic projection functions
+    static void Projection(float &x, float &y, float &z,
+                           const float &xi, const float &yi, const float &zi,
+                           const float &zf);
+    static void Projection(Point &p, const Point &pi, const float &zf);
+    static void Projection(float &x, float &y, float &z, const float &zf);
+    static void Projection(float &x, float &y, float &z, const Point &pi, const float &zf);
+    static float ProjectionDistance(Point p1, Point p2);
+
+    // static templates
+    template<class T>
+    static float ProjectionDistance(const T &t1, const T &t2)
+    {
+        return ProjectionDistance(Point(t1.x, t1.y, t1.z), Point(t2.x, t2.y, t2.z));
+    }
+
+    template<class T1, class T2>
+    static float ProjectionDistance(const T1 &t1, const T2 &t2)
+    {
+        return ProjectionDistance(Point(t1.x, t1.y, t1.z), Point(t2.x, t2.y, t2.z));
+    }
 
 protected:
     // offsets data, run number as key, order is important, thus use map instead of hash map
