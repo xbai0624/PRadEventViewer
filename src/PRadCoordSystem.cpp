@@ -12,8 +12,9 @@
 #include "ConfigParser.h"
 #include <fstream>
 #include <iomanip>
+#include <cstring>
 
-static const char *CoordTypeName[] = {"PRadGEM1", "PRadGEM2", "HyCal", "Undefined"};
+static const char *CoordTypeName[] = {"HyCal", "PRadGEM1", "PRadGEM2", "Undefined"};
 
 PRadCoordSystem::PRadCoordSystem(const std::string &path, const int &run)
 {
@@ -151,33 +152,12 @@ void PRadCoordSystem::SetCurrentCoord(const std::vector<PRadCoordSystem::DetCoor
     coords_data[current_coord.begin()->run_number] = current_coord;
 }
 
-void PRadCoordSystem::TransformGEM(GEMHit *gem1, int nGEM1, GEMHit *gem2, int nGEM2)
-const
-{
-    Transform(GEM1, gem1, nGEM1);
-    Transform(GEM2, gem2, nGEM2);
-}
-
-void PRadCoordSystem::TransformHyCal(HyCalHit *hit, int nHyCal)
-const
-{
-    Transform(HyCal, hit, nHyCal);
-}
-
-void PRadCoordSystem::Transform(PRadCoordSystem::CoordType type,
-                                PRadCoordSystem::Point &p)
-const
-{
-    Transform(type, p.x, p.y, p.z);
-}
-
 // Transform the detector frame to beam frame
 // it corrects the tilting angle first, and then correct origin
-void PRadCoordSystem::Transform(PRadCoordSystem::CoordType type,
-                                float &x, float &y, float &z)
+void PRadCoordSystem::Transform(int type, float &x, float &y, float &z)
 const
 {
-    const DetCoord &coord = current_coord.at((int)type);
+    const DetCoord &coord = current_coord.at(type);
 
     // firstly do the angle tilting
     // basic rotation matrix
@@ -278,4 +258,17 @@ std::ostream &operator << (std::ostream &os, const PRadCoordSystem::DetCoord &de
 const char *getNameByCoordType(int enumVal)
 {
     return CoordTypeName[enumVal];
+}
+
+int getCoordTypeByName(const char *name)
+{
+    for(int i = 0; i < (int)PRadCoordSystem::Max_CoordType; ++i)
+        if(strcmp(name, CoordTypeName[i]) == 0)
+            return i;
+
+    std::cout << "getCoordTypeByName: Cannot find " << name
+              << ", return HyCal type as default"
+              << std::endl;
+    // not found
+    return 0;
 }

@@ -20,6 +20,7 @@
 #include "PRadDetMatch.h"
 #include "PRadCoordSystem.h"
 
+// constructor
 PRadDetMatch::PRadDetMatch()
 {
     leadGlassRes = 10.0;
@@ -28,16 +29,25 @@ PRadDetMatch::PRadDetMatch()
     matchSigma = 5.0;
 }
 
+// destructor
 PRadDetMatch::~PRadDetMatch()
 {
-
+    // place holder
 }
 
-bool PRadDetMatch::Match(const HyCalHit &hycal, const GEMHit &gem)
+// project 1 HyCal cluster and 1 GEM cluster to HyCal Plane.
+// if they are at the same z, there will be no projection, otherwise they are
+// projected to the furthest z
+// return true if they are within certain range (depends on HyCal resolution)
+// return false if they are not
+bool PRadDetMatch::PreMatch(const HyCalHit &hycal, const GEMHit &gem)
 {
-    float base_range = leadGlassRes; // use the largest value as default
+    // lead glass (largest) value as default
+    float base_range = leadGlassRes;
+    // crystal region
     if(TEST_BIT(hycal.flag, kPWO))
         base_range = crystalRes;
+    // transition region
     if(TEST_BIT(hycal.flag, kTransition))
         base_range = transitionRes;
 
@@ -82,7 +92,7 @@ void PRadDetMatch::MatchProcessing()
                     fHyCalClusters[i].z_gem = fGEMZ[1];
                     SET_BIT(fHyCalClusters[i].flag, kOverlapMatch);
                 } else {
-                    //will keep only on of the two hits
+                    //will keep only one of the two hits
                     int isave = r1 < r2 ? 0 : 1;
                     int ikill = (int)(!isave);
                     fHyCalClusters[i].gemNClusters[ikill] = 0;
@@ -99,26 +109,6 @@ void PRadDetMatch::MatchProcessing()
         }
     } else {
         //TODO for more advanced GEM and HyCal match processing method
-    }
-}
-
-void PRadDetMatch::ProjectGEMToHyCal()
-{
-    //project all the GEM 2D clusters to HyCal surface, used for the purpose
-    //of reconstructed event display and and various calibration study for HyCal
-
-    for (map<int, vector<GEMDetCluster> >::iterator it = fGEM2DClusters.begin();
-         it != fGEM2DClusters.end(); it++){
-        vector<GEMDetCluster> & thisHit = (it->second);
-        for (unsigned int i=0; i<thisHit.size(); i++){
-            ProjectToZ(thisHit[i].x, thisHit[i].y, thisHit[i].z, fHyCalZ);
-        }
-    }
-
-    for (int i=0; i<fNHyCalClusters; i++)
-    {
-        ProjectToZ(fHyCalClusters[i].x_gem, fHyCalClusters[i].y_gem,
-                   fHyCalClusters[i].z_gem, fHyCalZ);
     }
 }
 */

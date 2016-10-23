@@ -1455,19 +1455,19 @@ void PRadEventViewer::showReconEvent(int evt)
 
         handler->HyCalReconstruct(thisEvent);
 
-        int nHyCalHits = 0;
-        HyCalHit* thisHit = handler->GetHyCalCluster(nHyCalHits);
+        int Nhits = 0;
+        HyCalHit* hyCalHit = handler->GetHyCalCluster(Nhits);
 
         // transform to beam frame
-        coordSystem->Transform(PRadCoordSystem::HyCal, &thisHit[0], &thisHit[nHyCalHits]);
+        coordSystem->Transform(PRadCoordSystem::HyCal, &hyCalHit[0], &hyCalHit[Nhits]);
 
         // project to hycal surface (there probably is a depth of cluster)
-        coordSystem->ProjectionToHyCal(thisHit, nHyCalHits);
+        coordSystem->Projection(&hyCalHit[0], &hyCalHit[Nhits]);
 
-        for(int i = 0; i < nHyCalHits; ++i)
+        for(int i = 0; i < Nhits; ++i)
         {
-            QPointF p(CARTESIAN_TO_HYCALSCENE(thisHit[i].x, thisHit[i].y));
-            HyCal->AddHitsMark("HyCal Hit", p, Qt::black, 7., QString::number(thisHit[i].E) + " MeV");
+            QPointF p(CARTESIAN_TO_HYCALSCENE(hyCalHit[i].x, hyCalHit[i].y));
+            HyCal->AddHitsMark("HyCal Hit", p, Qt::black, 7., QString::number(hyCalHit[i].E) + " MeV");
         }
 
     }
@@ -1476,26 +1476,21 @@ void PRadEventViewer::showReconEvent(int evt)
     if(reconSetting->ShowGEMCluster()) {
 
         gem_srs->Reconstruct(thisEvent);
-        int nGEM1, nGEM2;
-        GEMHit *gem1 = gem_srs->GetDetector(getNameByCoordType(PRadCoordSystem::GEM1))->GetClusters(nGEM1);
-        GEMHit *gem2 = gem_srs->GetDetector(getNameByCoordType(PRadCoordSystem::GEM2))->GetClusters(nGEM2);
-
-        coordSystem->TransformGEM(gem1, nGEM1, gem2, nGEM2);
-        coordSystem->ProjectionToHyCal(gem1, nGEM1);
-        coordSystem->ProjectionToHyCal(gem2, nGEM2);
-
-        for(int i = 0; i < nGEM1; ++i)
+        QColor colors[] = {Qt::red, Qt::magenta};
+        for(auto &det : gem_srs->GetDetectorList())
         {
-            QPointF p(CARTESIAN_TO_HYCALSCENE(gem1[i].x, gem1[i].y));
-            HyCal->AddHitsMark("GEM1 Hit", p, Qt::red, 3.);
-        }
+            int Nhits;
+            GEMHit *gemHit = det->GetClusters(Nhits);
+            int gemType = getCoordTypeByName(det->GetName().c_str());
+            coordSystem->Transform(gemType, &gemHit[0], &gemHit[Nhits]);
+            coordSystem->Projection(&gemHit[0], &gemHit[Nhits]);
 
-        for(int i = 0; i < nGEM2; ++i)
-        {
-            QPointF p(CARTESIAN_TO_HYCALSCENE(gem2[i].x, gem2[i].y));
-            HyCal->AddHitsMark("GEM2 Hit", p, Qt::magenta, 3.);
+            for(int i = 0; i < Nhits; ++i)
+            {
+                QPointF p(CARTESIAN_TO_HYCALSCENE(gemHit[i].x, gemHit[i].y));
+                HyCal->AddHitsMark(QString::fromStdString(det->GetName() + " Hit"), p, colors[det->GetID()], 3.);
+            }
         }
-
     }
 
     // TODO matched clusters

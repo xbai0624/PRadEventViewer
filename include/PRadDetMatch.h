@@ -14,7 +14,7 @@ public:
     PRadDetMatch();
     virtual ~PRadDetMatch();
 
-    bool Match(const HyCalHit &h, const GEMHit &g);
+    bool PreMatch(const HyCalHit &h, const GEMHit &g);
 
 private:
     float leadGlassRes;

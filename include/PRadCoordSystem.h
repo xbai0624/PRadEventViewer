@@ -26,9 +26,9 @@ public:
 
     enum CoordType
     {
-        GEM1 = 0,
+        HyCal = 0,
+        GEM1,
         GEM2,
-        HyCal,
         Max_CoordType
     };
 
@@ -93,17 +93,21 @@ public:
     std::vector<DetCoord> GetCurrentCoords() const {return current_coord;};
 
     // basic transform functions
-    void Transform(CoordType type, Point &p) const;
-    void Transform(CoordType type, float &x, float &y, float &z) const;
-
-    void TransformGEM(GEMHit *gem1, int nGEM1, GEMHit *gem2, int nGEM2) const;
-    void TransformHyCal(HyCalHit *hit, int nHyCal) const;
+    void Transform(int type, float &x, float &y, float &z) const;
 
 public:
     // template functions
+    // transform
+    template<class T>
+    void Transform(int type, T &t)
+    const
+    {
+        Transform(type, t.x, t.y, t.z);
+    }
+
     // transform for clusters, accepts array
     template<class T>
-    void Transform(CoordType type, T *t, int NCluster)
+    void Transform(int type, T *t, int NCluster)
     const
     {
         for(int i = 0; i < NCluster; ++i)
@@ -114,13 +118,22 @@ public:
 
     // transform for clusters, accepts iterator
     template<class T_it>
-    void Transform(CoordType type, T_it first, T_it last)
+    void Transform(int type, T_it first, T_it last)
     const
     {
         for(T_it it = first; it != last; ++it)
         {
             Transform(type, (*it).x, (*it).y, (*it).z);
         }
+    }
+
+    // z-projection
+    // by default it projects to HyCal surface from origin
+    template<class T>
+    void Projection(T &t, const Point &pi = origin(), int type = (int)HyCal)
+    {
+        float zf = current_coord[type].z_ori;
+        Projection(t.x, t.y, t.z, pi.x, pi.y, pi.z, zf);
     }
 
     // projection for clusters, accepts array
@@ -135,10 +148,10 @@ public:
     }
 
     template<class T>
-    void ProjectionToHyCal(T *t, int NCluster, const Point &pi = origin())
+    void Projection(T *t, int NCluster, const Point &pi = origin(), int type = (int)HyCal)
     const
     {
-        float zf = current_coord[(int)HyCal].z_ori;
+        float zf = current_coord[type].z_ori;
         for(int i = 0; i < NCluster; ++i)
         {
             Projection(t[i].x, t[i].y, t[i].z, pi.x, pi.y, pi.z, zf);
@@ -158,9 +171,9 @@ public:
     }
 
     template<class T_it>
-    void Projection(T_it first, T_it last, const Point &pi = origin())
+    void Projection(T_it first, T_it last, const Point &pi = origin(), int type = (int)HyCal)
     {
-        float zf = current_coord[(int)HyCal].z_ori;
+        float zf = current_coord[type].z_ori;
         for(T_it it = first; it != last; ++it)
         {
             Projection((*it).x, (*it).y, (*it).z, pi.x, pi.y, pi.z, zf);
@@ -202,5 +215,5 @@ protected:
 
 std::ostream &operator << (std::ostream &os, const PRadCoordSystem::DetCoord &off);
 const char *getNameByCoordType(int enumVal);
-
+int getCoordTypeByName(const char *);
 #endif

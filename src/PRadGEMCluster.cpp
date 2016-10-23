@@ -3,9 +3,9 @@
 // GEM Planes send hits infromation and container for the GEM Clusters to this//
 // class reconstruct the clusters and send it back to GEM Planes.             //
 // Thus the clustering algorithm can be adjusted in this class.               //
-// Algorithm is based on the code from Xinzhan Bai and Kondo Gnanvo           //
 //                                                                            //
-// Chao Peng, Xinzhan Bai                                                     //
+// Xinzhan Bai & Kondo Gnanvo, first version coding of the algorithm          //
+// Chao Peng, adapted to PRad analysis software package                       //
 // 10/21/2016                                                                 //
 //============================================================================//
 
