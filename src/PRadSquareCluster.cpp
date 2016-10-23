@@ -108,6 +108,7 @@ void PRadSquareCluster::Reconstruct(EventData &event)
 
 //        fHyCalCluster[fNHyCalClusters].x = weightX/totalWeight;
 //        fHyCalCluster[fNHyCalClusters].y = weightY/totalWeight;
+        fHyCalCluster[fNHyCalClusters].det_id = PRadDetectors::HyCal;
         fHyCalCluster[fNHyCalClusters].x = weightX_log/totalWeight_log;
         fHyCalCluster[fNHyCalClusters].y = weightY_log/totalWeight_log;
         fHyCalCluster[fNHyCalClusters].E = clusterEnergy;

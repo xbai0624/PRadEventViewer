@@ -9,6 +9,7 @@
 #include "PRadDAQUnit.h"
 #include "PRadTDCGroup.h"
 #include "ConfigParser.h"
+#include "PRadDetectors.h"
 
 #define MAX_HCLUSTERS 250 // Maximum storage
 

@@ -61,6 +61,7 @@ LIB_OBJECTS   = $(LIB_OBJ_DIR)/PRadDAQUnit.o \
                 $(LIB_OBJ_DIR)/PRadException.o \
                 $(LIB_OBJ_DIR)/PRadBenchMark.o \
                 $(LIB_OBJ_DIR)/ConfigParser.o \
+                $(LIB_OBJ_DIR)/PRadDetectors.o \
                 $(LIB_OBJ_DIR)/PRadHyCalCluster.o \
                 $(LIB_OBJ_DIR)/PRadIslandCluster.o \
                 $(LIB_OBJ_DIR)/PRadSquareCluster.o \

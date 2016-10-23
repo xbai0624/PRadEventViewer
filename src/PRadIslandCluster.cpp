@@ -320,6 +320,7 @@ void PRadIslandCluster::CallIsland(int isect)
         }
 
         fHyCalCluster[n].flag     = 0;
+        fHyCalCluster[n].det_id   = PRadDetectors::HyCal;
         fHyCalCluster[n].type     = type;
         fHyCalCluster[n].nblocks  = dime;
         fHyCalCluster[n].E        = e;
@@ -836,8 +837,8 @@ void PRadIslandCluster::FinalProcessing()
         SET_BIT(fHyCalCluster[i].flag, kSplit);
 
         for (unsigned int j = 0; j < fDeadModules.size(); j++){
-            float r = sqrt( pow((fDeadModules.at(j).x - fHyCalCluster[i].x_log), 2) +
-                            pow((fDeadModules.at(j).y - fHyCalCluster[i].y_log), 2) );
+            float r = sqrt( pow((fDeadModules.at(j).x - fHyCalCluster[i].x), 2) +
+                            pow((fDeadModules.at(j).y - fHyCalCluster[i].y), 2) );
             float size = 0;
             if (fDeadModules.at(j).sector == 0) size = CRYS_SIZE_X;
             else size = GLASS_SIZE;

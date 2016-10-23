@@ -12,9 +12,6 @@
 #include "ConfigParser.h"
 #include <fstream>
 #include <iomanip>
-#include <cstring>
-
-static const char *CoordTypeName[] = {"HyCal", "PRadGEM1", "PRadGEM2", "Undefined"};
 
 PRadCoordSystem::PRadCoordSystem(const std::string &path, const int &run)
 {
@@ -57,24 +54,25 @@ void PRadCoordSystem::LoadCoordData(const std::string &path, const int &chosen_r
                  >> x >> y >> z >> theta_x >> theta_y >> theta_z;
 
         size_t index = 0;
-        for(; index < (size_t) Max_CoordType; ++index)
+        for(; index < (size_t) PRadDetectors::Max_Dets; ++index)
         {
-            if(det_name.find(CoordTypeName[index]) != std::string::npos)
+            if(det_name.find(PRadDetectors::getName(index)) != std::string::npos)
                 break;
         }
 
-        if(index >= (size_t) Max_CoordType) {
+        if(index >= (size_t) PRadDetectors::Max_Dets) {
             std::cout << "PRad Coord System Warning: Unrecognized detector "
                       << det_name << ", skipped reading its offsets."
                       << std::endl;
             continue;
         }
+
         DetCoord new_off(run, index, x, y, z, theta_x, theta_y, theta_z);
 
         auto it = coords_data.find(run);
         if(it == coords_data.end()) {
             // create a new entry
-            std::vector<DetCoord> new_entry((size_t)Max_CoordType);
+            std::vector<DetCoord> new_entry((size_t)PRadDetectors::Max_Dets);
             new_entry[index] = new_off;
 
             coords_data[run] = new_entry;
@@ -147,17 +145,17 @@ void PRadCoordSystem::SetCurrentCoord(const std::vector<PRadCoordSystem::DetCoor
 {
     current_coord = coords;
 
-    current_coord.resize((int)Max_CoordType);
+    current_coord.resize((int)PRadDetectors::Max_Dets);
 
     coords_data[current_coord.begin()->run_number] = current_coord;
 }
 
 // Transform the detector frame to beam frame
 // it corrects the tilting angle first, and then correct origin
-void PRadCoordSystem::Transform(int type, float &x, float &y, float &z)
+void PRadCoordSystem::Transform(int det_id, float &x, float &y, float &z)
 const
 {
-    const DetCoord &coord = current_coord.at(type);
+    const DetCoord &coord = current_coord.at(det_id);
 
     // firstly do the angle tilting
     // basic rotation matrix
@@ -246,29 +244,11 @@ PRadCoordSystem::Point PRadCoordSystem::origin()
 std::ostream &operator << (std::ostream &os, const PRadCoordSystem::DetCoord &det)
 {
     return os << std::setw(8)  << det.run_number
-              << std::setw(12) << CoordTypeName[det.det_enum]
+              << std::setw(12) << PRadDetectors::getName(det.det_enum)
               << std::setw(12) << det.x_ori
               << std::setw(12) << det.y_ori
               << std::setw(12) << det.z_ori
               << std::setw(8) << det.theta_x
               << std::setw(8) << det.theta_y
               << std::setw(8) << det.theta_z;
-}
-
-const char *getNameByCoordType(int enumVal)
-{
-    return CoordTypeName[enumVal];
-}
-
-int getCoordTypeByName(const char *name)
-{
-    for(int i = 0; i < (int)PRadCoordSystem::Max_CoordType; ++i)
-        if(strcmp(name, CoordTypeName[i]) == 0)
-            return i;
-
-    std::cout << "getCoordTypeByName: Cannot find " << name
-              << ", return HyCal type as default"
-              << std::endl;
-    // not found
-    return 0;
 }

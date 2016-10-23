@@ -26,7 +26,9 @@ PRadDetMatch::PRadDetMatch()
     leadGlassRes = 10.0;
     transitionRes = 7.0;
     crystalRes = 3.0;
+    gemRes = 0.08;
     matchSigma = 5.0;
+    overlapSigma = 10.0;
 }
 
 // destructor
@@ -35,12 +37,46 @@ PRadDetMatch::~PRadDetMatch()
     // place holder
 }
 
+std::vector<MatchedIndex> PRadDetMatch::Match(HyCalHit *hycal, int nHyCal,
+                                              GEMHit *gem1, int nGEM1,
+                                              GEMHit *gem2, int nGEM2)
+const
+{
+    std::vector<MatchedIndex> result;
+
+    for(int i = 0; i < nHyCal; ++i)
+    {
+        MatchedIndex index(i);
+
+        // pre match, only check if distance is within the range
+        // fill in hits as candidates
+        for(int j = 0; j < nGEM1; ++j)
+        {
+            if(PreMatch(hycal[i], gem1[j]))
+                index.gem1_cand.push_back(j);
+        }
+        for(int j = 0; i < nGEM2; ++j)
+        {
+            if(PreMatch(hycal[i], gem2[j]))
+                index.gem2_cand.push_back(j);
+        }
+
+        // post match, do further check, which one is the closest
+        // and if the two gem hits are overlapped
+        if(PostMatch(index, hycal[i], gem1, gem2))
+            result.push_back(index);
+    }
+
+    return result;
+}
+
 // project 1 HyCal cluster and 1 GEM cluster to HyCal Plane.
 // if they are at the same z, there will be no projection, otherwise they are
 // projected to the furthest z
 // return true if they are within certain range (depends on HyCal resolution)
 // return false if they are not
 bool PRadDetMatch::PreMatch(const HyCalHit &hycal, const GEMHit &gem)
+const
 {
     // lead glass (largest) value as default
     float base_range = leadGlassRes;
@@ -59,56 +95,58 @@ bool PRadDetMatch::PreMatch(const HyCalHit &hycal, const GEMHit &gem)
         return true;
 }
 
-/*
-void PRadDetMatch::MatchProcessing()
+bool PRadDetMatch::PostMatch(MatchedIndex &index, HyCalHit &hycal, GEMHit *gem1, GEMHit *gem2)
+const
 {
-    if(fHyCalGEMMatchMode) {
-        //we have chosen the GEM hit that is closest to HyCal Hit in this mode
-        //we will just do additional selection for hits appear in the overlap region
-        for(int i=0; i<fNHyCalClusters; i++)
-        {
-            //if the HyCal Cluster has hits from both GEM
+    // no candidates
+    if(index.gem1_cand.empty() && index.gem2_cand.empty())
+        return false;
 
-            if (fHyCalClusters[i].gemNClusters[0] == 1 && fHyCalClusters[i].gemNClusters[1] == 1){
-                //project every thing to the second GEM for analysis
-                int   index[NGEM] = { fHyCalClusters[i].gemClusterID[0][0], fHyCalClusters[i].gemClusterID[1][0]};
-                float hycalX = fHyCalClusters[i].x_log;
-                float hycalY = fHyCalClusters[i].y_log;
-                float GEM1X  =  fGEM2DClusters[0].at(index[0]).x;
-                float GEM1Y  =  fGEM2DClusters[0].at(index[0]).y;
-                float GEM2X  =  fGEM2DClusters[1].at(index[1]).x;
-                float GEM2Y  =  fGEM2DClusters[1].at(index[1]).y;
-
-                ProjectToZ(hycalX, hycalY, fHyCalZ, fGEMZ[1]);
-                ProjectToZ(GEM1X, GEM1Y, fGEMZ[0], fGEMZ[1]);
-
-                float r1 = Distance2Points(hycalX, hycalY, GEM1X, GEM1Y);
-                float r2 = Distance2Points(hycalX, hycalY, GEM2X, GEM2Y);
-                float r3 = Distance2Points(GEM1X, GEM1Y, GEM2X, GEM2Y);
-                if (r3 < 10.*fGEMResolution) {
-                    //likely the two this from the two GEMs are from the same track
-                    fHyCalClusters[i].x_gem = (GEM1X + GEM2X)/2.;
-                    fHyCalClusters[i].y_gem = (GEM1Y + GEM2Y)/2.;
-                    fHyCalClusters[i].z_gem = fGEMZ[1];
-                    SET_BIT(fHyCalClusters[i].flag, kOverlapMatch);
-                } else {
-                    //will keep only one of the two hits
-                    int isave = r1 < r2 ? 0 : 1;
-                    int ikill = (int)(!isave);
-                    fHyCalClusters[i].gemNClusters[ikill] = 0;
-                    fHyCalClusters[i].x_gem = fGEM2DClusters[isave].at(index[isave]).x;
-                    fHyCalClusters[i].y_gem = fGEM2DClusters[isave].at(index[isave]).y;
-                    fHyCalClusters[i].z_gem = fGEMZ[isave];
-                    if (ikill == 0) { CLEAR_BIT(fHyCalClusters[i].flag, kGEM1Match); }
-                    else { CLEAR_BIT(fHyCalClusters[i].flag, kGEM2Match); }
-                }
-
-            }
-             if (fHyCalClusters[i].gemNClusters[0] > 0 || fHyCalClusters[i].gemNClusters[1] >0 )
-             SET_BIT(fHyCalClusters[i].flag, kGEMMatch);
+    // find the closest hits from gem1 and gem2
+    // large initial value
+    float dist = 1e3;
+    for(auto &idx : index.gem1_cand)
+    {
+        float new_dist = PRadCoordSystem::ProjectionDistance(hycal, gem1[idx]);
+        if(new_dist < dist) {
+            dist = new_dist;
+            index.gem1 = idx;
         }
-    } else {
-        //TODO for more advanced GEM and HyCal match processing method
     }
+
+    dist = 1e3;
+    for(auto &idx : index.gem2_cand)
+    {
+        float new_dist = PRadCoordSystem::ProjectionDistance(hycal, gem2[idx]);
+        if(new_dist < dist) {
+            dist = new_dist;
+            index.gem2 = idx;
+        }
+    }
+
+    // no gem1 hits matched
+    if(index.gem1 == -1) {
+        SET_BIT(hycal.flag, kGEM2Match);
+    // no gem2 hits matched
+    } else if(index.gem2 == -1) {
+        SET_BIT(hycal.flag, kGEM1Match);
+    // both gem1 and gem2 have matched hits, check if they are overlapped
+    } else {
+        float gem_dist = PRadCoordSystem::ProjectionDistance(gem1[index.gem1], gem2[index.gem2]);
+        if(gem_dist < overlapSigma * gemRes) {
+            SET_BIT(hycal.flag, kOverlapMatch);
+        } else {
+            float gem1_dist = PRadCoordSystem::ProjectionDistance(gem1[index.gem1], hycal);
+            float gem2_dist = PRadCoordSystem::ProjectionDistance(gem2[index.gem2], hycal);
+            if(gem1_dist < gem2_dist) {
+                index.gem2 = -1;
+                SET_BIT(hycal.flag, kGEM1Match);
+            } else {
+                index.gem1 = -1;
+                SET_BIT(hycal.flag, kGEM2Match);
+            }
+        }
+    }
+
+    return true;
 }
-*/

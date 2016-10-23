@@ -18,7 +18,7 @@
 #include "TKey.h"
 #include "TClass.h"
 #include "TF1.h"
-#include <math.h>  
+#include <math.h>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -95,20 +95,20 @@ int main(int argc, char * argv [])
         cout<<"need to specify start run at least"<<endl;
         exit(1);
     }
-    
+
     InitArray();
-    
+
     FindInputFiles();//search for root files that within the directory
-    
+
     FitHistograms();
-    
-    
+
+
 
 }
 //_________________________________________________________________________________
 void InitArray()
 {
-    
+
     for (int i=0; i<BLOCKS; i++){
         pedMean[i]  = 0.;
         pedSigma[i] = 0.;
@@ -138,7 +138,7 @@ void FitHistograms()
             if (!thisClass->InheritsFrom("TList")) continue;
             if ( (thisKey->GetName())[0] == 'W' || (thisKey->GetName())[0] == 'G' ){
                 if (i==0) channelName[ich] = string(thisKey->GetName());
-                
+
                 FitHyCalHist(thisKey, ich);
                 ich++;
             }
@@ -151,7 +151,7 @@ void FitHistograms()
     if (doAverage) WriteOutput((double)inputFiles.size());
 }
 //_________________________________________________________________________________
-void inline FitHyCalHist(TKey* k, int & i)
+void FitHyCalHist(TKey* k, int & i)
 {
     if (!doAverage){
         pedMean[i]  = 0.; pedSigma[i] = 0.; LMSMean[i]  = 0.; LMSSigma[i] = 0.;
@@ -191,15 +191,15 @@ void inline FitHyCalHist(TKey* k, int & i)
         pedSigma[i]   = doAverage ? pedSigma[i] + sigma : sigma;
         if (sigma/mean > TOLERANCE) cout<<"bad fitting for channel "<<channelName[i]<<endl;
     }
-     
+
 }
 //_________________________________________________________________________________
-void inline FitReferenceHist(TKey* k)
+void FitReferenceHist(TKey* k)
 {
     TList *thisList = (TList*)k->ReadObj();
     int iref = ( (k->GetName())[3] - '0' ) - 1;
     assert(iref >=0 && iref < NREFERENCE);
-    
+
     //if not averaging things over many runs, clean arrays before filling
     if (!doAverage){
         refLMSMean[iref] = 0.; refPedMean[iref] = 0.; refAlphaMean[iref] = 0.; refGain[iref] = 0.;
@@ -212,14 +212,14 @@ void inline FitReferenceHist(TKey* k)
 
     TH1 *theLMSHist = (TH1*)thisList->FindObject(LMSHistName.c_str());
     TH1 *thePhysHist = (TH1*)thisList->FindObject(PhysHistName.c_str());
-    
+
     TAxis *physAxis = thePhysHist->GetXaxis();
     double integral1 = thePhysHist->Integral(physAxis->FindBin(1), physAxis->FindBin(1000));
     double integral2 = thePhysHist->Integral(physAxis->FindBin(1000), physAxis->FindBin(8190));
-    
+
     TAxis *LMSAxis  = theLMSHist->GetXaxis();
     double integral3 = theLMSHist->Integral(LMSAxis->FindBin(1), LMSAxis->FindBin(8190));
-    
+
     double up = 0, down = 0;
     if (integral1 > 1000){
         double center = GetMaxBinCenterInRange(thePhysHist, 1, 1000);
@@ -233,7 +233,7 @@ void inline FitReferenceHist(TKey* k)
         if (sigma/mean > TOLERANCE) cout<<"bad fitting for pedestal of reference PMT "<<iref + 1<<endl;
         delete g1;
     }
-    
+
     if (integral2 > 1000){
         double center = GetMaxBinCenterInRange(thePhysHist, 1000, 8190);
         TF1 *g1 = new TF1("g1", "gaus", center - 300, center + 300);
@@ -245,7 +245,7 @@ void inline FitReferenceHist(TKey* k)
         if (sigma/mean > TOLERANCE) cout<<"bad fitting for alpha of reference PMT "<<iref + 1<<endl;
         delete g1;
     }
-    
+
     if (integral3 > 1000){
         theLMSHist->Fit("gaus", "Qww", "", 1, 8190);
         TF1*  thisFunc = theLMSHist->GetFunction("gaus");
@@ -256,12 +256,12 @@ void inline FitReferenceHist(TKey* k)
         up += mean;
         if (sigma/mean > TOLERANCE) cout<<"bad fitting for LMS of reference PMT "<<iref + 1<<endl;
     }
-    
+
     if (down > 0){
-        //if trying to estimate the average, the following two ways are actually difference, 
+        //if trying to estimate the average, the following two ways are actually difference,
         //one is the many of all reference gains, the other is using the sum of all sparsified LMS
         //divided by all sparsified alpha, not sure which one is better though
-         
+
         //refGain[iref] += ((refLMSMean[iref] - refPedMean[iref]) / (refAlphaMean[iref] - refPedMean[iref]));
         refGain[iref] += up/down;
     }
@@ -279,7 +279,7 @@ void WriteOutput(double nTotal, int rNumber)
         outFileName += "_"+to_string(rNumber)+".dat";
     }
     outFile.open(outFileName);
-    
+
     for (int i=0; i<BLOCKS; i++){
         outFile<<setw(12)<<channelName[i]<<setw(12)<<pedMean[i]/nTotal
                <<setw(12)<<pedSigma[i]/nTotal<<setw(12)<<LMSMean[i]/nTotal
@@ -292,16 +292,16 @@ void WriteOutput(double nTotal, int rNumber)
                <<setw(12)<<refLMSSigma[i]/nTotal<<endl;
     }
     outFile.close();
-    
+
     ofstream gainFile;
     string gainFileName(outDir);
     gainFileName += "/prad_gain.dat";
     gainFile.open(gainFileName, std::ofstream::out | std::ofstream::app);
-    
+
     string period;
     if (doAverage) period = Form("%d_%d", startRun, endRun);
     else period = Form("%d", rNumber);
-    
+
     gainFile<<setw(12)<<period<<setw(12)<<refGain[0]/nTotal<<setw(12)<<
     refGain[1]/nTotal<<setw(12)<<refGain[2]/nTotal<<endl;
     gainFile.close();
@@ -317,7 +317,8 @@ int GetRunNumber(string run)
     }
 }
 //__________________________________________________________________________________
-bool SortFile(string name1, string name2) {
+bool SortFile(string name1, string name2)
+{
     return (GetRunNumber(name1) < GetRunNumber(name2)) ;
 }
 //__________________________________________________________________________________
@@ -354,7 +355,7 @@ double GetMaxBinCenterInRange(TH1* h, double xmin, double xmax)
         if (h->GetBinCenter(i) < xmin || h->GetBinCenter(i) > xmax) continue;
         if (h->GetBinContent(i) > save) {
             save = h->GetBinContent(i);
-            max  = h->GetBinCenter(i); 
+            max  = h->GetBinCenter(i);
         }
     }
     return max;

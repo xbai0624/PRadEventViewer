@@ -21,6 +21,7 @@ PRadGEMDetector::PRadGEMDetector(PRadGEMSystem *g,
   NClusters(0)
 {
     planes.resize(PRadGEMPlane::Plane_Max, nullptr);
+    det_id = PRadDetectors::getID(name.c_str());
 }
 
 PRadGEMDetector::~PRadGEMDetector()
@@ -42,8 +43,7 @@ void PRadGEMDetector::AddPlane(const PRadGEMPlane::PlaneType &type,
     planes[(int)type] = new PRadGEMPlane(this, name, type, size, conn, ori, dir);
 }
 
-void PRadGEMDetector::AddPlane(const PRadGEMPlane::PlaneType &type,
-                               PRadGEMPlane *plane)
+void PRadGEMDetector::AddPlane(const int &type, PRadGEMPlane *plane)
 {
     if(plane->GetDetector() != nullptr) {
         std::cerr << "PRad GEM Detector Error: "
@@ -54,7 +54,7 @@ void PRadGEMDetector::AddPlane(const PRadGEMPlane::PlaneType &type,
         return;
     }
 
-    if(planes[(int)type] != nullptr) {
+    if(planes[type] != nullptr) {
         std::cout << "PRad GEM Detector Warning: "
                   << "Trying to add multiple planes with the same type "
                   << "to detector " << name
@@ -64,7 +64,7 @@ void PRadGEMDetector::AddPlane(const PRadGEMPlane::PlaneType &type,
     }
 
     plane->SetDetector(this);
-    planes[(int)type] = plane;
+    planes[type] = plane;
 }
 
 void PRadGEMDetector::ReconstructHits(PRadGEMCluster *gem_recon)
@@ -76,10 +76,7 @@ void PRadGEMDetector::ReconstructHits(PRadGEMCluster *gem_recon)
         gem_recon->Reconstruct(plane);
     }
 
-    NClusters = gem_recon->FormClusters(gem_clusters, // pointer to container
-                                        MAX_GCLUSTERS, // size of the container
-                                        planes[(int)PRadGEMPlane::Plane_X], // x plane
-                                        planes[(int)PRadGEMPlane::Plane_Y]);// y plane
+    NClusters = gem_recon->FormClusters(this);
 }
 
 void PRadGEMDetector::ReconstructHits()
@@ -119,26 +116,26 @@ std::vector<PRadGEMPlane*> PRadGEMDetector::GetPlaneList()
     return result;
 }
 
-PRadGEMPlane *PRadGEMDetector::GetPlane(const PRadGEMPlane::PlaneType &type)
+PRadGEMPlane *PRadGEMDetector::GetPlane(const int &type)
 {
-    return planes[(int)type];
+    return planes[type];
 }
 
-std::vector<PRadGEMAPV*> PRadGEMDetector::GetAPVList(const PRadGEMPlane::PlaneType &type)
+std::vector<PRadGEMAPV*> PRadGEMDetector::GetAPVList(const int &type)
 {
-    if(planes[(int)type] == nullptr)
+    if(planes[type] == nullptr)
         return std::vector<PRadGEMAPV*>();
 
-    return planes[(int)type]->GetAPVList();
+    return planes[type]->GetAPVList();
 }
 
-std::list<GEMPlaneCluster> &PRadGEMDetector::GetPlaneClusters(const PRadGEMPlane::PlaneType &type)
+std::list<GEMPlaneCluster> &PRadGEMDetector::GetPlaneClusters(const int &type)
 throw (PRadException)
 {
-    if(planes[(int)type] == nullptr)
+    if(planes[type] == nullptr)
         throw PRadException("PRadGEMDetector Error", "Plane does not exist!");
 
-    return planes[(int)type]->GetPlaneClusters();
+    return planes[type]->GetPlaneClusters();
 }
 
 std::vector<std::list<GEMPlaneCluster>*> PRadGEMDetector::GetDetectorClusters()
@@ -156,12 +153,12 @@ std::vector<std::list<GEMPlaneCluster>*> PRadGEMDetector::GetDetectorClusters()
     return plane_clusters;
 }
 
-void PRadGEMDetector::ConnectAPV(const PRadGEMPlane::PlaneType &type, PRadGEMAPV *apv)
+void PRadGEMDetector::ConnectAPV(const int &type, PRadGEMAPV *apv)
 {
-    if(planes[(int)type] == nullptr)
+    if(planes[type] == nullptr)
         return;
 
-    planes[(int)type]->ConnectAPV(apv);
+    planes[type]->ConnectAPV(apv);
 }
 
 GEMHit *PRadGEMDetector::GetClusters(int &n)

@@ -1459,7 +1459,7 @@ void PRadEventViewer::showReconEvent(int evt)
         HyCalHit* hyCalHit = handler->GetHyCalCluster(Nhits);
 
         // transform to beam frame
-        coordSystem->Transform(PRadCoordSystem::HyCal, &hyCalHit[0], &hyCalHit[Nhits]);
+        coordSystem->Transform(&hyCalHit[0], &hyCalHit[Nhits]);
 
         // project to hycal surface (there probably is a depth of cluster)
         coordSystem->Projection(&hyCalHit[0], &hyCalHit[Nhits]);
@@ -1481,8 +1481,7 @@ void PRadEventViewer::showReconEvent(int evt)
         {
             int Nhits;
             GEMHit *gemHit = det->GetClusters(Nhits);
-            int gemType = getCoordTypeByName(det->GetName().c_str());
-            coordSystem->Transform(gemType, &gemHit[0], &gemHit[Nhits]);
+            coordSystem->Transform(&gemHit[0], &gemHit[Nhits]);
             coordSystem->Projection(&gemHit[0], &gemHit[Nhits]);
 
             for(int i = 0; i < Nhits; ++i)

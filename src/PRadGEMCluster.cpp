@@ -114,6 +114,8 @@ void PRadGEMCluster::Reconstruct(PRadGEMDetector *det)
 {
     for(auto &plane : det->GetPlaneList())
         Reconstruct(plane);
+
+    FormClusters(det);
 }
 
 // reconstruct accepts GEM plane
@@ -309,11 +311,13 @@ void PRadGEMCluster::reconstructCluster_sub(GEMPlaneCluster &c, PRadGEMPlane *pl
 
 // this function accepts x, y clusters from detectors and then form GEM Cluster
 // it return the number of clusters
-int PRadGEMCluster::FormClusters(GEMHit *hits,
-                                 int MaxHits,
-                                 PRadGEMPlane *x_plane,
-                                 PRadGEMPlane *y_plane)
+int PRadGEMCluster::FormClusters(PRadGEMDetector *det)
 {
+    int det_id = det->GetDetID();
+
+    PRadGEMPlane *x_plane = det->GetPlane(PRadGEMPlane::Plane_X);
+    PRadGEMPlane *y_plane = det->GetPlane(PRadGEMPlane::Plane_Y);
+
     if(x_plane == nullptr || y_plane == nullptr) {
         std::cerr << "PRad GEM Cluster Error: Input plane is not instanced, cannot "
                   << "form clusters"
@@ -326,17 +330,22 @@ int PRadGEMCluster::FormClusters(GEMHit *hits,
     auto x_cluster = x_plane->GetPlaneClusters();
     auto y_cluster = y_plane->GetPlaneClusters();
 
-    int Nhits = 0;
+    int Nhits;
+    GEMHit *hits = det->GetClusters(Nhits);
+
+    Nhits = 0; // zero for filling new clusters
     for(auto &xc : x_cluster)
     {
         for(auto &yc : y_cluster)
         {
-            hits[Nhits++] = GEMHit(xc.position, yc.position, 0., // by default z = 0
+            hits[Nhits++] = GEMHit(det_id, xc.position, yc.position, 0., // by default z = 0
+                                   xc.total_charge, yc.total_charge,
                                    xc.peak_charge, yc.peak_charge, // fill in peak charge
                                    xc.hits.size(), yc.hits.size()); // number of hits
 
-            if(Nhits >= MaxHits)
-                return MaxHits; // reached limit, return
+            // defined in PRadGEMDetectors
+            if(Nhits >= MAX_GCLUSTERS)
+                return MAX_GCLUSTERS; // reached limit, return
         }
     }
 

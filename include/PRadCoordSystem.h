@@ -6,6 +6,7 @@
 #include <iostream>
 #include <map>
 #include <cmath>
+#include "PRadDetectors.h"
 #include "PRadEventStruct.h"
 
 class PRadCoordSystem
@@ -22,14 +23,6 @@ public:
         Point(float xi, float yi, float zi)
         : x(xi), y(yi), z(zi)
         {};
-    };
-
-    enum CoordType
-    {
-        HyCal = 0,
-        GEM1,
-        GEM2,
-        Max_CoordType
     };
 
     struct DetCoord
@@ -93,46 +86,77 @@ public:
     std::vector<DetCoord> GetCurrentCoords() const {return current_coord;};
 
     // basic transform functions
-    void Transform(int type, float &x, float &y, float &z) const;
+    void Transform(int det_id, float &x, float &y, float &z) const;
 
 public:
     // template functions
-    // transform
+    // transform for clusters with det_id
     template<class T>
-    void Transform(int type, T &t)
+    void Transform(T &t)
     const
     {
-        Transform(type, t.x, t.y, t.z);
+        Transform(t.det_id, t.x, t.y, t.z);
+    }
+    template<class T>
+
+    // transform for clusters with specified det_id
+    void Transform(int det_id, T &t)
+    const
+    {
+        Transform(det_id, t.x, t.y, t.z);
     }
 
     // transform for clusters, accepts array
     template<class T>
-    void Transform(int type, T *t, int NCluster)
+    void Transform(T *t, int NClusters)
+    const
+    {
+        for(int i = 0; i < NClusters; ++i)
+        {
+            Transform(t.det_id, t.x, t.y, t.z);
+        }
+    }
+
+    template<class T_it>
+    void Transform(T_it first, T_it last)
+    const
+    {
+        for(T_it it = first; it != last; ++it)
+        {
+            Transform((*it).det_id, (*it).x, (*it).y, (*it).z);
+        }
+    }
+
+    template<class T>
+    void Transform(int det_id, T *t, int NCluster)
     const
     {
         for(int i = 0; i < NCluster; ++i)
         {
-            Transform(type, t[i].x, t[i].y, t[i].z);
+            Transform(det_id, t[i].x, t[i].y, t[i].z);
         }
     }
 
     // transform for clusters, accepts iterator
     template<class T_it>
-    void Transform(int type, T_it first, T_it last)
+    void Transform(int det_id, T_it first, T_it last)
     const
     {
         for(T_it it = first; it != last; ++it)
         {
-            Transform(type, (*it).x, (*it).y, (*it).z);
+            Transform(det_id, (*it).x, (*it).y, (*it).z);
         }
     }
+
 
     // z-projection
     // by default it projects to HyCal surface from origin
     template<class T>
-    void Projection(T &t, const Point &pi = origin(), int type = (int)HyCal)
+    void Projection(T &t, const Point &pi = origin(),
+                    int det_id = (int)PRadDetectors::HyCal)
+    const
     {
-        float zf = current_coord[type].z_ori;
+        float zf = current_coord[det_id].z_ori;
         Projection(t.x, t.y, t.z, pi.x, pi.y, pi.z, zf);
     }
 
@@ -148,16 +172,16 @@ public:
     }
 
     template<class T>
-    void Projection(T *t, int NCluster, const Point &pi = origin(), int type = (int)HyCal)
+    void Projection(T *t, int NCluster, const Point &pi = origin(),
+                    int det_id = (int)PRadDetectors::HyCal)
     const
     {
-        float zf = current_coord[type].z_ori;
+        float zf = current_coord[det_id].z_ori;
         for(int i = 0; i < NCluster; ++i)
         {
             Projection(t[i].x, t[i].y, t[i].z, pi.x, pi.y, pi.z, zf);
         }
     }
-
 
     // projection for clusters, accepts iterator
     template<class T_it>
@@ -171,9 +195,11 @@ public:
     }
 
     template<class T_it>
-    void Projection(T_it first, T_it last, const Point &pi = origin(), int type = (int)HyCal)
+    void Projection(T_it first, T_it last, const Point &pi = origin(),
+                    int det_id = (int)PRadDetectors::HyCal)
+    const
     {
-        float zf = current_coord[type].z_ori;
+        float zf = current_coord[det_id].z_ori;
         for(T_it it = first; it != last; ++it)
         {
             Projection((*it).x, (*it).y, (*it).z, pi.x, pi.y, pi.z, zf);
@@ -214,6 +240,4 @@ protected:
 };
 
 std::ostream &operator << (std::ostream &os, const PRadCoordSystem::DetCoord &off);
-const char *getNameByCoordType(int enumVal);
-int getCoordTypeByName(const char *);
 #endif

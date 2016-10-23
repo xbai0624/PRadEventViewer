@@ -376,15 +376,14 @@ enum HyCalClusterStatus
     kOuterBound,  //cluster near the outer boundary of HyCal
     kGEM1Match,   //cluster found a match GEM hit on GEM 1
     kGEM2Match,   //cluster found a match GEM hit on GEM 2
-    kGEMMatch,    //cluster found a match GEM hit from either one
     kOverlapMatch,//cluster found a match on both GEM
-    kMultiGEMHits //multiple GEM hits appear near HyCal Hit
 };
 
 struct HyCalHit
 {
 #define TIME_MEASURE_SIZE 3
     unsigned int flag;  // overall status of the cluster
+    int det_id;         // detector id
     short type;         // Cluster types: 0,1,2,3,4;-1
     short status;       // Spliting status
     short nblocks;      // Number of blocks in a cluster
@@ -400,30 +399,30 @@ struct HyCalHit
     unsigned short time[TIME_MEASURE_SIZE];      // time information from central TDC group
 
     HyCalHit()
-    : flag(0), type(0), status(0), nblocks(0), cid(0), E(0), x(0), y(0), z(0),
-      x_log(0), y_log(0), chi2(0), sigma_E(0)
+    : flag(0), det_id(0), type(0), status(0), nblocks(0), cid(0),
+      E(0), x(0), y(0), z(0), x_log(0), y_log(0), chi2(0), sigma_E(0)
     {
         clear_time();
     }
 
     HyCalHit(const float &cx, const float &cy, const float &cE)
-    : flag(0), type(0), status(0), nblocks(0), cid(0), E(cE), x(cx), y(cy), x_log(0),
-      y_log(0), chi2(0), sigma_E(0)
+    : flag(0), det_id(0), type(0), status(0), nblocks(0), cid(0), E(cE), x(cx),
+      y(cy), x_log(0), y_log(0), chi2(0), sigma_E(0)
     {
         clear_time();
     }
 
     HyCalHit(const float &cx, const float &cy, const float &cE, const std::vector<unsigned short> &t)
-    : flag(0), type(0), status(0), nblocks(0), cid(0), E(cE), x(cx), y(cy), x_log(0),
-      y_log(0), chi2(0), sigma_E(0)
+    : flag(0), det_id(0), type(0), status(0), nblocks(0), cid(0), E(cE), x(cx), y(cy),
+      x_log(0), y_log(0), chi2(0), sigma_E(0)
     {
         set_time(t);
     }
 
     HyCalHit(const short &t, const short &s, const short &n,
              const float &cx, const float &cy, const float &cE, const float &ch)
-    : flag(0), type(t), status(s), nblocks(n), cid(0), E(cE), x(cx), y(cy), x_log(0),
-      y_log(0), chi2(ch), sigma_E(0)
+    : flag(0), det_id(0), type(t), status(s), nblocks(n), cid(0), E(cE), x(cx), y(cy),
+      x_log(0), y_log(0), chi2(ch), sigma_E(0)
     {
         clear_time();
     }
@@ -454,20 +453,25 @@ struct HyCalHit
 //============================================================================//
 struct GEMHit
 {
-    float x;
-    float y;
-    float z;
-    float x_charge;
-    float y_charge;
-    int x_size;
-    int y_size;
+    int det_id;       // detector id
+    float x;          // x position
+    float y;          // y position
+    float z;          // z position
+    float x_charge;   // x charge
+    float y_charge;   // y charge
+    float x_peak;     // x peak charge
+    float y_peak;     // y peak charge
+    int x_size;       // x hits size
+    int y_size;       // y hits size
 
     GEMHit()
-    : x(0.), y(0.), z(0.), x_charge(0.), y_charge(0.), x_size(0), y_size(0)
+    : det_id(0), x(0.), y(0.), z(0.), x_charge(0.), y_charge(0.), x_size(0), y_size(0)
     {};
 
-    GEMHit(float xx, float yy, float zz, float xc, float yc, int xs, int ys)
-    : x(xx), y(yy), z(zz), x_charge(xc), y_charge(yc), x_size(xs), y_size(ys)
+    GEMHit(int id, float xx, float yy, float zz,
+           float xc, float yc, float xp, float yp, int xs, int ys)
+    : det_id(id), x(xx), y(yy), z(zz),
+      x_charge(xc), y_charge(yc), x_peak(xp), y_peak(yp), x_size(xs), y_size(ys)
     {};
 };
 //============================================================================//

@@ -21,9 +21,9 @@ public:
 
     // functions that to be overloaded
     virtual void Configure(const std::string &path = "");
-    virtual void Reconstruct(PRadGEMDetector *plane);
+    virtual void Reconstruct(PRadGEMDetector *det);
     virtual void Reconstruct(PRadGEMPlane *plane);
-    virtual int FormClusters(GEMHit *hits, int MaxHits, PRadGEMPlane *x_plane, PRadGEMPlane *y_plane);
+    virtual int FormClusters(PRadGEMDetector *det);
 
 protected:
     void readConfigFile(const std::string &path);

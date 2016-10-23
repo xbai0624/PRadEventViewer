@@ -6,6 +6,7 @@
 #include "PRadException.h"
 #include "PRadGEMPlane.h"
 #include "PRadEventStruct.h"
+#include "PRadDetectors.h"
 
 #define MAX_GCLUSTERS 250
 
@@ -22,10 +23,10 @@ public:
                     const std::string &detector);
     virtual ~PRadGEMDetector();
 
-    void AddPlane(const PRadGEMPlane::PlaneType &type, PRadGEMPlane *plane);
+    void AddPlane(const int &type, PRadGEMPlane *plane);
     void AddPlane(const PRadGEMPlane::PlaneType &type, const std::string &name,
                   const double &size, const int &conn, const int &ori, const int &dir);
-    void ConnectAPV(const PRadGEMPlane::PlaneType &plane, PRadGEMAPV *apv);
+    void ConnectAPV(const int &type, PRadGEMAPV *apv);
     void ReconstructHits(PRadGEMCluster *c);
     void ReconstructHits();
     void ClearHits();
@@ -34,13 +35,14 @@ public:
 
     // get parameters
     int GetID() {return id;};
+    int GetDetID() {return det_id;};
     std::string GetName() {return name;};
     std::string GetType() {return type;};
     std::string GetReadoutBoard() {return readout_board;};
-    PRadGEMPlane *GetPlane(const PRadGEMPlane::PlaneType &type);
+    PRadGEMPlane *GetPlane(const int &type);
     std::vector<PRadGEMPlane*> GetPlaneList();
-    std::vector<PRadGEMAPV*> GetAPVList(const PRadGEMPlane::PlaneType &type);
-    std::list<GEMPlaneCluster> &GetPlaneClusters(const PRadGEMPlane::PlaneType &type) throw(PRadException);
+    std::vector<PRadGEMAPV*> GetAPVList(const int &type);
+    std::list<GEMPlaneCluster> &GetPlaneClusters(const int &type) throw(PRadException);
     std::vector<std::list<GEMPlaneCluster>*> GetDetectorClusters();
 
     // set parameters
@@ -49,6 +51,7 @@ public:
 private:
     PRadGEMSystem *gem_srs;
     int id;
+    int det_id;
     std::string name;
     std::string type;
     std::string readout_board;
