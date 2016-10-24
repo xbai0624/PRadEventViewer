@@ -1,8 +1,8 @@
 //============================================================================//
-// Derived from QDialog, provide a setting panel to Change Spectrum settings  //
+// Derived from QDialog, provide a setting panel to Change Cluster Display    //
 //                                                                            //
 // Chao Peng                                                                  //
-// 02/17/2016                                                                 //
+// 10/24/2016                                                                 //
 //============================================================================//
 
 #include "ReconSettingPanel.h"
@@ -13,6 +13,7 @@
 #include "PRadCoordSystem.h"
 #include "PRadDetMatch.h"
 #include "PRadGEMSystem.h"
+#include "MarkSettingWidget.h"
 
 #include <QFileDialog>
 #include <QVBoxLayout>
@@ -28,34 +29,49 @@
 #include <QLabel>
 #include <QCheckBox>
 
+#define COORD_ITEMS 6
+#define MATCH_ITEMS 6
+
 ReconSettingPanel::ReconSettingPanel(QWidget *parent)
 : QDialog(parent), handler(nullptr), coordSystem(nullptr), detMatch(nullptr)
 {
     setWindowTitle(tr("Reconstruction Settings"));
 
-    QVBoxLayout *grid = new QVBoxLayout;
-    grid->addWidget(createHyCalGroup());
-    grid->addWidget(createGEMGroup());
-    grid->addWidget(createCoordGroup());
-    grid->addWidget(createMatchGroup());
-    grid->addWidget(createStandardButtons());
+    // set the pointer container size
+    coordBox.resize(COORD_ITEMS, nullptr);
+    matchConfLabel.resize(MATCH_ITEMS, nullptr);
+    matchConfBox.resize(MATCH_ITEMS, nullptr);
+    markSettings.resize(PRadDetectors::Max_Dets, nullptr);
+
+    QFormLayout *grid = new QFormLayout;
+    grid->addRow(createMarkGroup());
+    grid->addRow(createHyCalGroup(), createGEMGroup());
+    grid->addRow(createCoordGroup());
+    grid->addRow(createMatchGroup());
+    grid->addRow(createStandardButtons());
 
     setLayout(grid);
 }
 
-QDialogButtonBox *ReconSettingPanel::createStandardButtons()
+QGroupBox *ReconSettingPanel::createMarkGroup()
 {
-    // Add standard buttons to layout
-    QDialogButtonBox *buttonBox = new QDialogButtonBox(this);
-    buttonBox->setStandardButtons(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
+    QGroupBox *markGroup = new QGroupBox(tr("Mark Settings"));
+    QFormLayout *layout = new QFormLayout;
 
-    // Connect standard buttons
-    connect(buttonBox->button(QDialogButtonBox::Ok), SIGNAL(clicked()),
-                    this, SLOT(accept()));
-    connect(buttonBox->button(QDialogButtonBox::Cancel), SIGNAL(clicked()),
-                    this, SLOT(reject()));
+    QStringList mark_list;
+    mark_list << "Circle" << "Cross" << "Triangle";
+    QColor mark_color[] = {Qt::black, Qt::red, Qt::magenta};
 
-    return buttonBox;
+    for(size_t i = 0; i < markSettings.size(); ++i)
+    {
+        markSettings[i] = new MarkSettingWidget(mark_list);
+        markSettings[i]->SetColor(mark_color[i]);
+        layout->addRow(tr(PRadDetectors::getName(i)), markSettings[i]);
+    }
+
+    markGroup->setLayout(layout);
+
+    return markGroup;
 }
 
 QGroupBox *ReconSettingPanel::createHyCalGroup()
@@ -66,6 +82,7 @@ QGroupBox *ReconSettingPanel::createHyCalGroup()
 
     // methods combo box
     hyCalMethods = new QComboBox;
+
     // configuration file
     QPushButton *hyCalLoadConfig = new QPushButton(tr("Reload"));
     QPushButton *hyCalFindPath = new QPushButton(tr("Open Configuration File"));
@@ -76,10 +93,10 @@ QGroupBox *ReconSettingPanel::createHyCalGroup()
     connect(hyCalFindPath, SIGNAL(clicked()), this, SLOT(openHyCalConfig()));
 
     QGridLayout *layout = new QGridLayout;
-    layout->addWidget(hyCalMethods, 0, 0);
-    layout->addWidget(hyCalFindPath, 0, 1, 1, 2);
-    layout->addWidget(hyCalConfigPath, 1, 0, 1, 2);
-    layout->addWidget(hyCalLoadConfig, 1, 2);
+    layout->addWidget(hyCalMethods, 1, 0);
+    layout->addWidget(hyCalFindPath, 1, 1, 1, 2);
+    layout->addWidget(hyCalConfigPath, 2, 0, 1, 2);
+    layout->addWidget(hyCalLoadConfig, 2, 2);
 
     hyCalGroup->setLayout(layout);
 
@@ -91,6 +108,9 @@ QGroupBox *ReconSettingPanel::createGEMGroup()
     gemGroup = new QGroupBox(tr("GEM Cluster Setting"));
     gemGroup->setCheckable(true);
     gemGroup->setChecked(true);
+
+    QStringList mark_list;
+    mark_list << "Circle" << "Cross" << "Triangle";
 
     gemMinHits = new QSpinBox;
     gemMinHits->setRange(1, 20);
@@ -147,13 +167,14 @@ QGroupBox *ReconSettingPanel::createCoordGroup()
     layout->addWidget(off,3, 0);
     layout->addWidget(tilt, 4, 0);
 
-    for(int i = 0; i < COORD_ITEMS; ++i)
+    for(size_t i = 0; i < coordBox.size(); ++i)
     {
         // setting coord spin box
         coordBox[i] = new QDoubleSpinBox;
         coordBox[i]->setDecimals(decimals[i]);
         coordBox[i]->setRange(min_range[i], max_range[i]);
         coordBox[i]->setSingleStep(step[i]);
+
         // add to layout
         int row = 3 + i/3;
         int col = 1 + i%3;
@@ -181,15 +202,15 @@ QGroupBox *ReconSettingPanel::createMatchGroup()
     matchHyCal = new QCheckBox("Show Matched HyCal Clusters Only");
     matchGEM = new QCheckBox("Show Matched GEM Clusters Only");
 
-    layout->addWidget(matchHyCal, 0, 0, 1, 3);
-    layout->addWidget(matchGEM, 1, 0, 1, 3);
+    layout->addWidget(matchHyCal, 0, 0, 1, 2);
+    layout->addWidget(matchGEM, 0, 2, 1, 2);
 
     QStringList matchDescript;
     matchDescript << "Lead Glass Resolution" << "Transition Resolution"
                   << "Crystal Resolution" << "Match Factor"
                   << "GEM Resolution" << "GEM Overlap Factor";
 
-    for(int i = 0; i < MATCH_ITEMS; ++i)
+    for(size_t i = 0; i < matchConfBox.size(); ++i)
     {
         // label
         matchConfLabel[i] = new QLabel(matchDescript[i]);
@@ -205,6 +226,21 @@ QGroupBox *ReconSettingPanel::createMatchGroup()
     matchGroup->setLayout(layout);
 
     return matchGroup;
+}
+
+QDialogButtonBox *ReconSettingPanel::createStandardButtons()
+{
+    // Add standard buttons to layout
+    QDialogButtonBox *buttonBox = new QDialogButtonBox(this);
+    buttonBox->setStandardButtons(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
+
+    // Connect standard buttons
+    connect(buttonBox->button(QDialogButtonBox::Ok), SIGNAL(clicked()),
+                    this, SLOT(accept()));
+    connect(buttonBox->button(QDialogButtonBox::Cancel), SIGNAL(clicked()),
+                    this, SLOT(reject()));
+
+    return buttonBox;
 }
 
 void ReconSettingPanel::ConnectDataHandler(PRadDataHandler *h)
@@ -268,7 +304,7 @@ void ReconSettingPanel::ConnectMatchSystem(PRadDetMatch *m)
 {
     detMatch = m;
 
-    for(int i = 0; i < MATCH_ITEMS; ++i)
+    for(size_t i = 0; i < matchConfBox.size(); ++i)
     {
         float value = 0.;
         if(detMatch != nullptr)
@@ -316,16 +352,19 @@ void ReconSettingPanel::changeCoordType(int t)
     if(coordSystem == nullptr)
         return;
 
-    if(t < 0) { // -1 is the default nohting to select value
-        for(int i = 0; i < COORD_ITEMS; ++i)
-            coordBox[i]->setValue(0);
+    if((size_t)t > coordBox.size()) { // -1 is the default nohting to select value
+        for(auto &box : coordBox)
+            box->setValue(0);
         return;
     }
 
     auto &coord = det_coords[t];
 
-    for(int i = 0; i < COORD_ITEMS; ++i)
+    for(size_t i = 0; i < coordBox.size(); ++i)
+    {
         coordBox[i]->setValue(coord.get_dim_coord(i));
+    }
+
 }
 
 void ReconSettingPanel::selectCoordData(int r)
@@ -346,7 +385,7 @@ void ReconSettingPanel::saveCoordData()
 
     auto &coord = det_coords[idx];
 
-    for(int i = 0; i < COORD_ITEMS; ++i)
+    for(size_t i = 0; i < coordBox.size(); ++i)
     {
         coord.set_dim_coord(i, coordBox[i]->value());
     }
@@ -405,6 +444,8 @@ void ReconSettingPanel::SaveSettings()
     gemGroup_data = gemGroup->isChecked();
     matchHyCal_data = matchHyCal->isChecked();
     matchGEM_data = matchGEM->isChecked();
+    for(auto &mark : markSettings)
+        mark->SaveSettings();
 }
 
 // restore the saved settings
@@ -414,6 +455,8 @@ void ReconSettingPanel::RestoreSettings()
     gemGroup->setChecked(gemGroup_data);
     matchHyCal->setChecked(matchHyCal_data);
     matchGEM->setChecked(matchGEM_data);
+    for(auto &mark : markSettings)
+        mark->RestoreSettings();
 }
 
 // apply all the changes
@@ -442,7 +485,7 @@ void ReconSettingPanel::ApplyChanges()
     }
 
     if(detMatch != nullptr) {
-        for(int i = 0; i < MATCH_ITEMS; ++i)
+        for(size_t i = 0; i < matchConfBox.size(); ++i)
         {
             detMatch->SetConfigValue(matchConfLabel[i]->text().toStdString(), matchConfBox[i]->value());
         }
@@ -467,4 +510,28 @@ bool ReconSettingPanel::ShowGEMCluster()
 bool ReconSettingPanel::ShowMatchedGEM()
 {
     return matchGEM->isChecked();
+}
+
+int ReconSettingPanel::GetMarkIndex(int det)
+{
+    if(det < 0 || det >= PRadDetectors::Max_Dets)
+        return -1;
+
+    return markSettings[det]->GetCurrentMarkIndex();
+}
+
+QString ReconSettingPanel::GetMarkName(int det)
+{
+    if(det < 0 || det >= PRadDetectors::Max_Dets)
+        return "";
+
+    return markSettings[det]->GetCurrentMarkName();
+}
+
+QColor ReconSettingPanel::GetMarkColor(int det)
+{
+    if(det < 0 || det >= PRadDetectors::Max_Dets)
+        return Qt::black;
+
+    return markSettings[det]->GetColor();
 }

@@ -183,8 +183,10 @@ contains(COMPONENTS, STANDARD_EVIO) {
 
 contains(COMPONENTS, RECON_DISPLAY) {
     DEFINES += RECON_DISPLAY
-    HEADERS += include/ReconSettingPanel.h
-    SOURCES += src/ReconSettingPanel.cpp
+    HEADERS += include/ReconSettingPanel.h \
+               include/MarkSettingWidget.h
+    SOURCES += src/ReconSettingPanel.cpp \
+               src/MarkSettingWidget.cpp
 }
 
 ######################################################################

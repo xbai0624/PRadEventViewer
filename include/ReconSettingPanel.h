@@ -1,15 +1,15 @@
 #ifndef RECON_SETTING_PANEL_H
 #define RECON_SETTING_PANEL_H
 
-#include <QDialog>
 #include <string>
+#include <vector>
+#include <QDialog>
 #include "PRadCoordSystem.h"
-
-#define COORD_ITEMS 6
-#define MATCH_ITEMS 6
+#include "PRadDetectors.h"
 
 class PRadDataHandler;
 class PRadDetMatch;
+class MarkSettingWidget;
 
 class QLabel;
 class QCheckBox;
@@ -27,19 +27,29 @@ class ReconSettingPanel : public QDialog
 public:
     ReconSettingPanel(QWidget *parent = 0);
     ~ReconSettingPanel() {};
+
+    // connect objects
     void ConnectDataHandler(PRadDataHandler *h);
     void ConnectCoordSystem(PRadCoordSystem *c);
     void ConnectMatchSystem(PRadDetMatch *m);
+
+    // change related
     void SyncSettings();
     void SaveSettings();
     void RestoreSettings();
     void ApplyChanges();
+
+    // get data
     bool ShowHyCalCluster();
     bool ShowGEMCluster();
     bool ShowMatchedHyCal();
     bool ShowMatchedGEM();
+    int GetMarkIndex(int det);
+    QString GetMarkName(int det);
+    QColor GetMarkColor(int det);
 
 private:
+    QGroupBox *createMarkGroup();
     QGroupBox *createHyCalGroup();
     QGroupBox *createGEMGroup();
     QGroupBox *createCoordGroup();
@@ -74,12 +84,14 @@ private:
 
     QComboBox *coordRun;
     QComboBox *coordType;
-    QDoubleSpinBox *coordBox[COORD_ITEMS]; // X, Y, Z, thetaX, thetaY, thetaZ
+    std::vector<QDoubleSpinBox*> coordBox; // X, Y, Z, thetaX, thetaY, thetaZ
 
     QCheckBox *matchHyCal;
     QCheckBox *matchGEM;
-    QLabel *matchConfLabel[MATCH_ITEMS];
-    QDoubleSpinBox *matchConfBox[MATCH_ITEMS]; // resolution and matching factors
+    std::vector<QLabel*> matchConfLabel;
+    std::vector<QDoubleSpinBox*> matchConfBox; // resolution and matching factors
+
+    std::vector<MarkSettingWidget*> markSettings;
 
 private:
     bool hyCalGroup_data;
