@@ -52,8 +52,8 @@ void PRadDetMatch::Configure(const std::string &path)
     transitionRes = getConfigValue("Transition_Resolution", "7", verbose).Float();
     crystalRes = getConfigValue("Crystal_Resolution", "3", verbose).Float();
     gemRes = getConfigValue("GEM_Resolution", "0.08", verbose).Float();
-    matchSigma = getConfigValue("Match_Sigma", "5", verbose).Float();
-    overlapSigma = getConfigValue("Overlap_Sigma", "10", verbose).Float();
+    matchSigma = getConfigValue("Match_Factor", "5", verbose).Float();
+    overlapSigma = getConfigValue("GEM_Overlap_Factor", "10", verbose).Float();
 
 }
 

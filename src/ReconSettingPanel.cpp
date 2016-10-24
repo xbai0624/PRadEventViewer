@@ -26,6 +26,7 @@
 #include <QSpinBox>
 #include <QDoubleSpinBox>
 #include <QLabel>
+#include <QCheckBox>
 
 ReconSettingPanel::ReconSettingPanel(QWidget *parent)
 : QDialog(parent), handler(nullptr), coordSystem(nullptr), detMatch(nullptr)
@@ -132,15 +133,6 @@ QGroupBox *ReconSettingPanel::createCoordGroup()
     double min_range[] = {  -20,   -20,     0,   -20,   -20,   -20};
     double max_range[] = {   20,    20, 10000,    20,    20,    20};
 
-    // coordinates
-    for(int i = 0; i < 6; ++i)
-    {
-        coordBox[i] = new QDoubleSpinBox;
-        coordBox[i]->setDecimals(decimals[i]);
-        coordBox[i]->setRange(min_range[i], max_range[i]);
-        coordBox[i]->setSingleStep(step[i]);
-    }
-
     QGridLayout *layout = new QGridLayout;
     layout->addWidget(coordRun, 0, 0);
     layout->addWidget(loadCoordFile, 0, 2);
@@ -154,8 +146,15 @@ QGroupBox *ReconSettingPanel::createCoordGroup()
     layout->addWidget(zl, 2, 3);
     layout->addWidget(off,3, 0);
     layout->addWidget(tilt, 4, 0);
-    for(int i = 0; i < 6; ++i)
+
+    for(int i = 0; i < COORD_ITEMS; ++i)
     {
+        // setting coord spin box
+        coordBox[i] = new QDoubleSpinBox;
+        coordBox[i]->setDecimals(decimals[i]);
+        coordBox[i]->setRange(min_range[i], max_range[i]);
+        coordBox[i]->setSingleStep(step[i]);
+        // add to layout
         int row = 3 + i/3;
         int col = 1 + i%3;
         layout->addWidget(coordBox[i], row, col);
@@ -175,16 +174,37 @@ QGroupBox *ReconSettingPanel::createCoordGroup()
 
 QGroupBox *ReconSettingPanel::createMatchGroup()
 {
-    QGroupBox *typeGroup = new QGroupBox(tr("Coincidence Setting"));
+    QGroupBox *matchGroup = new QGroupBox(tr("Coincidence Setting"));
 
-    matchLine1 = new QLineEdit;
+    QGridLayout *layout = new QGridLayout;
 
-    QFormLayout *layout = new QFormLayout;
-    layout->addRow(tr("Place Holder"), matchLine1);
+    matchHyCal = new QCheckBox("Show Matched HyCal Clusters Only");
+    matchGEM = new QCheckBox("Show Matched GEM Clusters Only");
 
-    typeGroup->setLayout(layout);
+    layout->addWidget(matchHyCal, 0, 0, 1, 3);
+    layout->addWidget(matchGEM, 1, 0, 1, 3);
 
-    return typeGroup;
+    QStringList matchDescript;
+    matchDescript << "Lead Glass Resolution" << "Transition Resolution"
+                  << "Crystal Resolution" << "Match Factor"
+                  << "GEM Resolution" << "GEM Overlap Factor";
+
+    for(int i = 0; i < MATCH_ITEMS; ++i)
+    {
+        // label
+        matchConfLabel[i] = new QLabel(matchDescript[i]);
+        // conf spin box
+        matchConfBox[i] = new QDoubleSpinBox;
+        matchConfBox[i]->setRange(0., 50.);
+        matchConfBox[i]->setSingleStep(0.01);
+        // add to layout
+        layout->addWidget(matchConfLabel[i], 2+i/2, (i%2)*2);
+        layout->addWidget(matchConfBox[i], 2+i/2, (i%2)*2 + 1);
+    }
+
+    matchGroup->setLayout(layout);
+
+    return matchGroup;
 }
 
 void ReconSettingPanel::ConnectDataHandler(PRadDataHandler *h)
@@ -247,6 +267,15 @@ void ReconSettingPanel::ConnectCoordSystem(PRadCoordSystem *c)
 void ReconSettingPanel::ConnectMatchSystem(PRadDetMatch *m)
 {
     detMatch = m;
+
+    for(int i = 0; i < MATCH_ITEMS; ++i)
+    {
+        float value = 0.;
+        if(detMatch != nullptr)
+            value = detMatch->GetConfigValue(matchConfLabel[i]->text().toStdString()).Float();
+
+        matchConfBox[i]->setValue(value);
+    }
 }
 
 void ReconSettingPanel::updateHyCalPath()
@@ -287,15 +316,15 @@ void ReconSettingPanel::changeCoordType(int t)
     if(coordSystem == nullptr)
         return;
 
-    if(t < 0) {
-        for(int i = 0; i < 6; ++i)
+    if(t < 0) { // -1 is the default nohting to select value
+        for(int i = 0; i < COORD_ITEMS; ++i)
             coordBox[i]->setValue(0);
         return;
     }
 
     auto &coord = det_coords[t];
 
-    for(int i = 0; i < 6; ++i)
+    for(int i = 0; i < COORD_ITEMS; ++i)
         coordBox[i]->setValue(coord.get_dim_coord(i));
 }
 
@@ -316,8 +345,11 @@ void ReconSettingPanel::saveCoordData()
         return;
 
     auto &coord = det_coords[idx];
-    for(int i = 0; i < 6; ++i)
+
+    for(int i = 0; i < COORD_ITEMS; ++i)
+    {
         coord.set_dim_coord(i, coordBox[i]->value());
+    }
 }
 
 void ReconSettingPanel::saveCoordFile()
@@ -371,6 +403,8 @@ void ReconSettingPanel::SaveSettings()
 {
     hyCalGroup_data = hyCalGroup->isChecked();
     gemGroup_data = gemGroup->isChecked();
+    matchHyCal_data = matchHyCal->isChecked();
+    matchGEM_data = matchGEM->isChecked();
 }
 
 // restore the saved settings
@@ -378,6 +412,8 @@ void ReconSettingPanel::RestoreSettings()
 {
     hyCalGroup->setChecked(hyCalGroup_data);
     gemGroup->setChecked(gemGroup_data);
+    matchHyCal->setChecked(matchHyCal_data);
+    matchGEM->setChecked(matchGEM_data);
 }
 
 // apply all the changes
@@ -404,6 +440,13 @@ void ReconSettingPanel::ApplyChanges()
         saveCoordData();
         coordSystem->SetCurrentCoord(det_coords);
     }
+
+    if(detMatch != nullptr) {
+        for(int i = 0; i < MATCH_ITEMS; ++i)
+        {
+            detMatch->SetConfigValue(matchConfLabel[i]->text().toStdString(), matchConfBox[i]->value());
+        }
+    }
 }
 
 bool ReconSettingPanel::ShowHyCalCluster()
@@ -411,7 +454,17 @@ bool ReconSettingPanel::ShowHyCalCluster()
     return hyCalGroup->isChecked();
 }
 
+bool ReconSettingPanel::ShowMatchedHyCal()
+{
+    return matchHyCal->isChecked();
+}
+
 bool ReconSettingPanel::ShowGEMCluster()
 {
     return gemGroup->isChecked();
+}
+
+bool ReconSettingPanel::ShowMatchedGEM()
+{
+    return matchGEM->isChecked();
 }

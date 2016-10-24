@@ -5,9 +5,14 @@
 #include <string>
 #include "PRadCoordSystem.h"
 
+#define COORD_ITEMS 6
+#define MATCH_ITEMS 6
+
 class PRadDataHandler;
 class PRadDetMatch;
 
+class QLabel;
+class QCheckBox;
 class QSpinBox;
 class QDoubleSpinBox;
 class QComboBox;
@@ -31,6 +36,8 @@ public:
     void ApplyChanges();
     bool ShowHyCalCluster();
     bool ShowGEMCluster();
+    bool ShowMatchedHyCal();
+    bool ShowMatchedGEM();
 
 private:
     QGroupBox *createHyCalGroup();
@@ -67,12 +74,18 @@ private:
 
     QComboBox *coordRun;
     QComboBox *coordType;
-    QDoubleSpinBox *coordBox[6]; // X, Y, Z, thetaX, thetaY, thetaZ
-    QLineEdit *matchLine1;
+    QDoubleSpinBox *coordBox[COORD_ITEMS]; // X, Y, Z, thetaX, thetaY, thetaZ
+
+    QCheckBox *matchHyCal;
+    QCheckBox *matchGEM;
+    QLabel *matchConfLabel[MATCH_ITEMS];
+    QDoubleSpinBox *matchConfBox[MATCH_ITEMS]; // resolution and matching factors
 
 private:
     bool hyCalGroup_data;
     bool gemGroup_data;
+    bool matchHyCal_data;
+    bool matchGEM_data;
     std::vector<PRadCoordSystem::DetCoord> det_coords;
 };
 
