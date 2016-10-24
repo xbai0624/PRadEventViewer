@@ -21,8 +21,9 @@
 #include "PRadCoordSystem.h"
 
 // constructor
-PRadDetMatch::PRadDetMatch()
+PRadDetMatch::PRadDetMatch(const std::string &path)
 {
+    Configure(path);
     leadGlassRes = 10.0;
     transitionRes = 7.0;
     crystalRes = 3.0;
@@ -35,6 +36,25 @@ PRadDetMatch::PRadDetMatch()
 PRadDetMatch::~PRadDetMatch()
 {
     // place holder
+}
+
+void PRadDetMatch::Configure(const std::string &path)
+{
+    // if no configuration file specified, load the default value quietly
+    bool verbose = false;
+
+    if(!path.empty()) {
+        readConfigFile(path);
+        verbose = true;
+    }
+
+    leadGlassRes = getConfigValue("Lead_Glass_Resolution", "10", verbose).Float();
+    transitionRes = getConfigValue("Transition_Resolution", "7", verbose).Float();
+    crystalRes = getConfigValue("Crystal_Resolution", "3", verbose).Float();
+    gemRes = getConfigValue("GEM_Resolution", "0.08", verbose).Float();
+    matchSigma = getConfigValue("Match_Sigma", "5", verbose).Float();
+    overlapSigma = getConfigValue("Overlap_Sigma", "10", verbose).Float();
+
 }
 
 std::vector<MatchedIndex> PRadDetMatch::Match(HyCalHit *hycal, int nHyCal,
@@ -55,7 +75,7 @@ const
             if(PreMatch(hycal[i], gem1[j]))
                 index.gem1_cand.push_back(j);
         }
-        for(int j = 0; i < nGEM2; ++j)
+        for(int j = 0; j < nGEM2; ++j)
         {
             if(PreMatch(hycal[i], gem2[j]))
                 index.gem2_cand.push_back(j);

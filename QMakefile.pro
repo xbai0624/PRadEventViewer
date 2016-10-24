@@ -74,6 +74,7 @@ HEADERS += include/PRadEventViewer.h \
            include/PRadHistCanvas.h \
            include/QRootCanvas.h \
            include/ConfigParser.h \
+           include/ConfigObject.h \
            include/PRadBenchMark.h \
            include/PRadHyCalCluster.h \
            include/PRadSquareCluster.h \
@@ -107,6 +108,7 @@ SOURCES += src/main.cpp \
            src/PRadHistCanvas.cpp \
            src/QRootCanvas.cpp \
            src/ConfigParser.cpp \
+           src/ConfigObject.cpp \
            src/PRadBenchMark.cpp \
            src/PRadHyCalCluster.cpp \
            src/PRadSquareCluster.cpp \

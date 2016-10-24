@@ -1480,7 +1480,7 @@ void PRadEventViewer::showReconEvent(int evt)
         for(auto &det : gem_srs->GetDetectorList())
         {
             int Nhits;
-            GEMHit *gemHit = det->GetClusters(Nhits);
+            GEMHit *gemHit = det->GetCluster(Nhits);
             coordSystem->Transform(&gemHit[0], &gemHit[Nhits]);
             coordSystem->Projection(&gemHit[0], &gemHit[Nhits]);
 
@@ -1493,6 +1493,13 @@ void PRadEventViewer::showReconEvent(int evt)
     }
 
     // TODO matched clusters
+    int n1, n2, n3;
+    HyCalHit *hycal = handler->GetHyCalCluster(n1);
+    GEMHit *gem1 = gem_srs->GetDetector(PRadDetectors::getName(PRadDetectors::PRadGEM1))->GetCluster(n2);
+    GEMHit *gem2 = gem_srs->GetDetector(PRadDetectors::getName(PRadDetectors::PRadGEM2))->GetCluster(n3);
+    std::cout << n1 << "  " << n2 << "  " << n3 << std::endl;
+    auto matched = detMatch->Match(hycal, n1, gem1, n2, gem2, n3);
+    std::cout << matched.size() << std::endl;
 
     // display hits
     Refresh();

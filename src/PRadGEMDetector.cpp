@@ -161,13 +161,13 @@ void PRadGEMDetector::ConnectAPV(const int &type, PRadGEMAPV *apv)
     planes[type]->ConnectAPV(apv);
 }
 
-GEMHit *PRadGEMDetector::GetClusters(int &n)
+GEMHit *PRadGEMDetector::GetCluster(int &n)
 {
     n = NClusters;
     return gem_clusters;
 }
 
-std::vector<GEMHit> PRadGEMDetector::GetClusters()
+std::vector<GEMHit> PRadGEMDetector::GetCluster()
 {
     std::vector<GEMHit> result;
 

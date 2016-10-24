@@ -6,8 +6,11 @@
 #ifndef PRAD_DET_MATCH_H
 #define PRAD_DET_MATCH_H
 
+#include <string>
 #include <vector>
 #include "PRadEventStruct.h"
+#include "ConfigObject.h"
+
 
 struct MatchedIndex
 {
@@ -25,11 +28,13 @@ struct MatchedIndex
     {};
 };
 
-class PRadDetMatch
+class PRadDetMatch : public ConfigObject
 {
 public:
-    PRadDetMatch();
+    PRadDetMatch(const std::string &path = "");
     virtual ~PRadDetMatch();
+
+    void Configure(const std::string& path);
 
     std::vector<MatchedIndex> Match(HyCalHit *hycal, int nHyCal,
                                     GEMHit *gem1, int nGEM1,

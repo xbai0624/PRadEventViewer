@@ -12,231 +12,9 @@
 
 using namespace std;
 
-// Config Value
-ostream &operator << (ostream &os, ConfigValue &b)
-{
-    return  os << b._value;
-};
-
-
-ConfigValue::ConfigValue(const string &value)
-: _value(value)
-{}
-
-ConfigValue::ConfigValue(const int &value)
-: _value(to_string(value))
-{}
-
-ConfigValue::ConfigValue(const long &value)
-: _value(to_string(value))
-{}
-
-ConfigValue::ConfigValue(const long long &value)
-: _value(to_string(value))
-{}
-
-ConfigValue::ConfigValue(const unsigned &value)
-: _value(to_string(value))
-{}
-
-ConfigValue::ConfigValue(const unsigned long &value)
-: _value(to_string(value))
-{}
-
-ConfigValue::ConfigValue(const unsigned long long &value)
-: _value(to_string(value))
-{}
-
-ConfigValue::ConfigValue(const float &value)
-: _value(to_string(value))
-{}
-
-ConfigValue::ConfigValue(const double &value)
-: _value(to_string(value))
-{}
-
-ConfigValue::ConfigValue(const long double &value)
-: _value(to_string(value))
-{}
-
-char ConfigValue::Char()
-{
-    try {
-       int value = stoi(_value);
-       if(value > CHAR_MAX)
-           cout << "Config Value: Limit exceeded while converting "
-                << _value << " to char." << endl;
-       return (char) value;
-    } catch (exception &e) {
-        cerr << e.what() << endl;
-        cerr << "Config Value: Failed to convert "
-             << _value << " to char. 0 returned." << endl;
-             return 0;
-    }
-}
-
-unsigned char ConfigValue::UChar()
-{
-    try {
-       unsigned long value = stoul(_value);
-       if(value > UCHAR_MAX)
-           cout << "Config Value: Limit exceeded while converting "
-                << _value << " to unsigned char." << endl;
-       return (unsigned char) value;
-    } catch (exception &e) {
-        cerr << e.what() << endl;
-        cerr << "Config Value: Failed to convert "
-             << _value << " to unsigned char. 0 returned." << endl;
-             return 0;
-    }
-}
-
-short ConfigValue::Short()
-{
-    try {
-       int value = stoi(_value);
-       if(value > SHRT_MAX)
-           cout << "Config Value: Limit exceeded while converting "
-                << _value << " to short." << endl;
-       return (short) value;
-    } catch (exception &e) {
-        cerr << e.what() << endl;
-        cerr << "Config Value: Failed to convert "
-             << _value << " to short. 0 returned." << endl;
-             return 0;
-    }
-}
-
-unsigned short ConfigValue::UShort()
-{
-    try {
-       unsigned long value = stoul(_value);
-       if(value > USHRT_MAX)
-           cout << "Config Value: Limit exceeded while converting "
-                << _value << " to unsigned short." << endl;
-       return (unsigned short) value;
-    } catch (exception &e) {
-        cerr << e.what() << endl;
-        cerr << "Config Value: Failed to convert "
-             << _value << " to unsigned short. 0 returned." << endl;
-             return 0;
-    }
-}
-
-int ConfigValue::Int()
-{
-    try {
-       return stoi(_value);
-    } catch (exception &e) {
-        cerr << e.what() << endl;
-        cerr << "Config Value: Failed to convert "
-             << _value << " to int. 0 returned." << endl;
-             return 0;
-    }
-}
-
-unsigned int ConfigValue::UInt()
-{
-    try {
-        return (unsigned int)stoul(_value);
-    } catch (exception &e) {
-        cerr << e.what() << endl;
-        cerr << "Config Value: Failed to convert "
-             << _value << " to unsigned int. 0 returned." << endl;
-             return 0;
-    }
-}
-
-long ConfigValue::Long()
-{
-    try {
-        return stol(_value);
-    } catch (exception &e) {
-        cerr << e.what() << endl;
-        cerr << "Config Value: Failed to convert "
-             << _value << " to long. 0 returned." << endl;
-             return 0;
-    }
-}
-
-long long ConfigValue::LongLong()
-{
-    try {
-        return stoll(_value);
-    } catch (exception &e) {
-        cerr << e.what() << endl;
-        cerr << "Config Value: Failed to convert "
-             << _value << " to long long. 0 returned." << endl;
-             return 0;
-    }
-}
-
-unsigned long ConfigValue::ULong()
-{
-    try {
-        return stoul(_value);
-    } catch (exception &e) {
-        cerr << e.what() << endl;
-        cerr << "Config Value: Failed to convert "
-             << _value << " to unsigned long. 0 returned." << endl;
-             return 0;
-    }
-}
-
-unsigned long long ConfigValue::ULongLong()
-{
-    try {
-        return stoull(_value);
-    } catch (exception &e) {
-        cerr << e.what() << endl;
-        cerr << "Config Value: Failed to convert "
-             << _value << " to unsigned long long. 0 returned." << endl;
-             return 0;
-    }
-}
-
-float ConfigValue::Float()
-{
-    try {
-        return stof(_value);
-    } catch (exception &e) {
-        cerr << e.what() << endl;
-        cerr << "Config Value: Failed to convert "
-             << _value << " to float. 0 returned." << endl;
-             return 0;
-    }
-}
-
-double ConfigValue::Double()
-{
-    try {
-        return stod(_value);
-    } catch (exception &e) {
-        cerr << e.what() << endl;
-        cerr << "Config Value: Failed to convert "
-             << _value << " to double. 0 returned." << endl;
-             return 0;
-    }
-}
-
-long double ConfigValue::LongDouble()
-{
-    try {
-        return stold(_value);
-    } catch (exception &e) {
-        cerr << e.what() << endl;
-        cerr << "Config Value: Failed to convert "
-             << _value << " to long double. 0 returned." << endl;
-             return 0;
-    }
-}
-
-const char *ConfigValue::c_str()
-{
-    return _value.c_str();
-}
-
-// Config Parser
+//============================================================================//
+// Config Parser                                                              //
+//============================================================================//
 ConfigParser::ConfigParser(const string &s,
                            const string &w,
                            const vector<string> &c)
@@ -507,6 +285,60 @@ void ConfigParser::find_integer_helper(const string &str, vector<int> &result)
    find_integer_helper(str2.substr(i), result);
 }
 
+// return the lower case of this string
+std::string ConfigParser::str_lower(const std::string &str)
+{
+    string res = str;
+    for(auto &c : res)
+    {
+        c = tolower(c);
+    }
+    return res;
+}
+
+// return the upper case of this string
+std::string str_upper(const std::string &str)
+{
+    string res = str;
+    for(auto &c : res)
+    {
+        c = toupper(c);
+    }
+    return res;
+}
+
+// remove characters in ignore list
+string ConfigParser::str_remove(const string &str, const string &ignore)
+{
+    string res = str;
+    for(auto &c : ignore)
+    {
+        res.erase(remove(res.begin(), res.end(), c), res.end());
+    }
+    return res;
+}
+
+// compare two strings, can be case insensitive
+bool ConfigParser::strcmp_case_insensitive(const string &str1, const string &str2)
+{
+    if(str1.size() != str2.size()) {
+        return false;
+    }
+
+    for(auto c1 = str1.begin(), c2 = str2.begin(); c1 != str1.end(); ++c1, ++c2)
+    {
+        if(tolower(*c1) != tolower(*c2)) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+//============================================================================//
+// trivial funcs                                                              //
+//============================================================================//
+
 ConfigParser &operator >> (ConfigParser &c, std::string &v)
 {
     v = c.TakeFirst().String();
@@ -602,4 +434,230 @@ ConfigParser &operator >> (ConfigParser &c, ConfigValue &v)
     v = c.TakeFirst();
     return c;
 }
+
+//============================================================================//
+// Config Value                                                               //
+//============================================================================//
+ostream &operator << (ostream &os, ConfigValue &b)
+{
+    return  os << b._value;
+};
+
+ConfigValue::ConfigValue(const string &value)
+: _value(value)
+{}
+
+ConfigValue::ConfigValue(const int &value)
+: _value(to_string(value))
+{}
+
+ConfigValue::ConfigValue(const long &value)
+: _value(to_string(value))
+{}
+
+ConfigValue::ConfigValue(const long long &value)
+: _value(to_string(value))
+{}
+
+ConfigValue::ConfigValue(const unsigned &value)
+: _value(to_string(value))
+{}
+
+ConfigValue::ConfigValue(const unsigned long &value)
+: _value(to_string(value))
+{}
+
+ConfigValue::ConfigValue(const unsigned long long &value)
+: _value(to_string(value))
+{}
+
+ConfigValue::ConfigValue(const float &value)
+: _value(to_string(value))
+{}
+
+ConfigValue::ConfigValue(const double &value)
+: _value(to_string(value))
+{}
+
+ConfigValue::ConfigValue(const long double &value)
+: _value(to_string(value))
+{}
+
+char ConfigValue::Char()
+{
+    try {
+       int value = stoi(_value);
+       if(value > CHAR_MAX)
+           cout << "Config Value: Limit exceeded while converting "
+                << _value << " to char." << endl;
+       return (char) value;
+    } catch (exception &e) {
+        cerr << e.what() << endl;
+        cerr << "Config Value: Failed to convert "
+             << _value << " to char. 0 returned." << endl;
+             return 0;
+    }
+}
+
+unsigned char ConfigValue::UChar()
+{
+    try {
+       unsigned long value = stoul(_value);
+       if(value > UCHAR_MAX)
+           cout << "Config Value: Limit exceeded while converting "
+                << _value << " to unsigned char." << endl;
+       return (unsigned char) value;
+    } catch (exception &e) {
+        cerr << e.what() << endl;
+        cerr << "Config Value: Failed to convert "
+             << _value << " to unsigned char. 0 returned." << endl;
+             return 0;
+    }
+}
+
+short ConfigValue::Short()
+{
+    try {
+       int value = stoi(_value);
+       if(value > SHRT_MAX)
+           cout << "Config Value: Limit exceeded while converting "
+                << _value << " to short." << endl;
+       return (short) value;
+    } catch (exception &e) {
+        cerr << e.what() << endl;
+        cerr << "Config Value: Failed to convert "
+             << _value << " to short. 0 returned." << endl;
+             return 0;
+    }
+}
+
+unsigned short ConfigValue::UShort()
+{
+    try {
+       unsigned long value = stoul(_value);
+       if(value > USHRT_MAX)
+           cout << "Config Value: Limit exceeded while converting "
+                << _value << " to unsigned short." << endl;
+       return (unsigned short) value;
+    } catch (exception &e) {
+        cerr << e.what() << endl;
+        cerr << "Config Value: Failed to convert "
+             << _value << " to unsigned short. 0 returned." << endl;
+             return 0;
+    }
+}
+
+int ConfigValue::Int()
+{
+    try {
+       return stoi(_value);
+    } catch (exception &e) {
+        cerr << e.what() << endl;
+        cerr << "Config Value: Failed to convert "
+             << _value << " to int. 0 returned." << endl;
+             return 0;
+    }
+}
+
+unsigned int ConfigValue::UInt()
+{
+    try {
+        return (unsigned int)stoul(_value);
+    } catch (exception &e) {
+        cerr << e.what() << endl;
+        cerr << "Config Value: Failed to convert "
+             << _value << " to unsigned int. 0 returned." << endl;
+             return 0;
+    }
+}
+
+long ConfigValue::Long()
+{
+    try {
+        return stol(_value);
+    } catch (exception &e) {
+        cerr << e.what() << endl;
+        cerr << "Config Value: Failed to convert "
+             << _value << " to long. 0 returned." << endl;
+             return 0;
+    }
+}
+
+long long ConfigValue::LongLong()
+{
+    try {
+        return stoll(_value);
+    } catch (exception &e) {
+        cerr << e.what() << endl;
+        cerr << "Config Value: Failed to convert "
+             << _value << " to long long. 0 returned." << endl;
+             return 0;
+    }
+}
+
+unsigned long ConfigValue::ULong()
+{
+    try {
+        return stoul(_value);
+    } catch (exception &e) {
+        cerr << e.what() << endl;
+        cerr << "Config Value: Failed to convert "
+             << _value << " to unsigned long. 0 returned." << endl;
+             return 0;
+    }
+}
+
+unsigned long long ConfigValue::ULongLong()
+{
+    try {
+        return stoull(_value);
+    } catch (exception &e) {
+        cerr << e.what() << endl;
+        cerr << "Config Value: Failed to convert "
+             << _value << " to unsigned long long. 0 returned." << endl;
+             return 0;
+    }
+}
+
+float ConfigValue::Float()
+{
+    try {
+        return stof(_value);
+    } catch (exception &e) {
+        cerr << e.what() << endl;
+        cerr << "Config Value: Failed to convert "
+             << _value << " to float. 0 returned." << endl;
+             return 0;
+    }
+}
+
+double ConfigValue::Double()
+{
+    try {
+        return stod(_value);
+    } catch (exception &e) {
+        cerr << e.what() << endl;
+        cerr << "Config Value: Failed to convert "
+             << _value << " to double. 0 returned." << endl;
+             return 0;
+    }
+}
+
+long double ConfigValue::LongDouble()
+{
+    try {
+        return stold(_value);
+    } catch (exception &e) {
+        cerr << e.what() << endl;
+        cerr << "Config Value: Failed to convert "
+             << _value << " to long double. 0 returned." << endl;
+             return 0;
+    }
+}
+
+const char *ConfigValue::c_str()
+{
+    return _value.c_str();
+}
+
 

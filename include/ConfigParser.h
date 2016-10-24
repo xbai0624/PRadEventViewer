@@ -143,6 +143,10 @@ public:
     static std::string comment_out(const std::string &str, const std::string &c);
     static std::string trim(const std::string &str, const std::string &w);
     static std::queue<std::string> split(const std::string &str, const std::string &s);
+    static std::string str_remove(const std::string &str, const std::string &ignore);
+    static std::string str_lower(const std::string &str);
+    static std::string str_upper(const std::string &str);
+    static bool strcmp_case_insensitive(const std::string &str1, const std::string &str2);
     static int find_integer(const std::string &str, const size_t &pos = 0);
     static std::vector<int> find_integers(const std::string &str);
     static void find_integer_helper(const std::string &str, std::vector<int> &result);

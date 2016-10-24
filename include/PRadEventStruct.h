@@ -392,29 +392,27 @@ struct HyCalHit
     float x;            // Cluster's x-position (mm)
     float y;            // Cluster's y-position (mm)
     float z;            // Cluster's z-position (mm)
-    float x_log;        // x reconstruct with log scale (mm)
-    float y_log;        // y reconstruct with log scale (mm)
     float chi2;         // chi2 comparing to shower profile
     float sigma_E;
     unsigned short time[TIME_MEASURE_SIZE];      // time information from central TDC group
 
     HyCalHit()
     : flag(0), det_id(0), type(0), status(0), nblocks(0), cid(0),
-      E(0), x(0), y(0), z(0), x_log(0), y_log(0), chi2(0), sigma_E(0)
+      E(0), x(0), y(0), z(0), chi2(0), sigma_E(0)
     {
         clear_time();
     }
 
     HyCalHit(const float &cx, const float &cy, const float &cE)
     : flag(0), det_id(0), type(0), status(0), nblocks(0), cid(0), E(cE), x(cx),
-      y(cy), x_log(0), y_log(0), chi2(0), sigma_E(0)
+      y(cy), chi2(0), sigma_E(0)
     {
         clear_time();
     }
 
     HyCalHit(const float &cx, const float &cy, const float &cE, const std::vector<unsigned short> &t)
     : flag(0), det_id(0), type(0), status(0), nblocks(0), cid(0), E(cE), x(cx), y(cy),
-      x_log(0), y_log(0), chi2(0), sigma_E(0)
+      chi2(0), sigma_E(0)
     {
         set_time(t);
     }
@@ -422,7 +420,7 @@ struct HyCalHit
     HyCalHit(const short &t, const short &s, const short &n,
              const float &cx, const float &cy, const float &cE, const float &ch)
     : flag(0), det_id(0), type(t), status(s), nblocks(n), cid(0), E(cE), x(cx), y(cy),
-      x_log(0), y_log(0), chi2(ch), sigma_E(0)
+      chi2(ch), sigma_E(0)
     {
         clear_time();
     }

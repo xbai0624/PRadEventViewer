@@ -43,72 +43,6 @@ void PRadGEMCluster::Configure(const std::string &path)
     split_cluster_diff = getConfigValue("SPLIT_CLUSTER_DIFF", "14", verbose).Double();
 }
 
-ConfigValue PRadGEMCluster::GetConfigValue(const std::string &var_name)
-{
-    auto it = config_map.find(var_name);
-    if(it == config_map.end())
-        return ConfigValue("0");
-    else
-        return it->second;
-}
-
-void PRadGEMCluster::SetConfigValue(const std::string &var_name, const ConfigValue &c_value)
-{
-    config_map[var_name] = c_value;
-}
-
-// read configuration file and build the configuration map
-void PRadGEMCluster::readConfigFile(const std::string &path)
-{
-    ConfigParser c_parser(": ,\t="); // self-defined splitters
-
-    if(!c_parser.OpenFile(path)) {
-        std::cerr << "PRad HyCal Cluster Error: Cannot open file "
-                  << "\"" << path << "\""
-                  << std::endl;
-        return;
-    }
-
-    // save the path
-    config_path = path;
-
-    // clear the map
-    config_map.clear();
-
-    while(c_parser.ParseLine())
-    {
-        if (c_parser.NbofElements() != 2)
-            continue;
-
-        std::string var_name;
-        ConfigValue var_value;
-        c_parser >> var_name >> var_value;
-        config_map[var_name] = var_value;
-    }
-}
-
-// get configuration value from the map
-ConfigValue PRadGEMCluster::getConfigValue(const std::string &name,
-                                           const std::string &def_value,
-                                           bool verbose)
-{
-    auto it = config_map.find(name);
-    if(it == config_map.end())
-    {
-        if(verbose) {
-            std::cout << name
-                      << " not defined in configuration file, set to default value "
-                      << def_value
-                      << std::endl;
-        }
-
-        config_map[name] = ConfigValue(def_value);
-
-        return ConfigValue(def_value);
-    }
-    return it->second;
-}
-
 // reconstruct, accepts GEM detector
 void PRadGEMCluster::Reconstruct(PRadGEMDetector *det)
 {
@@ -331,7 +265,7 @@ int PRadGEMCluster::FormClusters(PRadGEMDetector *det)
     auto y_cluster = y_plane->GetPlaneClusters();
 
     int Nhits;
-    GEMHit *hits = det->GetClusters(Nhits);
+    GEMHit *hits = det->GetCluster(Nhits);
 
     Nhits = 0; // zero for filling new clusters
     for(auto &xc : x_cluster)

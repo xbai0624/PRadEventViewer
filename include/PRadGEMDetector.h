@@ -30,8 +30,9 @@ public:
     void ReconstructHits(PRadGEMCluster *c);
     void ReconstructHits();
     void ClearHits();
-    GEMHit *GetClusters(int &n);
-    std::vector<GEMHit> GetClusters();
+    int GetNClusters() {return NClusters;};
+    GEMHit *GetCluster(int &n);
+    std::vector<GEMHit> GetCluster();
 
     // get parameters
     int GetID() {return id;};
