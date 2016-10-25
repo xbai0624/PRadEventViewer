@@ -84,9 +84,10 @@ TARGET        = testIsland \
                 testLMS \
                 testGEM \
                 testSim \
-                replay \
                 testCombine \
-                getAvgGain
+                testMatch \
+                getAvgGain \
+                replay
 
 EXE_LIBS      = -L$(T_LIBS_DIR) -lPRadDecoder
 
@@ -126,14 +127,18 @@ testGEM: src/testGEM.cpp
 testSim: src/testSim.cpp
 	$(CXX) $(CXXFLAGS) -o $@ $< $(INCPATH) $(LIBS) $(EXE_LIBS)
 
-replay: src/replay.cpp
+testCombine: src/testCombine.cpp
 	$(CXX) $(CXXFLAGS) -o $@ $< $(INCPATH) $(LIBS) $(EXE_LIBS)
 
-testCombine: src/testCombine.cpp
+testMatch: src/testMatch.cpp
 	$(CXX) $(CXXFLAGS) -o $@ $< $(INCPATH) $(LIBS) $(EXE_LIBS)
 
 getAvgGain: src/getAvgGain.cpp
 	$(CXX) $(CXXFLAGS) -o $@ $< $(INCPATH) $(LIBS) $(EXE_LIBS)
+
+replay: src/replay.cpp
+	$(CXX) $(CXXFLAGS) -o $@ $< $(INCPATH) $(LIBS) $(EXE_LIBS)
+
 
 ####### Clean
 clean: cleanobj cleanexe cleanlib
