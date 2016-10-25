@@ -16,8 +16,8 @@
 #include "PRadGEMDetector.h"
 
 // constructor
-ConfigObject::ConfigObject(const std::string &ignore)
-: ignore_chars(ignore)
+ConfigObject::ConfigObject(const std::string &splitter, const std::string &ignore)
+: split_chars(splitter), ignore_chars(ignore), __empty_value("0")
 {
     // place holder
 }
@@ -34,14 +34,15 @@ void ConfigObject::Configure(const std::string & /*path*/)
     // to be overloaded
 }
 
-ConfigValue ConfigObject::GetConfigValue(const std::string &var_name)
+const ConfigValue &ConfigObject::GetConfigValue(const std::string &var_name)
+const
 {
     // convert to lower case and remove uninterested characters
     std::string key = ConfigParser::str_lower(ConfigParser::str_remove(var_name, ignore_chars));
 
     auto it = config_map.find(key);
     if(it == config_map.end())
-        return ConfigValue("0");
+        return __empty_value;
     else
         return it->second;
 }
@@ -57,7 +58,7 @@ void ConfigObject::SetConfigValue(const std::string &var_name, const ConfigValue
 // read configuration file and build the configuration map
 void ConfigObject::readConfigFile(const std::string &path)
 {
-    ConfigParser c_parser(":,=|"); // self-defined splitters
+    ConfigParser c_parser(split_chars); // self-defined splitters
 
     if(!c_parser.OpenFile(path)) {
         std::cerr << "PRad HyCal Cluster Error: Cannot open file "
@@ -90,7 +91,7 @@ void ConfigObject::readConfigFile(const std::string &path)
 
 // get configuration value from the map
 ConfigValue ConfigObject::getConfigValue(const std::string &name,
-                                         const std::string &def_value,
+                                         const ConfigValue &def_value,
                                          bool verbose)
 {
     std::string key = ConfigParser::str_lower(ConfigParser::str_remove(name, ignore_chars));
@@ -104,8 +105,8 @@ ConfigValue ConfigObject::getConfigValue(const std::string &name,
                       << def_value
                       << std::endl;
         }
-        config_map[key] = ConfigValue(def_value);
-        return ConfigValue(def_value);
+        config_map[key] = def_value;
+        return def_value;
     }
 
     return it->second;

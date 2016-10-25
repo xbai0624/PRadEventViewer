@@ -86,14 +86,17 @@ int main(int /*argc*/, char * /*argv*/ [])
             {
                 cout << "HyCal: " << hycal_hit[idx.hycal].x
                      << ", " << hycal_hit[idx.hycal].y
-                     << ", " << hycal_hit[idx.hycal].E;
+                     << ", " << hycal_hit[idx.hycal].E
+                     << ". "
                 if(idx.gem1 >= 0) {
                     cout << "GEM 1: " << gem1_hit[idx.gem1].x
-                         << ", " << gem1_hit[idx.gem1].y;
+                         << ", " << gem1_hit[idx.gem1].y
+                         << ". "
                 }
                 if(idx.gem2 >= 0) {
                     cout << "GEM 2: " << gem2_hit[idx.gem2].x
-                         << ", " << gem2_hit[idx.gem2].y;
+                         << ", " << gem2_hit[idx.gem2].y
+                         << ". "
                 }
                 cout << endl;
             }

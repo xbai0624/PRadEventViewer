@@ -126,8 +126,8 @@ void HyCalScene::drawHitsMark(QPainter *painter, const QPointF& pos, const HyCal
       {
         QPointF sqr[4] = {
             QPointF(pos.x() + attr.size, pos.y()),
-            QPointF(pos.x() - attr.size, pos.y()),
             QPointF(pos.x(), pos.y() + attr.size),
+            QPointF(pos.x() - attr.size, pos.y()),
             QPointF(pos.x(), pos.y() - attr.size)
         };
         painter->drawConvexPolygon(sqr, 4);

@@ -438,7 +438,7 @@ ConfigParser &operator >> (ConfigParser &c, ConfigValue &v)
 //============================================================================//
 // Config Value                                                               //
 //============================================================================//
-ostream &operator << (ostream &os, ConfigValue &b)
+ostream &operator << (ostream &os, const ConfigValue &b)
 {
     return  os << b._value;
 };
@@ -484,6 +484,7 @@ ConfigValue::ConfigValue(const long double &value)
 {}
 
 char ConfigValue::Char()
+const
 {
     try {
        int value = stoi(_value);
@@ -500,6 +501,7 @@ char ConfigValue::Char()
 }
 
 unsigned char ConfigValue::UChar()
+const
 {
     try {
        unsigned long value = stoul(_value);
@@ -516,6 +518,7 @@ unsigned char ConfigValue::UChar()
 }
 
 short ConfigValue::Short()
+const
 {
     try {
        int value = stoi(_value);
@@ -532,6 +535,7 @@ short ConfigValue::Short()
 }
 
 unsigned short ConfigValue::UShort()
+const
 {
     try {
        unsigned long value = stoul(_value);
@@ -548,6 +552,7 @@ unsigned short ConfigValue::UShort()
 }
 
 int ConfigValue::Int()
+const
 {
     try {
        return stoi(_value);
@@ -560,6 +565,7 @@ int ConfigValue::Int()
 }
 
 unsigned int ConfigValue::UInt()
+const
 {
     try {
         return (unsigned int)stoul(_value);
@@ -572,6 +578,7 @@ unsigned int ConfigValue::UInt()
 }
 
 long ConfigValue::Long()
+const
 {
     try {
         return stol(_value);
@@ -584,6 +591,7 @@ long ConfigValue::Long()
 }
 
 long long ConfigValue::LongLong()
+const
 {
     try {
         return stoll(_value);
@@ -596,6 +604,7 @@ long long ConfigValue::LongLong()
 }
 
 unsigned long ConfigValue::ULong()
+const
 {
     try {
         return stoul(_value);
@@ -608,6 +617,7 @@ unsigned long ConfigValue::ULong()
 }
 
 unsigned long long ConfigValue::ULongLong()
+const
 {
     try {
         return stoull(_value);
@@ -620,6 +630,7 @@ unsigned long long ConfigValue::ULongLong()
 }
 
 float ConfigValue::Float()
+const
 {
     try {
         return stof(_value);
@@ -632,6 +643,7 @@ float ConfigValue::Float()
 }
 
 double ConfigValue::Double()
+const
 {
     try {
         return stod(_value);
@@ -644,6 +656,7 @@ double ConfigValue::Double()
 }
 
 long double ConfigValue::LongDouble()
+const
 {
     try {
         return stold(_value);
@@ -656,8 +669,8 @@ long double ConfigValue::LongDouble()
 }
 
 const char *ConfigValue::c_str()
+const
 {
     return _value.c_str();
 }
-
 

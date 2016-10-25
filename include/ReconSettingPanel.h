@@ -76,8 +76,11 @@ private:
     QComboBox *hyCalMethods;
     QLineEdit *hyCalConfigPath;
 
+    QLabel *gemMinLabel;
     QSpinBox *gemMinHits;
+    QLabel *gemMaxLabel;
     QSpinBox *gemMaxHits;
+    QLabel *gemSplitLabel;
     QDoubleSpinBox *gemSplitThres;
 
     QComboBox *coordRun;

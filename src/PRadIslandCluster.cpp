@@ -28,28 +28,28 @@ void PRadIslandCluster::Configure(const std::string &c_path)
     }
 
     // set all the parameters
-    fDoShowerDepth = getConfigValue("DO_SHOWER_DEPTH", "0", verbose).Int();
-    fUse2ExpWeight = getConfigValue("USE_DOUBLE_EXP_WEIGHT", "0", verbose).Int();
-    fDoNonLinCorr  = getConfigValue("DO_NON_LINEARITY_CORRECTION", "0", verbose).Int();
-    fMinHitE       = getConfigValue("MIN_BLOCK_ENERGY", "0.005", verbose).Float();
+    fDoShowerDepth = getConfig<int>("DO_SHOWER_DEPTH", 0, verbose);
+    fUse2ExpWeight = getConfig<int>("USE_DOUBLE_EXP_WEIGHT", 0, verbose);
+    fDoNonLinCorr  = getConfig<int>("DO_NON_LINEARITY_CORRECTION", 0, verbose);
+    fMinHitE       = getConfig<float>("MIN_BLOCK_ENERGY", 0.005, verbose);
     // default value is 3.6, suggested by the study with GEM (Weizhi)
-    fWeightFreePar = getConfigValue("WEIGHT_FREE_PAR", "3.6", verbose).Float();
-    fMinClusterE   = getConfigValue("MIN_CLUSTER_E", "0.05", verbose).Float();
-    fMinCenterE    = getConfigValue("MIN_CENTER_E", "0.01", verbose).Float();
-    fZLGToPWO      = getConfigValue("Z_LG_TO_PWO", "-10.12", verbose).Float();
-//    fZHyCal        = getConfigValue("Z_HYCAL", "581.7", verbose).Float();
-    fCutOffThr     = getConfigValue("CUT_OFF_THRESHOLD", "0.01", verbose).Float();
-    f2ExpFreeWeight= getConfigValue("DOUBLE_EXP_FREE_WEIGHT", "0.4", verbose).Float();
+    fWeightFreePar = getConfig<float>("WEIGHT_FREE_PAR", 3.6, verbose);
+    fMinClusterE   = getConfig<float>("MIN_CLUSTER_E", 0.05, verbose);
+    fMinCenterE    = getConfig<float>("MIN_CENTER_E", 0.01, verbose);
+    fZLGToPWO      = getConfig<float>("Z_LG_TO_PWO", -10.12, verbose);
+//    fZHyCal        = getConfig<float>("Z_HYCAL", 581.7, verbose);
+    fCutOffThr     = getConfig<float>("CUT_OFF_THRESHOLD", 0.01, verbose);
+    f2ExpFreeWeight= getConfig<float>("DOUBLE_EXP_FREE_WEIGHT", 0.4, verbose);
 
     // load block info, cluster profile in the PrimEx format
     std::string path;
-    path = getConfigValue("BLOCK_INFO_FILE", "config/blockinfo.dat", verbose);
+    path = getConfig<std::string>("BLOCK_INFO_FILE", "config/blockinfo.dat", verbose);
     LoadBlockInfo(path);
 
-    path = getConfigValue("CRYSTAL_PROFILE", "config/prof_pwo.dat", verbose);
+    path = getConfig<std::string>("CRYSTAL_PROFILE", "config/prof_pwo.dat", verbose);
     LoadCrystalProfile(path);
 
-    path = getConfigValue("LEADGLASS_PROFILE", "config/prof_lg.dat", verbose);
+    path = getConfig<std::string>("LEADGLASS_PROFILE", "config/prof_lg.dat", verbose);
     LoadLeadGlassProfile(path);
 }
 //________________________________________________________________

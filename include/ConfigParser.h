@@ -57,11 +57,12 @@ public:
 
     template<typename T>
     T Convert()
+    const
     {
         std::stringstream iss(_value);
         T _cvalue;
 
-        if(!(iss>>_cvalue)) {
+        if(!(iss >> _cvalue)) {
             std::cerr << "Config Value Warning: Undefined value returned, failed to convert "
                       <<  _value
                       << " to "
@@ -72,22 +73,22 @@ public:
         return _cvalue;
     };
 
-    char Char();
-    unsigned char UChar();
-    short Short();
-    unsigned short UShort();
-    int Int();
-    unsigned int UInt();
-    long Long();
-    long long LongLong();
-    unsigned long ULong();
-    unsigned long long ULongLong();
-    float Float();
-    double Double();
-    long double LongDouble();
-    const char *c_str();
-    std::string String() {return _value;};
-    bool IsEmpty() {return _value.empty();};
+    char Char() const;
+    unsigned char UChar() const;
+    short Short() const;
+    unsigned short UShort() const;
+    int Int() const;
+    unsigned int UInt() const;
+    long Long() const;
+    long long LongLong() const;
+    unsigned long ULong() const;
+    unsigned long long ULongLong() const;
+    float Float() const;
+    double Double() const;
+    long double LongDouble() const;
+    const char *c_str() const;
+    std::string String() const {return _value;};
+    bool IsEmpty() const {return _value.empty();};
 
     operator std::string() const
     {
@@ -101,7 +102,7 @@ public:
 };
 
 // show string content of the config value to ostream
-std::ostream &operator << (std::ostream &os, ConfigValue &b);
+std::ostream &operator << (std::ostream &os, const ConfigValue &b);
 
 // config parser class
 class ConfigParser

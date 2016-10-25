@@ -109,21 +109,25 @@ QGroupBox *ReconSettingPanel::createGEMGroup()
 {
     QGroupBox *gemGroup = new QGroupBox(tr("GEM Cluster Setting"));
 
-    QStringList mark_list;
-    mark_list << "Circle" << "Cross" << "Triangle";
-
+    // the label name should be the same as configuration element name
+    // it will be used to retrieve and set the configuration value
+    gemMinLabel = new QLabel("Min Cluster Hits");
     gemMinHits = new QSpinBox;
-    gemMinHits->setRange(1, 20);
+    gemMinHits->setRange(0, 20);
+
+    gemMaxLabel = new QLabel("Max Cluster Hits");
     gemMaxHits = new QSpinBox;
     gemMaxHits->setRange(2, 100);
+
+    gemSplitLabel = new QLabel("Split Threshold");
     gemSplitThres = new QDoubleSpinBox;
     gemSplitThres->setRange(1., 1000.);
     gemSplitThres->setSingleStep(0.1);
 
     QFormLayout *layout = new QFormLayout;
-    layout->addRow(tr("Min. Cluster Hits"), gemMinHits);
-    layout->addRow(tr("Max, Cluster Hits"), gemMaxHits);
-    layout->addRow(tr("Split Threshold"), gemSplitThres);
+    layout->addRow(gemMinLabel, gemMinHits);
+    layout->addRow(gemMaxLabel, gemMaxHits);
+    layout->addRow(gemSplitLabel, gemSplitThres);
 
     gemGroup->setLayout(layout);
 
@@ -194,6 +198,8 @@ QGroupBox *ReconSettingPanel::createMatchGroup()
 
     QGridLayout *layout = new QGridLayout;
 
+    // the label name should be the same as configuration element name
+    // it will be used to retrieve and set the configuration value
     QStringList matchDescript;
     matchDescript << "Lead Glass Resolution" << "Transition Resolution"
                   << "Crystal Resolution" << "Match Factor"
@@ -259,9 +265,9 @@ void ReconSettingPanel::ConnectDataHandler(PRadDataHandler *h)
     // set the config values from GEM clustering method
     PRadGEMCluster *gem_method = handler->GetSRS()->GetClusterMethod();
 
-    gemMinHits->setValue(gem_method->GetConfigValue("MIN_CLUSTER_HITS").Int());
-    gemMaxHits->setValue(gem_method->GetConfigValue("MAX_CLUSTER_HITS").Int());
-    gemSplitThres->setValue(gem_method->GetConfigValue("SPLIT_CLUSTER_DIFF").Double());
+    gemMinHits->setValue(gem_method->GetConfig<int>(gemMinLabel->text().toStdString()));
+    gemMaxHits->setValue(gem_method->GetConfig<int>(gemMaxLabel->text().toStdString()));
+    gemSplitThres->setValue(gem_method->GetConfig<double>(gemSplitLabel->text().toStdString()));
 }
 
 void ReconSettingPanel::ConnectCoordSystem(PRadCoordSystem *c)
@@ -297,7 +303,7 @@ void ReconSettingPanel::ConnectMatchSystem(PRadDetMatch *m)
     {
         float value = 0.;
         if(detMatch != nullptr)
-            value = detMatch->GetConfigValue(matchConfLabel[i]->text().toStdString()).Float();
+            value = detMatch->GetConfig<float>(matchConfLabel[i]->text().toStdString());
 
         matchConfBox[i]->setValue(value);
     }
@@ -452,9 +458,9 @@ void ReconSettingPanel::ApplyChanges()
 
         // set corresponding gem cluster configuration values
         PRadGEMCluster *gem_method = handler->GetSRS()->GetClusterMethod();
-        gem_method->SetConfigValue("MIN_CLUSTER_HITS", gemMinHits->value());
-        gem_method->SetConfigValue("MAX_CLUSTER_HITS", gemMaxHits->value());
-        gem_method->SetConfigValue("SPLIT_CLUSTER_DIFF", gemSplitThres->value());
+        gem_method->SetConfigValue(gemMinLabel->text().toStdString(), gemMinHits->value());
+        gem_method->SetConfigValue(gemMaxLabel->text().toStdString(), gemMaxHits->value());
+        gem_method->SetConfigValue(gemSplitLabel->text().toStdString(), gemSplitThres->value());
         // reaload the configuration
         gem_method->Configure();
     }
