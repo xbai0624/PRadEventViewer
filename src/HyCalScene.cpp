@@ -175,11 +175,6 @@ void HyCalScene::drawHitsMark(QPainter *painter, const QPointF& pos, const HyCal
       }
         break;
     }
-    if(attr.shape_index == 0) {
-    } else if (attr.shape_index == 2) {
-    } else if (attr.shape_index ==  3) {
-    } else if (attr.shape_index == 4) {
-    }
 }
 
 void HyCalScene::addItem(QGraphicsItem *item)
