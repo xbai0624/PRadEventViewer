@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include <QDialog>
+#include "HyCalScene.h"
 #include "PRadCoordSystem.h"
 #include "PRadDetectors.h"
 
@@ -12,7 +13,6 @@ class PRadDetMatch;
 class MarkSettingWidget;
 
 class QLabel;
-class QCheckBox;
 class QSpinBox;
 class QDoubleSpinBox;
 class QComboBox;
@@ -40,13 +40,14 @@ public:
     void ApplyChanges();
 
     // get data
-    bool ShowHyCalCluster();
-    bool ShowGEMCluster();
-    bool ShowMatchedHyCal();
-    bool ShowMatchedGEM();
+    bool ShowDetector(int det);
+    bool ShowMatchedDetector(int det);
+    HyCalScene::MarkAttributes GetMarkAttributes(int det);
     int GetMarkIndex(int det);
     QString GetMarkName(int det);
+    int GetMarkWidth(int det);
     QColor GetMarkColor(int det);
+    double GetMarkSize(int det);
 
 private:
     QGroupBox *createMarkGroup();
@@ -72,9 +73,6 @@ private:
     PRadCoordSystem *coordSystem;
     PRadDetMatch *detMatch;
 
-    QGroupBox *hyCalGroup;
-    QGroupBox *gemGroup;
-
     QComboBox *hyCalMethods;
     QLineEdit *hyCalConfigPath;
 
@@ -86,18 +84,12 @@ private:
     QComboBox *coordType;
     std::vector<QDoubleSpinBox*> coordBox; // X, Y, Z, thetaX, thetaY, thetaZ
 
-    QCheckBox *matchHyCal;
-    QCheckBox *matchGEM;
     std::vector<QLabel*> matchConfLabel;
     std::vector<QDoubleSpinBox*> matchConfBox; // resolution and matching factors
 
     std::vector<MarkSettingWidget*> markSettings;
 
 private:
-    bool hyCalGroup_data;
-    bool gemGroup_data;
-    bool matchHyCal_data;
-    bool matchGEM_data;
     std::vector<PRadCoordSystem::DetCoord> det_coords;
 };
 

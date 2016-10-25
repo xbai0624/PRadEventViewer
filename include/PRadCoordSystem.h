@@ -113,7 +113,7 @@ public:
     {
         for(int i = 0; i < NClusters; ++i)
         {
-            Transform(t.det_id, t.x, t.y, t.z);
+            Transform(t[i].det_id, t[i].x, t[i].y, t[i].z);
         }
     }
 

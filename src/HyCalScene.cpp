@@ -17,6 +17,15 @@
 #include <QtGui>
 #endif
 
+// static function to return the supported mark shapes
+QStringList HyCalScene::GetShapeList()
+{
+    QStringList list;
+    list << "Circle" << "Diamond" << "Square" << "Triangle" << "Cross"
+         << "X-Cross";
+    return list;
+}
+
 void HyCalScene::drawForeground(QPainter *painter, const QRectF &rect)
 {
     QGraphicsScene::drawForeground(painter, rect);
@@ -85,20 +94,91 @@ void HyCalScene::drawHitsMarks(QPainter *painter)
 {
     for(auto &mark : hitsMarkList)
     {
-        // draw a circle mark
-        QPen pen(mark.hitColor);
-        pen.setWidth(2);
-        painter->setPen(pen);
-        painter->drawEllipse(mark.hitPos, mark.size, mark.size);
+        drawHitsMark(painter, mark.hitPos, mark.attr);
 
         // draw text
         if(mark.text.isEmpty())
             continue;
 
-        pen.setColor(mark.textColor);
+        QPen pen(mark.textColor);
         painter->setPen(pen);
         painter->setFont(QFont("times", 9));
         painter->drawText(mark.textBox, mark.text, QTextOption(Qt::AlignTop | Qt::AlignHCenter));
+    }
+}
+
+// helper, draw a single mark
+void HyCalScene::drawHitsMark(QPainter *painter, const QPointF& pos, const HyCalScene::MarkAttributes &attr)
+{
+    // draw a circle mark
+    QPen pen(attr.color);
+    pen.setWidth(attr.width);
+    painter->setPen(pen);
+
+    switch(attr.shape_index)
+    {
+    default: // not supported
+        break;
+    case 0: // circle
+        painter->drawEllipse(pos, attr.size, attr.size);
+        break;
+    case 1: // diamond
+      {
+        QPointF sqr[4] = {
+            QPointF(pos.x() + attr.size, pos.y()),
+            QPointF(pos.x() - attr.size, pos.y()),
+            QPointF(pos.x(), pos.y() + attr.size),
+            QPointF(pos.x(), pos.y() - attr.size)
+        };
+        painter->drawConvexPolygon(sqr, 4);
+      }
+        break;
+    case 2: // square
+      {
+        QPointF sqr[4] = {
+            QPointF(pos.x() + attr.size, pos.y() - attr.size),
+            QPointF(pos.x() - attr.size, pos.y() - attr.size),
+            QPointF(pos.x() - attr.size, pos.y() + attr.size),
+            QPointF(pos.x() + attr.size, pos.y() + attr.size)
+        };
+        painter->drawConvexPolygon(sqr, 4);
+      }
+        break;
+    case 3: // triangle
+      {
+        QPointF tri[3] = {
+            QPointF(pos.x(), pos.y() - attr.size),
+            QPointF(pos.x() - attr.size, pos.y() + attr.size),
+            QPointF(pos.x() + attr.size, pos.y() + attr.size)
+        };
+        painter->drawConvexPolygon(tri, 3);
+      }
+        break;
+    case 4: // cross
+      {
+        QPainterPath cross;
+        cross.moveTo(pos.x(), pos.y() - attr.size);
+        cross.lineTo(pos.x(), pos.y() + attr.size);
+        cross.moveTo(pos.x() + attr.size, pos.y());
+        cross.lineTo(pos.x() - attr.size, pos.y());
+        painter->drawPath(cross);
+      }
+        break;
+    case 5: // X-cross
+      {
+        QPainterPath cross;
+        cross.moveTo(pos.x() - attr.size, pos.y() - attr.size);
+        cross.lineTo(pos.x() + attr.size, pos.y() + attr.size);
+        cross.moveTo(pos.x() + attr.size, pos.y() - attr.size);
+        cross.lineTo(pos.x() - attr.size, pos.y() + attr.size);
+        painter->drawPath(cross);
+      }
+        break;
+    }
+    if(attr.shape_index == 0) {
+    } else if (attr.shape_index == 2) {
+    } else if (attr.shape_index ==  3) {
+    } else if (attr.shape_index == 4) {
     }
 }
 
@@ -131,11 +211,10 @@ void HyCalScene::AddScalerBox(const QString &text,
 
 void HyCalScene::AddHitsMark(const QString &name,
                              const QPointF &position,
-                             const QColor &markColor,
-                             const float &markSize,
+                             const HyCalScene::MarkAttributes &m,
                              const QString &text)
 {
-    hitsMarkList.push_back(HitsMark(name, text, position, markColor, markSize));
+    hitsMarkList.push_back(HitsMark(name, text, position, m));
 }
 
 void HyCalScene::UpdateScalerBox(const QString &text, const int &group)

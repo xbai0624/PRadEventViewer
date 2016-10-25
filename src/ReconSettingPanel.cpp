@@ -27,7 +27,6 @@
 #include <QSpinBox>
 #include <QDoubleSpinBox>
 #include <QLabel>
-#include <QCheckBox>
 
 #define COORD_ITEMS 6
 #define MATCH_ITEMS 6
@@ -55,16 +54,21 @@ ReconSettingPanel::ReconSettingPanel(QWidget *parent)
 
 QGroupBox *ReconSettingPanel::createMarkGroup()
 {
-    QGroupBox *markGroup = new QGroupBox(tr("Mark Settings"));
+    QGroupBox *markGroup = new QGroupBox(tr("Cluster Mark Setting"));
     QFormLayout *layout = new QFormLayout;
 
-    QStringList mark_list;
-    mark_list << "Circle" << "Cross" << "Triangle";
+    // default settings
+    int mark_index[] = {0, 4, 5};
+    int mark_width[] = {2, 1, 1};
+    double mark_size[] = {7.0, 3.0, 3.0};
     QColor mark_color[] = {Qt::black, Qt::red, Qt::magenta};
 
     for(size_t i = 0; i < markSettings.size(); ++i)
     {
-        markSettings[i] = new MarkSettingWidget(mark_list);
+        markSettings[i] = new MarkSettingWidget(HyCalScene::GetShapeList());
+        markSettings[i]->SetCurrentMarkIndex(mark_index[i]);
+        markSettings[i]->SetWidth(mark_width[i]);
+        markSettings[i]->SetSize(mark_size[i]);
         markSettings[i]->SetColor(mark_color[i]);
         layout->addRow(tr(PRadDetectors::getName(i)), markSettings[i]);
     }
@@ -76,9 +80,7 @@ QGroupBox *ReconSettingPanel::createMarkGroup()
 
 QGroupBox *ReconSettingPanel::createHyCalGroup()
 {
-    hyCalGroup = new QGroupBox(tr("Show HyCal Clusters"));
-    hyCalGroup->setCheckable(true);
-    hyCalGroup->setChecked(true);
+    QGroupBox *hyCalGroup = new QGroupBox(tr("HyCal Cluster Setting"));
 
     // methods combo box
     hyCalMethods = new QComboBox;
@@ -105,9 +107,7 @@ QGroupBox *ReconSettingPanel::createHyCalGroup()
 
 QGroupBox *ReconSettingPanel::createGEMGroup()
 {
-    gemGroup = new QGroupBox(tr("GEM Cluster Setting"));
-    gemGroup->setCheckable(true);
-    gemGroup->setChecked(true);
+    QGroupBox *gemGroup = new QGroupBox(tr("GEM Cluster Setting"));
 
     QStringList mark_list;
     mark_list << "Circle" << "Cross" << "Triangle";
@@ -134,13 +134,6 @@ QGroupBox *ReconSettingPanel::createCoordGroup()
 {
     QGroupBox *typeGroup = new QGroupBox(tr("Coordinates Setting"));
 
-    QLabel *ax = new QLabel("Axis");
-    QLabel *xl = new QLabel("  X");
-    QLabel *yl = new QLabel("  Y");
-    QLabel *zl = new QLabel("  Z");
-    QLabel *off = new QLabel("Origin (mm)");
-    QLabel *tilt = new QLabel("Angle (mrad)");
-
     coordType = new QComboBox;
     coordRun = new QComboBox;
     QPushButton *restoreCoord = new QPushButton("Restore");
@@ -148,24 +141,26 @@ QGroupBox *ReconSettingPanel::createCoordGroup()
     QPushButton *loadCoordFile = new QPushButton("Open Coord File");
     QPushButton *saveCoordFile = new QPushButton("Save Coord File");
 
+    QGridLayout *layout = new QGridLayout;
+    layout->addWidget(new QLabel(tr("Select Run")), 0, 0);
+    layout->addWidget(coordRun, 0, 1);
+    layout->addWidget(loadCoordFile, 0, 2);
+    layout->addWidget(saveCoordFile, 0, 3);
+    layout->addWidget(new QLabel(tr("Select Detector")), 1, 0);
+    layout->addWidget(coordType, 1, 1);
+    layout->addWidget(saveCoord, 1, 2);
+    layout->addWidget(restoreCoord, 1, 3);
+    layout->addWidget(new QLabel(tr("Axis")), 2, 0);
+    layout->addWidget(new QLabel(tr("X")), 2, 1);
+    layout->addWidget(new QLabel(tr("Y")), 2, 2);
+    layout->addWidget(new QLabel(tr("Z")), 2, 3);
+    layout->addWidget(new QLabel(tr("Origin (mm)")),3, 0);
+    layout->addWidget(new QLabel(tr("Angle (mrad)")), 4, 0);
+
     int decimals[]     = {    4,     4,     1,     4,     4,     4};
     double step[]      = { 1e-4,  1e-4,  1e-1,  1e-4,  1e-4,  1e-4};
     double min_range[] = {  -20,   -20,     0,   -20,   -20,   -20};
     double max_range[] = {   20,    20, 10000,    20,    20,    20};
-
-    QGridLayout *layout = new QGridLayout;
-    layout->addWidget(coordRun, 0, 0);
-    layout->addWidget(loadCoordFile, 0, 2);
-    layout->addWidget(saveCoordFile, 0, 3);
-    layout->addWidget(coordType, 1, 0);
-    layout->addWidget(saveCoord, 1, 2);
-    layout->addWidget(restoreCoord, 1, 3);
-    layout->addWidget(ax, 2, 0);
-    layout->addWidget(xl, 2, 1);
-    layout->addWidget(yl, 2, 2);
-    layout->addWidget(zl, 2, 3);
-    layout->addWidget(off,3, 0);
-    layout->addWidget(tilt, 4, 0);
 
     for(size_t i = 0; i < coordBox.size(); ++i)
     {
@@ -199,12 +194,6 @@ QGroupBox *ReconSettingPanel::createMatchGroup()
 
     QGridLayout *layout = new QGridLayout;
 
-    matchHyCal = new QCheckBox("Show Matched HyCal Clusters Only");
-    matchGEM = new QCheckBox("Show Matched GEM Clusters Only");
-
-    layout->addWidget(matchHyCal, 0, 0, 1, 2);
-    layout->addWidget(matchGEM, 0, 2, 1, 2);
-
     QStringList matchDescript;
     matchDescript << "Lead Glass Resolution" << "Transition Resolution"
                   << "Crystal Resolution" << "Match Factor"
@@ -219,8 +208,8 @@ QGroupBox *ReconSettingPanel::createMatchGroup()
         matchConfBox[i]->setRange(0., 50.);
         matchConfBox[i]->setSingleStep(0.01);
         // add to layout
-        layout->addWidget(matchConfLabel[i], 2+i/2, (i%2)*2);
-        layout->addWidget(matchConfBox[i], 2+i/2, (i%2)*2 + 1);
+        layout->addWidget(matchConfLabel[i], i/2, (i%2)*2);
+        layout->addWidget(matchConfBox[i], i/2, (i%2)*2 + 1);
     }
 
     matchGroup->setLayout(layout);
@@ -440,10 +429,6 @@ void ReconSettingPanel::SyncSettings()
 // save the settings that cannot by sync
 void ReconSettingPanel::SaveSettings()
 {
-    hyCalGroup_data = hyCalGroup->isChecked();
-    gemGroup_data = gemGroup->isChecked();
-    matchHyCal_data = matchHyCal->isChecked();
-    matchGEM_data = matchGEM->isChecked();
     for(auto &mark : markSettings)
         mark->SaveSettings();
 }
@@ -451,10 +436,6 @@ void ReconSettingPanel::SaveSettings()
 // restore the saved settings
 void ReconSettingPanel::RestoreSettings()
 {
-    hyCalGroup->setChecked(hyCalGroup_data);
-    gemGroup->setChecked(gemGroup_data);
-    matchHyCal->setChecked(matchHyCal_data);
-    matchGEM->setChecked(matchGEM_data);
     for(auto &mark : markSettings)
         mark->RestoreSettings();
 }
@@ -492,24 +473,28 @@ void ReconSettingPanel::ApplyChanges()
     }
 }
 
-bool ReconSettingPanel::ShowHyCalCluster()
+bool ReconSettingPanel::ShowDetector(int det)
 {
-    return hyCalGroup->isChecked();
+    if(det < 0 || det >= PRadDetectors::Max_Dets)
+        return false;
+
+    return markSettings[det]->IsChecked();
 }
 
-bool ReconSettingPanel::ShowMatchedHyCal()
+bool ReconSettingPanel::ShowMatchedDetector(int det)
 {
-    return matchHyCal->isChecked();
+    if(det < 0 || det >= PRadDetectors::Max_Dets)
+        return false;
+
+    return markSettings[det]->IsMatchChecked();
 }
 
-bool ReconSettingPanel::ShowGEMCluster()
+HyCalScene::MarkAttributes ReconSettingPanel::GetMarkAttributes(int det)
 {
-    return gemGroup->isChecked();
-}
-
-bool ReconSettingPanel::ShowMatchedGEM()
-{
-    return matchGEM->isChecked();
+    return HyCalScene::MarkAttributes(GetMarkIndex(det),
+                                      GetMarkWidth(det),
+                                      GetMarkColor(det),
+                                      GetMarkSize(det));
 }
 
 int ReconSettingPanel::GetMarkIndex(int det)
@@ -528,10 +513,26 @@ QString ReconSettingPanel::GetMarkName(int det)
     return markSettings[det]->GetCurrentMarkName();
 }
 
+int ReconSettingPanel::GetMarkWidth(int det)
+{
+    if(det < 0 || det >= PRadDetectors::Max_Dets)
+        return 1;
+
+    return markSettings[det]->GetWidth();
+}
+
 QColor ReconSettingPanel::GetMarkColor(int det)
 {
     if(det < 0 || det >= PRadDetectors::Max_Dets)
         return Qt::black;
 
     return markSettings[det]->GetColor();
+}
+
+double ReconSettingPanel::GetMarkSize(int det)
+{
+    if(det < 0 || det >= PRadDetectors::Max_Dets)
+        return 0;
+
+    return markSettings[det]->GetSize();
 }

@@ -3,7 +3,7 @@ TDC List: config/tdc_group_list.txt
 Channel List: config/module_list.txt
 HyCal Calibration: config/calibration.txt
 EPICS Channels: config/epics_channels.txt
-GEM Configuration: config/gem_map.cfg
+GEM Configuration: config/gem_map.conf
 
 # initialize by file
 #Run Number: 1323

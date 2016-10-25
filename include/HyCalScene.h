@@ -28,6 +28,22 @@ public:
         : name(n), text(""), textColor(tc), bound(b), bgColor(c) {};
     };
 
+    struct MarkAttributes
+    {
+        int shape_index;
+        int width;
+        QColor color;
+        double size;
+
+        MarkAttributes()
+        : shape_index(0), width(1), color(Qt::black), size(5.0)
+        {};
+        MarkAttributes(const int &i, const int &w, const QColor &c, const double &s)
+        : shape_index(i), width(w), color(c), size(s)
+        {};
+    };
+    static QStringList GetShapeList();
+
     struct HitsMark
     {
         QString name;
@@ -35,34 +51,41 @@ public:
         QColor textColor;
         QRectF textBox;
         QPointF hitPos;
-        QColor hitColor;
-        float size;
+        MarkAttributes attr;
 
         HitsMark() {};
-        HitsMark(const QString &n, const QString &t, const QPointF &p, const QColor &c, const float &s)
+        HitsMark(const QString &n, const QString &t, const QPointF &p, const MarkAttributes& m)
         : name(n), text(t), textColor(Qt::black), textBox(QRectF(p.x()-50., p.y()-20., 100., 40.)),
-          hitPos(p), hitColor(c), size(s)
+          hitPos(p), attr(m)
         {};
     };
 
+public:
     HyCalScene(PRadEventViewer *p, QObject *parent = 0)
     : QGraphicsScene(parent), console(p),
       pModule(nullptr), sModule(nullptr), rModule(nullptr), showScalers(false)
     {};
-
     HyCalScene(PRadEventViewer *p, const QRectF & sceneRect, QObject *parent = 0)
     : QGraphicsScene(sceneRect, parent), console(p),
       pModule(nullptr), sModule(nullptr), rModule(nullptr), showScalers(false)
     {};
-
     HyCalScene(PRadEventViewer*p, qreal x, qreal y, qreal width, qreal height, QObject *parent = 0)
     : QGraphicsScene(x, y, width, height, parent), console(p),
       pModule(nullptr), sModule(nullptr), rModule(nullptr), showScalers(false)
     {};
 
-    void AddTDCBox(const QString &name, const QColor &textColor, const QRectF &textBox, const QColor &bgColor);
-    void AddScalerBox(const QString &name, const QColor &textColor, const QRectF &textBox, const QColor &bgColor);
-    void AddHitsMark(const QString &name, const QPointF &position, const QColor &markColor, const float &markSize, const QString &text = "");
+    void AddTDCBox(const QString &name,
+                   const QColor &textColor,
+                   const QRectF &textBox,
+                   const QColor &bgColor);
+    void AddScalerBox(const QString &name,
+                      const QColor &textColor,
+                      const QRectF &textBox,
+                      const QColor &bgColor);
+    void AddHitsMark(const QString &name,
+                     const QPointF &position,
+                     const MarkAttributes &m = MarkAttributes(),
+                     const QString &text = "");
     void ClearHitsMarks();
     void UpdateScalerBox(const QString &text, const int &group = 0);
     void UpdateScalerBox(const QStringList &texts);
@@ -80,6 +103,7 @@ private:
     void drawScalerBoxes(QPainter *painter);
     void drawTDCBoxes(QPainter *painter);
     void drawHitsMarks(QPainter *painter);
+    void drawHitsMark(QPainter *painter, const QPointF &pos, const MarkAttributes &attr);
 
 private:
     PRadEventViewer *console;
