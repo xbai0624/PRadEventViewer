@@ -48,7 +48,8 @@ public:
     void LoadPedestal(const std::string &path) throw(PRadException);
     void RegisterDetector(PRadGEMDetector *det);
     void RegisterFEC(PRadGEMFEC *fec);
-    void RegisterAPV(const std::string &plane, PRadGEMAPV *apv);
+    void RegisterAPV(PRadGEMAPV *apv, const int &fec_id, const int &adc_ch,
+                     const std::string &plane_name, const int &plane_index);
     void BuildAPVMap();
     void FillRawData(GEMRawData &raw, std::vector<GEM_Data> &container, const bool &fill_hist = false);
     void FillZeroSupData(std::vector<GEMZeroSupData> &data_pack, std::vector<GEM_Data> &container);

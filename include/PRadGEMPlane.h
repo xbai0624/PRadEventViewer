@@ -56,7 +56,7 @@ public:
                  const double &s, const int &c, const int &o, const int &d = 1);
     virtual ~PRadGEMPlane();
 
-    void ConnectAPV(PRadGEMAPV *apv);
+    void ConnectAPV(PRadGEMAPV *apv, const int &index);
     void DisconnectAPV(const size_t &plane_index);
     double GetStripPosition(const int &plane_strip);
     double GetMaxCharge(const std::vector<float> &charges);

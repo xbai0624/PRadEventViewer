@@ -6,19 +6,30 @@
 #include <unordered_map>
 #include "PRadEventStruct.h"
 
+// maximum channels in a FEC
+#define FEC_CAPACITY 9
+
 class PRadGEMAPV;
 
 class PRadGEMFEC
 {
 public:
-    PRadGEMFEC(const int &i, const std::string &p)
-    : id(i), ip(p)
-    {};
+    // constructor
+    PRadGEMFEC(const int &i, const std::string &p);
+
+    // copy/move constructors
+    PRadGEMFEC(const PRadGEMFEC &that);
+    PRadGEMFEC(PRadGEMFEC &&that);
+
+    // descructor
     virtual ~PRadGEMFEC();
 
-    void AddAPV(PRadGEMAPV *apv);
-    void RemoveAPV(const int &id);
-    void SortAPVList();
+    // copy/move assignment operators
+    PRadGEMFEC &operator =(const PRadGEMFEC &rhs);
+    PRadGEMFEC &operator =(PRadGEMFEC &&rhs);
+
+    void AddAPV(PRadGEMAPV *apv, const int &slot);
+    void RemoveAPV(const int &slot);
     void FitPedestal();
     void ClearAPVData();
     void ResetAPVHits();
@@ -26,15 +37,14 @@ public:
     void Clear();
 
     // get parameters
-    int GetID() {return id;};
-    std::string GetIP() {return ip;};
-    PRadGEMAPV *GetAPV(const int &id);
-    std::vector<PRadGEMAPV *> &GetAPVList() {return adc_list;};
+    int GetID() const {return id;};
+    const std::string &GetIP() const {return ip;};
+    PRadGEMAPV *GetAPV(const int &slot) const;
+    std::vector<PRadGEMAPV*> GetAPVList() const;
 
 private:
     int id;
     std::string ip;
-    std::unordered_map<int, PRadGEMAPV*> adc_map;
     std::vector<PRadGEMAPV *> adc_list;
 };
 

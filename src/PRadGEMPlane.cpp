@@ -21,9 +21,7 @@ PRadGEMPlane::PRadGEMPlane()
 : detector(nullptr), name("Undefined"), type(Plane_X), size(0.),
   connector(-1), orientation(0)
 {
-    min_cluster_hits = 1;
-    max_cluster_hits = 20;
-    cluster_split_diff = 14;
+    // place holder
 }
 
 PRadGEMPlane::PRadGEMPlane(const std::string &n, const PlaneType &t, const double &s,
@@ -42,10 +40,11 @@ PRadGEMPlane::PRadGEMPlane(PRadGEMDetector *det, const std::string &n, const Pla
 
 PRadGEMPlane::~PRadGEMPlane()
 {
+    // place holder
     for(auto &apv : apv_list)
     {
         if(apv != nullptr)
-            apv->SetDetectorPlane(nullptr);
+            apv->DisconnectPlane();
     }
 }
 
@@ -64,27 +63,30 @@ void PRadGEMPlane::SetCapacity(const int &c)
     apv_list.resize(c, nullptr);
 }
 
-void PRadGEMPlane::ConnectAPV(PRadGEMAPV *apv)
+void PRadGEMPlane::ConnectAPV(PRadGEMAPV *apv, const int &index)
 {
-    if((size_t)apv->GetPlaneIndex() >= apv_list.size()) {
+    if(apv == nullptr)
+        return;
+
+    if((size_t)index >= apv_list.size()) {
         std::cout << "PRad GEM Plane Warning: Failed to connect plane " << name
                   << " with APV " << apv->GetAddress()
                   << ". Plane connectors are not enough, have " << connector
-                  << ", this APV is at " << apv->GetPlaneIndex()
+                  << ", this APV is to be connected at " << index
                   << std::endl;
         return;
     }
 
-    if(apv_list[apv->GetPlaneIndex()] != nullptr) {
-        std::cout << "PRad GEM Plane Warning: The connector " << apv->GetPlaneIndex()
+    if(apv_list[index] != nullptr) {
+        std::cout << "PRad GEM Plane Warning: The connector " << index
                   << " of plane " << name << " is connected to APV " << apv->GetAddress()
                   << ", replace the connection."
                   << std::endl;
         return;
     }
 
-    apv_list[apv->GetPlaneIndex()] = apv;
-    apv->SetDetectorPlane(this);
+    apv_list[index] = apv;
+    apv->SetDetectorPlane(this, index);
 }
 
 void PRadGEMPlane::DisconnectAPV(const size_t &plane_index)

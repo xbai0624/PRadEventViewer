@@ -121,17 +121,18 @@ void PRadGEMSystem::LoadConfiguration(const string &path) throw(PRadException)
         } else if(type == "APV") {
 
             string det_plane, status;
-            int fec_id, adc_ch, orient, index, time_sample;
-            unsigned short header;
-            float common_thres, zero_thres;
+            int fec_id, adc_ch, orient, index, ts;
+            unsigned short hl;
+            float cth, zth;
 
-            c_parser >> fec_id >> adc_ch >> det_plane >> orient >> index >> header
-                     >> status >> time_sample >> common_thres >> zero_thres;
+            // fec id, adc channel, detector plane, orient, plane index, header level
+            // status, time samples, common mode threshold, zero suppression threshold
+            c_parser >> fec_id >> adc_ch >> det_plane >> orient >> index >> hl
+                     >> status >> ts >> cth >> zth;
 
-            PRadGEMAPV *new_apv = new PRadGEMAPV(fec_id, adc_ch, orient, index, header, status,
-                                                 time_sample, common_thres, zero_thres);
+            PRadGEMAPV *new_apv = new PRadGEMAPV(orient, hl, status, ts, cth, zth);
 
-            RegisterAPV(det_plane, new_apv);
+            RegisterAPV(new_apv, fec_id, adc_ch, det_plane, index);
         }
     }
 
@@ -151,10 +152,6 @@ void PRadGEMSystem::SortFECList()
             return fec1->GetID() < fec2->GetID();
          });
 
-    for(auto &fec : fec_list)
-    {
-        fec->SortAPVList();
-    }
 }
 
 void PRadGEMSystem::LoadPedestal(const string &path) throw(PRadException)
@@ -230,17 +227,24 @@ void PRadGEMSystem::RegisterDetector(PRadGEMDetector *det)
 
 void PRadGEMSystem::RegisterFEC(PRadGEMFEC *fec)
 {
-    if(fec == nullptr)
-        return;
-
     fec_list.push_back(fec);
     fec_map[fec->GetID()] = fec;
 }
 
-void PRadGEMSystem::RegisterAPV(const string &plane_name, PRadGEMAPV *apv)
+void PRadGEMSystem::RegisterAPV(PRadGEMAPV *apv, const int &fec_id, const int &adc_ch,
+                                const string &plane_name, const int &index)
 {
-    if(apv == nullptr)
+    PRadGEMFEC *fec = GetFEC(fec_id);
+
+    if(fec == nullptr) {
+        cerr << "GEM System Error: Cannot add apv to fec "
+             << fec_id << ", make sure you have fec defined "
+             << "before the aplv list in configuration map."
+             << endl;
         return;
+    }
+
+    fec->AddAPV(apv, adc_ch);
 
     // find detector plane that connects to this apv
     auto *det_plane = GetDetectorPlane(plane_name);
@@ -251,21 +255,9 @@ void PRadGEMSystem::RegisterAPV(const string &plane_name, PRadGEMAPV *apv)
              << endl;
         return;
     }
-    det_plane->ConnectAPV(apv);
+    det_plane->ConnectAPV(apv, index);
 
-
-    PRadGEMFEC *fec = GetFEC(apv->GetFECID());
-
-    if(fec == nullptr) {
-        cerr << "GEM System Error: Cannot add apv to fec "
-             << apv->GetFECID() << ", make sure you have fec defined "
-             << "before the aplv list in configuration map."
-             << endl;
-        return;
-    }
-
-    fec->AddAPV(apv);
-
+    // get address will only work fine if fec is connected
     apv_map[apv->GetAddress()] = apv;
 }
 

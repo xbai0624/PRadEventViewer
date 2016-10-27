@@ -17,6 +17,8 @@
 //need to know exact buffer size the apv need
 #define APV_EXTEND_SIZE 130
 
+
+class PRadGEMFEC;
 class PRadGEMPlane;
 class TH1I;
 
@@ -45,10 +47,7 @@ public:
 
 public:
     // constrcutor
-    PRadGEMAPV(const int &fec_id,
-               const int &adc_ch,
-               const int &orientation,
-               const int &plane_idx,
+    PRadGEMAPV(const int &orient,
                const int &header_level,
                const std::string &status,
                const size_t &time_sample = 3,
@@ -59,18 +58,20 @@ public:
     PRadGEMAPV(const PRadGEMAPV &p);
     PRadGEMAPV(PRadGEMAPV &&p);
 
+    // destructor
+    virtual ~PRadGEMAPV();
+
     // copy/move assignment operators
     PRadGEMAPV &operator =(const PRadGEMAPV &p);
     PRadGEMAPV &operator =(PRadGEMAPV &&p);
-
-    // destructor
-    virtual ~PRadGEMAPV();
 
     // member functions
     void ClearData();
     void ClearPedestal();
     void CreatePedHist();
     void ReleasePedHist();
+    void DisconnectFEC();
+    void DisconnectPlane();
     void FillPedHist();
     void FitPedestal();
     void FillRawData(const uint32_t *buf, const size_t &siz);
@@ -90,49 +91,51 @@ public:
     StripNb MapStrip(int ch);
 
     // get parameters
-    int GetFECID() {return fec_id;};
-    int GetADCChannel() {return adc_ch;};
-    GEMChannelAddress GetAddress() {return GEMChannelAddress(fec_id, adc_ch);};
-    size_t GetNTimeSamples() {return time_samples;};
-    size_t GetTimeSampleSize() {return TIME_SAMPLE_SIZE;};
-    int GetOrientation() {return orientation;};
-    int GetPlaneIndex() {return plane_index;};
-    int GetHeaderLevel() {return header_level;};
-    bool GetSplitStatus() {return split;};
-    float GetCommonModeThresLevel() {return common_thres;};
-    float GetZeroSupThresLevel() {return zerosup_thres;};
-    size_t GetBufferSize() {return buffer_size;};
-    int GetLocalStripNb(const size_t &ch);
-    int GetPlaneStripNb(const size_t &ch);
-    PRadGEMPlane *GetPlane() {return plane;};
-    std::vector<TH1I *> GetHistList();
-    std::vector<Pedestal> GetPedestalList();
+    int GetFECID() const {return fec_id;};
+    int GetADCChannel() const {return adc_ch;};
+    GEMChannelAddress GetAddress() const {return GEMChannelAddress(fec_id, adc_ch);};
+    size_t GetNTimeSamples() const {return time_samples;};
+    size_t GetTimeSampleSize() const {return TIME_SAMPLE_SIZE;};
+    int GetOrientation() const {return orient;};
+    int GetPlaneIndex() const {return plane_index;};
+    int GetHeaderLevel() const {return header_level;};
+    bool GetSplitStatus() const {return split;};
+    float GetCommonModeThresLevel() const {return common_thres;};
+    float GetZeroSupThresLevel() const {return zerosup_thres;};
+    size_t GetBufferSize() const {return buffer_size;};
+    int GetLocalStripNb(const size_t &ch) const;
+    int GetPlaneStripNb(const size_t &ch) const;
+    PRadGEMFEC *GetFEC() const {return fec;};
+    PRadGEMPlane *GetPlane() const {return plane;};
+    std::vector<TH1I *> GetHistList() const;
+    std::vector<Pedestal> GetPedestalList() const;
 
     // set parameters
-    void SetDetectorPlane(PRadGEMPlane *p);
+    void SetFEC(PRadGEMFEC *f, int adc_ch);
+    void SetDetectorPlane(PRadGEMPlane *p, int pl_idx);
     void SetTimeSample(const size_t &t);
-    void SetOrientation(const int &o) {orientation = o;};
-    void SetPlaneIndex(const int &p);
+    void SetOrientation(const int &o) {orient = o;};
     void SetHeaderLevel(const int &h) {header_level = h;};
     void SetCommonModeThresLevel(const float &t) {common_thres = t;};
     void SetZeroSupThresLevel(const float &t) {zerosup_thres = t;};
 
 private:
+    void initialize();
     void getAverage(float &ave, const float *buf, const size_t &set = 0);
     size_t getTimeSampleStart();
     void buildStripMap();
 
 private:
+    PRadGEMFEC *fec;
     PRadGEMPlane *plane;
     int fec_id;
     int adc_ch;
-    size_t time_samples;
-    int orientation;
     int plane_index;
+
+    size_t time_samples;
+    int orient;
     int header_level;
-
     bool split;
-
     float common_thres;
     float zerosup_thres;
     size_t buffer_size;

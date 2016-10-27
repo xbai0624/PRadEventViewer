@@ -8,6 +8,7 @@
 
 #include <iostream>
 #include <iomanip>
+#include "PRadGEMFEC.h"
 #include "PRadGEMPlane.h"
 #include "PRadGEMAPV.h"
 #include "TF1.h"
@@ -20,21 +21,18 @@
 //============================================================================//
 
 // constructor
-PRadGEMAPV::PRadGEMAPV(const int &f,
-                       const int &ch,
-                       const int &o,
-                       const int &idx,
+PRadGEMAPV::PRadGEMAPV(const int &o,
                        const int &hl,
                        const std::string &s,
                        const size_t &t,
                        const float &cth,
                        const float &zth)
-: plane(nullptr), fec_id(f), adc_ch(ch), orientation(o), plane_index(idx),
-  header_level(hl), common_thres(cth), zerosup_thres(zth)
+: orient(o), header_level(hl), common_thres(cth), zerosup_thres(zth)
 {
     // initialize
-    raw_data = nullptr;
+    initialize();
 
+    raw_data = nullptr;
     SetTimeSample(t);
 
     for(size_t i = 0; i < TIME_SAMPLE_SIZE; ++i)
@@ -51,15 +49,30 @@ PRadGEMAPV::PRadGEMAPV(const int &f,
     ClearData();
 }
 
+// only used in constructors
+// initialize the members that should not be copied
+void PRadGEMAPV::initialize()
+{
+    // these can only be assigned by a FEC (SetFEC)
+    fec = nullptr;
+    fec_id = -1;
+    adc_ch = -1;
+
+    // these can only be assigned by a Plane (SetDetectorPlane)
+    plane = nullptr;
+    plane_index = -1;
+}
+
 // The copy and move constructor/assignment operator won't copy or replace the
 // current connection between APV and Plane
 // copy constructor
 PRadGEMAPV::PRadGEMAPV(const PRadGEMAPV &that)
-: fec_id(that.fec_id), adc_ch(that.adc_ch), time_samples(that.time_samples),
-  orientation(that.orientation), plane_index(that.plane_index),
+: time_samples(that.time_samples), orient(that.orient),
   header_level(that.header_level), split(that.split),
   common_thres(that.common_thres), zerosup_thres(that.zerosup_thres)
 {
+    initialize();
+
     // raw data related
     buffer_size = that.buffer_size;
     ts_index = that.ts_index;
@@ -95,11 +108,12 @@ PRadGEMAPV::PRadGEMAPV(const PRadGEMAPV &that)
 
 // move constructor
 PRadGEMAPV::PRadGEMAPV(PRadGEMAPV &&that)
-: fec_id(that.fec_id), adc_ch(that.adc_ch), time_samples(that.time_samples),
-  orientation(that.orientation), plane_index(that.plane_index),
+: time_samples(that.time_samples), orient(that.orient),
   header_level(that.header_level), split(that.split),
   common_thres(that.common_thres), zerosup_thres(that.zerosup_thres)
 {
+    initialize();
+
     // raw_data related
     buffer_size = that.buffer_size;
     ts_index = that.ts_index;
@@ -127,9 +141,8 @@ PRadGEMAPV::PRadGEMAPV(PRadGEMAPV &&that)
 // destructor
 PRadGEMAPV::~PRadGEMAPV()
 {
-    if(plane != nullptr)
-        plane->DisconnectAPV(plane_index);
-
+    DisconnectFEC();
+    DisconnectPlane();
     ReleasePedHist();
 
     delete[] raw_data;
@@ -144,44 +157,44 @@ PRadGEMAPV &PRadGEMAPV::operator= (const PRadGEMAPV &rhs)
 }
 
 // move assignment operator
-PRadGEMAPV &PRadGEMAPV::operator= (PRadGEMAPV &&that)
+PRadGEMAPV &PRadGEMAPV::operator= (PRadGEMAPV &&rhs)
 {
-    // similar to move constructor, but need to release memory
+    // similar to move constructor, but need to disconnect
+    DisconnectFEC();
+    DisconnectPlane();
+    // and release memory
     ReleasePedHist();
     delete[] raw_data;
 
     // members
-    fec_id = that.fec_id;
-    adc_ch = that.adc_ch;
-    time_samples = that.time_samples;
-    orientation = that.orientation;
-    plane_index = that.plane_index;
-    header_level = that.header_level;
-    split = that.split;
-    common_thres = that.common_thres;
-    zerosup_thres = that.zerosup_thres;
+    time_samples = rhs.time_samples;
+    orient = rhs.orient;
+    header_level = rhs.header_level;
+    split = rhs.split;
+    common_thres = rhs.common_thres;
+    zerosup_thres = rhs.zerosup_thres;
 
     // raw_data related
-    buffer_size = that.buffer_size;
-    ts_index = that.ts_index;
-    raw_data = that.raw_data;
+    buffer_size = rhs.buffer_size;
+    ts_index = rhs.ts_index;
+    raw_data = rhs.raw_data;
     // null the pointer of that
-    that.buffer_size = 0;
-    that.raw_data = nullptr;
+    rhs.buffer_size = 0;
+    rhs.raw_data = nullptr;
 
     // other arrays
     // static array, so no need to move, just copy elements
     for(size_t i = 0; i < TIME_SAMPLE_SIZE; ++i)
     {
-        pedestal[i] = that.pedestal[i];
-        strip_map[i] = that.strip_map[i];
-        hit_pos[i] = that.hit_pos[i];
+        pedestal[i] = rhs.pedestal[i];
+        strip_map[i] = rhs.strip_map[i];
+        hit_pos[i] = rhs.hit_pos[i];
 
         // these need to be moved
-        offset_hist[i] = that.offset_hist[i];
-        noise_hist[i] = that.noise_hist[i];
-        that.offset_hist[i] = nullptr;
-        that.noise_hist[i] = nullptr;
+        offset_hist[i] = rhs.offset_hist[i];
+        noise_hist[i] = rhs.noise_hist[i];
+        rhs.offset_hist[i] = nullptr;
+        rhs.noise_hist[i] = nullptr;
     }
 
     return *this;
@@ -193,24 +206,50 @@ PRadGEMAPV &PRadGEMAPV::operator= (PRadGEMAPV &&that)
 // Public Member Functions                                                    //
 //============================================================================//
 
-// connect the apv to GEM Plane
-void PRadGEMAPV::SetDetectorPlane(PRadGEMPlane *p)
+// connect the apv to GEM FEC
+void PRadGEMAPV::SetFEC(PRadGEMFEC *f, int slot)
 {
-    plane = p;
+    DisconnectFEC();
+    if(f == nullptr)
+        return;
 
-    // strip map is related to plane that connected, thus build the map
-    if(p != nullptr)
-        buildStripMap();
+    fec = f;
+    fec_id = fec->GetID();
+    adc_ch = slot;
 }
 
-// change the plane index and re-connect to the plane
-void PRadGEMAPV::SetPlaneIndex(const int &p)
+// connect the apv to GEM Plane
+void PRadGEMAPV::SetDetectorPlane(PRadGEMPlane *p, int slot)
 {
-    plane_index = p;
+    DisconnectPlane();
+    if(p == nullptr)
+        return;
 
-    // re-connect to the current plane
-    if(plane != nullptr)
-        plane->ConnectAPV(this);
+    plane = p;
+    plane_index = slot;
+    // strip map is related to plane that connected, thus build the map
+    buildStripMap();
+}
+
+// disconnect the fec, reset fec id and adc ch
+void PRadGEMAPV::DisconnectFEC()
+{
+    if(fec != nullptr) {
+        fec->RemoveAPV(adc_ch);
+        fec = nullptr;
+        fec_id = -1;
+        adc_ch = -1;
+    }
+}
+
+// disconnect the plane, reset plane index
+void PRadGEMAPV::DisconnectPlane()
+{
+    if(plane != nullptr) {
+        plane->DisconnectAPV(plane_index);
+        plane = nullptr;
+        plane_index = -1;
+    }
 }
 
 // create histograms
@@ -250,7 +289,7 @@ void PRadGEMAPV::SetTimeSample(const size_t &t)
     buffer_size = t*TIME_SAMPLE_SIZE + APV_EXTEND_SIZE;
 
     // reallocate the memory for proper size
-        delete[] raw_data;
+    delete[] raw_data;
 
     raw_data = new float[buffer_size];
 
@@ -583,6 +622,7 @@ void PRadGEMAPV::CommonModeCorrection_Split(float *buf, const size_t &size)
 
 // get the local strip number from strip map
 int PRadGEMAPV::GetLocalStripNb(const size_t &ch)
+const
 {
    if(ch >= TIME_SAMPLE_SIZE) {
        std::cerr << "GEM APV Get Local Strip Error:"
@@ -598,6 +638,7 @@ int PRadGEMAPV::GetLocalStripNb(const size_t &ch)
 
 // get the plane strip number from strip map
 int PRadGEMAPV::GetPlaneStripNb(const size_t &ch)
+const
 {
    if(ch >= TIME_SAMPLE_SIZE) {
        std::cerr << "GEM APV Get Plane Strip Error:"
@@ -637,8 +678,8 @@ PRadGEMAPV::StripNb PRadGEMAPV::MapStrip(int ch)
     result.local = strip;
 
     // calculate plane strip mapping
-    // reverse strip number by orientation
-    if(orientation != plane->GetOrientation())
+    // reverse strip number by orient
+    if(orient != plane->GetOrientation())
         strip = 127 - strip;
 
     // special APV
@@ -672,6 +713,7 @@ void PRadGEMAPV::PrintOutPedestal(std::ofstream &out)
 
 // return all the existing histograms
 std::vector<TH1I *> PRadGEMAPV::GetHistList()
+const
 {
     std::vector<TH1I *> hist_list;
 
@@ -688,6 +730,7 @@ std::vector<TH1I *> PRadGEMAPV::GetHistList()
 
 // pack all pedestal info into a vector and return
 std::vector<PRadGEMAPV::Pedestal> PRadGEMAPV::GetPedestalList()
+const
 {
     std::vector<Pedestal> ped_list;
     for(size_t i = 0; i < TIME_SAMPLE_SIZE; ++i)
