@@ -5,24 +5,111 @@
 #include <vector>
 #include <string>
 
+// unit is mm
+// X plane did a shift to move the X origin to center hole
+// origin shift: 550.4/2 - (44-pitch)/2 = 253.2 mm
+#define STRIP_PITCH 0.4
+#define X_SHIFT 253.2
+
+
 class PRadGEMDetector;
 class PRadGEMAPV;
+// these two structure will be used as data type
+// defined at the end
+struct GEMPlaneHit;
+struct GEMPlaneCluster;
+
+class PRadGEMPlane
+{
+public:
+    enum PlaneType
+    {
+        Plane_X,
+        Plane_Y,
+        Plane_Max
+    };
+
+public:
+    // constructors
+    PRadGEMPlane(PRadGEMDetector *det = nullptr);
+    PRadGEMPlane(const std::string &n, const PlaneType &t, const float &s,
+                 const int &c, const int &o, const int &d, PRadGEMDetector *det = nullptr);
+
+    // copy/move constructors
+    PRadGEMPlane(const PRadGEMPlane &that);
+    PRadGEMPlane(PRadGEMPlane &&that);
+
+    // destructor
+    virtual ~PRadGEMPlane();
+
+    // copy/move assignment operators
+    PRadGEMPlane &operator= (const PRadGEMPlane &rhs);
+    PRadGEMPlane &operator= (PRadGEMPlane &&rhs);
+
+    // public member functions
+    void ConnectAPV(PRadGEMAPV *apv, const int &index);
+    void DisconnectAPV(const size_t &plane_index);
+    void ResetConnections();
+    void AddPlaneHit(const int &plane_strip, const std::vector<float> &charges);
+    void ClearPlaneHits();
+    void CollectAPVHits();
+    float GetStripPosition(const int &plane_strip) const;
+    float GetMaxCharge(const std::vector<float> &charges) const;
+    float GetIntegratedCharge(const std::vector<float> &charges) const;
+
+    // set parameter
+    void SetDetector(PRadGEMDetector *det) {detector = det;};
+    void SetName(const std::string &n) {name = n;};
+    void SetType(const PlaneType &t) {type = t;};
+    void SetSize(const float &s) {size = s;};
+    void SetOrientation(const int &o) {orient = o;};
+    void SetCapacity(int c);
+
+    // get parameter
+    PRadGEMDetector *GetDetector() const {return detector;};
+    const std::string &GetName() const {return name;};
+    PlaneType GetType() const {return type;};
+    float GetSize() const {return size;};
+    int GetCapacity() const {return apv_list.size();};
+    int GetOrientation() const {return orient;};
+    std::vector<PRadGEMAPV*> GetAPVList() const;
+    std::vector<GEMPlaneHit> &GetPlaneHits() {return hit_list;};
+    const std::vector<GEMPlaneHit> &GetPlaneHits() const {return hit_list;};
+    std::list<GEMPlaneCluster> &GetPlaneClusters() {return cluster_list;};
+    const std::list<GEMPlaneCluster> &GetPlaneClusters() const {return cluster_list;};
+
+private:
+    PRadGEMDetector *detector;
+    std::string name;
+    PlaneType type;
+    float size;
+    int connector;
+    int orient;
+    int direction;
+    std::vector<PRadGEMAPV*> apv_list;
+
+    // plane data
+    std::vector<GEMPlaneHit> hit_list;
+    // there will be requent remove, split operations for clusters in the middle
+    // thus use list instead of vector
+    std::list<GEMPlaneCluster> cluster_list;
+};
 
 struct GEMPlaneHit
 {
     int strip;
-    double charge;
+    float charge;
 
     GEMPlaneHit() : strip(0), charge(0.) {};
-    GEMPlaneHit(const int &s, const double &c)
+    GEMPlaneHit(const int &s, const float &c)
     : strip(s), charge(c) {};
 };
 
 struct GEMPlaneCluster
 {
-    double position;
-    double peak_charge;
-    double total_charge;
+    float position;
+    float peak_charge;
+    float total_charge;
     std::vector<GEMPlaneHit> hits;
 
     GEMPlaneCluster()
@@ -36,72 +123,6 @@ struct GEMPlaneCluster
     GEMPlaneCluster(std::vector<GEMPlaneHit> &&p)
     : position(0.), peak_charge(0.), total_charge(0.), hits(std::move(p))
     {};
-};
-
-class PRadGEMPlane
-{
-public:
-    enum PlaneType
-    {
-        Plane_X,
-        Plane_Y,
-        Plane_Max
-    };
-
-public:
-    PRadGEMPlane();
-    PRadGEMPlane(const std::string &n, const PlaneType &t, const double &s,
-                 const int &c, const int &o, const int &d = 1);
-    PRadGEMPlane(PRadGEMDetector *det, const std::string &n, const PlaneType &t,
-                 const double &s, const int &c, const int &o, const int &d = 1);
-    virtual ~PRadGEMPlane();
-
-    void ConnectAPV(PRadGEMAPV *apv, const int &index);
-    void DisconnectAPV(const size_t &plane_index);
-    double GetStripPosition(const int &plane_strip);
-    double GetMaxCharge(const std::vector<float> &charges);
-    double GetIntegratedCharge(const std::vector<float> &charges);
-    void AddPlaneHit(const int &plane_strip, const std::vector<float> &charges);
-    void ClearPlaneHits();
-    void CollectAPVHits();
-
-    // set parameter
-    void SetDetector(PRadGEMDetector *det) {detector = det;};
-    void SetName(const std::string &n) {name = n;};
-    void SetType(const PlaneType &t) {type = t;};
-    void SetSize(const double &s) {size = s;};
-    void SetCapacity(const int &c);
-    void SetOrientation(const int &o) {orientation = o;};
-
-    // get parameter
-    PRadGEMDetector *GetDetector() {return detector;};
-    std::string &GetName() {return name;};
-    PlaneType &GetType() {return type;};
-    double &GetSize() {return size;};
-    int &GetCapacity() {return connector;};
-    int &GetOrientation() {return orientation;};
-    std::vector<PRadGEMAPV*> GetAPVList();
-    std::vector<GEMPlaneHit> &GetPlaneHits() {return hit_list;};
-    std::list<GEMPlaneCluster> &GetPlaneClusters() {return cluster_list;};
-
-private:
-    PRadGEMDetector *detector;
-    std::string name;
-    PlaneType type;
-    double size;
-    int connector;
-    int orientation;
-    int direction;
-    std::vector<PRadGEMAPV*> apv_list;
-    std::vector<GEMPlaneHit> hit_list;
-    // there will be requent remove, split operations for clusters in the middle
-    // thus use list instead of vector
-    std::list<GEMPlaneCluster> cluster_list;
-
-    // some parameters
-    double cluster_split_diff;
-    size_t min_cluster_hits;
-    size_t max_cluster_hits;
 };
 
 #endif

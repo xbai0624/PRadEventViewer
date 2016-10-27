@@ -40,7 +40,7 @@ void PRadGEMCluster::Configure(const std::string &path)
 
     min_cluster_hits = getConfig<unsigned int>("Min Cluster Hits", 1, verbose);
     max_cluster_hits = getConfig<unsigned int>("Max Cluster Hits", 20, verbose);
-    split_cluster_diff = getConfig<double>("Split Threshold", 14, verbose);
+    split_cluster_diff = getConfig<float>("Split Threshold", 14, verbose);
 }
 
 // reconstruct, accepts GEM detector
@@ -224,7 +224,7 @@ void PRadGEMCluster::reconstructCluster_sub(GEMPlaneCluster &c, PRadGEMPlane *pl
     // here determine position, peak charge and total charge of the cluster
     c.total_charge = 0.;
     c.peak_charge = 0.;
-    double weight_pos = 0.;
+    float weight_pos = 0.;
 
     // no hits
     if(!c.hits.size())
@@ -245,18 +245,19 @@ void PRadGEMCluster::reconstructCluster_sub(GEMPlaneCluster &c, PRadGEMPlane *pl
 
 // this function accepts x, y clusters from detectors and then form GEM Cluster
 // it return the number of clusters
-int PRadGEMCluster::FormClusters(PRadGEMDetector *det)
+void PRadGEMCluster::FormClusters(PRadGEMDetector *det)
 {
+    // det id will be useful to identify the detector type later
     int det_id = det->GetDetID();
 
     PRadGEMPlane *x_plane = det->GetPlane(PRadGEMPlane::Plane_X);
     PRadGEMPlane *y_plane = det->GetPlane(PRadGEMPlane::Plane_Y);
 
     if(x_plane == nullptr || y_plane == nullptr) {
-        std::cerr << "PRad GEM Cluster Error: Input plane is not instanced, cannot "
+        std::cerr << "PRad GEM Cluster Error: Input plane is not instantiated, cannot "
                   << "form clusters"
                   << std::endl;
-        return 0;
+        return;
     }
 
     // TODO, probably add some criteria here to form less clusters
@@ -264,24 +265,24 @@ int PRadGEMCluster::FormClusters(PRadGEMDetector *det)
     auto x_cluster = x_plane->GetPlaneClusters();
     auto y_cluster = y_plane->GetPlaneClusters();
 
-    int Nhits;
-    GEMHit *hits = det->GetCluster(Nhits);
+    // get contianer and fill the hits
+    auto &container = det->GetCluster();
 
-    Nhits = 0; // zero for filling new clusters
+    // empty first
+    container.clear();
+
     for(auto &xc : x_cluster)
     {
         for(auto &yc : y_cluster)
         {
-            hits[Nhits++] = GEMHit(det_id, xc.position, yc.position, 0., // by default z = 0
+            container.emplace_back(det_id, xc.position, yc.position, 0., // by default z = 0
                                    xc.total_charge, yc.total_charge,
                                    xc.peak_charge, yc.peak_charge, // fill in peak charge
                                    xc.hits.size(), yc.hits.size()); // number of hits
 
             // defined in PRadGEMDetectors
-            if(Nhits >= MAX_GCLUSTERS)
-                return MAX_GCLUSTERS; // reached limit, return
+            if(container.size() >= MAX_GCLUSTERS)
+                return; // reached limit, return
         }
     }
-
-    return Nhits;
 }

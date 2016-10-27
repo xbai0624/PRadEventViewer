@@ -37,6 +37,11 @@ PRadGEMSystem::~PRadGEMSystem()
 
 void PRadGEMSystem::Clear()
 {
+    for(auto &it : apv_map)
+    {
+        delete it.second, it.second = nullptr;
+    }
+
     for(auto &det : det_list)
     {
         delete det, det = nullptr;
@@ -75,7 +80,7 @@ void PRadGEMSystem::LoadConfiguration(const string &path) throw(PRadException)
 
             string readout, detector_type, name;
             c_parser >> readout >> detector_type >> name;
-            PRadGEMDetector *new_det = new PRadGEMDetector(this, readout, detector_type, name);
+            PRadGEMDetector *new_det = new PRadGEMDetector(readout, detector_type, name);
 
             if(readout == "CARTESIAN") {
 
@@ -160,7 +165,7 @@ void PRadGEMSystem::LoadPedestal(const string &path) throw(PRadException)
     c_parser.SetSplitters(",: \t");
 
     if(!c_parser.OpenFile(path)) {
-        throw PRadException("GEM System", "cannot open configuration file " + path);
+        throw PRadException("GEM System", "cannot open pedestal data file " + path);
     }
 
     PRadGEMAPV *apv = nullptr;
@@ -221,7 +226,7 @@ void PRadGEMSystem::RegisterDetector(PRadGEMDetector *det)
         det_plane_map[plane->GetName()] = plane;
     }
 
-    det->AssignID(det_list.size());
+    det->AssignID(this, det_list.size());
     det_list.push_back(det);
 }
 

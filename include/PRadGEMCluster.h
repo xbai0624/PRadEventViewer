@@ -20,7 +20,7 @@ public:
 
     virtual void Reconstruct(PRadGEMDetector *det);
     virtual void Reconstruct(PRadGEMPlane *plane);
-    virtual int FormClusters(PRadGEMDetector *det);
+    virtual void FormClusters(PRadGEMDetector *det);
 
 protected:
     void clusterHits(std::vector<GEMPlaneHit> &h, std::list<GEMPlaneCluster> &c);
@@ -35,7 +35,7 @@ protected:
     // parameters
     unsigned int min_cluster_hits;
     unsigned int max_cluster_hits;
-    double split_cluster_diff;
+    float split_cluster_diff;
 };
 
 #endif

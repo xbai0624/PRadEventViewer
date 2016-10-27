@@ -15,7 +15,7 @@ class PRadGEMFEC
 {
 public:
     // constructor
-    PRadGEMFEC(const int &i, const std::string &p);
+    PRadGEMFEC(const int &i, const std::string &p, const int &slots = FEC_CAPACITY);
 
     // copy/move constructors
     PRadGEMFEC(const PRadGEMFEC &that);
@@ -28,6 +28,8 @@ public:
     PRadGEMFEC &operator =(const PRadGEMFEC &rhs);
     PRadGEMFEC &operator =(PRadGEMFEC &&rhs);
 
+    // public member functions
+    void SetCapacity(int slots);
     void AddAPV(PRadGEMAPV *apv, const int &slot);
     void RemoveAPV(const int &slot);
     void FitPedestal();
@@ -39,13 +41,14 @@ public:
     // get parameters
     int GetID() const {return id;};
     const std::string &GetIP() const {return ip;};
+    size_t GetCapacity() const {return adc_list.size();};
     PRadGEMAPV *GetAPV(const int &slot) const;
     std::vector<PRadGEMAPV*> GetAPVList() const;
 
 private:
     int id;
     std::string ip;
-    std::vector<PRadGEMAPV *> adc_list;
+    std::vector<PRadGEMAPV*> adc_list;
 };
 
 #endif

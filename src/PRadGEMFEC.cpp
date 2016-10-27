@@ -18,11 +18,11 @@
 //============================================================================//
 
 // constructor
-PRadGEMFEC::PRadGEMFEC(const int &i, const std::string &p)
+PRadGEMFEC::PRadGEMFEC(const int &i, const std::string &p, const int &slots)
 : id(i), ip(p)
 {
     // open slots for inserting APVs
-    adc_list.resize(FEC_CAPACITY, nullptr);
+    adc_list.resize(slots, nullptr);
 }
 
 // copy constructor
@@ -49,16 +49,13 @@ PRadGEMFEC::PRadGEMFEC(PRadGEMFEC &&that)
 // or
 PRadGEMFEC::~PRadGEMFEC()
 {
-    for(auto &adc : adc_list)
-    {
-        if(adc != nullptr)
-            adc->DisconnectFEC();
-    }
+    Clear();
 }
 
 // copy constructor
 PRadGEMFEC &PRadGEMFEC::operator =(const PRadGEMFEC &rhs)
 {
+    Clear();
     id = rhs.id;
     ip = rhs.ip;
     adc_list.resize(rhs.adc_list.size(), nullptr);
@@ -68,6 +65,7 @@ PRadGEMFEC &PRadGEMFEC::operator =(const PRadGEMFEC &rhs)
 // move constructor
 PRadGEMFEC &PRadGEMFEC::operator =(PRadGEMFEC &&rhs)
 {
+    Clear();
     id = rhs.id;
     ip = std::move(rhs.ip);
     adc_list.resize(rhs.adc_list.size(), nullptr);
@@ -79,6 +77,29 @@ PRadGEMFEC &PRadGEMFEC::operator =(PRadGEMFEC &&rhs)
 //============================================================================//
 // Public Member Functions                                                    //
 //============================================================================//
+
+// change the capacity
+void PRadGEMFEC::SetCapacity(int slots)
+{
+    // capacity cannot be negative
+    if(slots < 0) slots = 0;
+
+    if((size_t)slots < adc_list.size())
+    {
+        std::cout << "PRad GEM FEC Warning: Reduce the slots in FEC "
+                  << id << " from " << adc_list.size() << " to " << slots
+                  << ". All APVs beyond " << slots << " will be removed. "
+                  << std::endl;
+
+        for(size_t i = slots; i < adc_list.size(); ++i)
+        {
+            if(adc_list[i] != nullptr)
+                adc_list[i]->DisconnectFEC();
+        }
+    }
+
+    adc_list.resize(slots, nullptr);
+}
 
 // add an apv to fec
 void PRadGEMFEC::AddAPV(PRadGEMAPV *apv, const int &slot)
@@ -112,7 +133,7 @@ void PRadGEMFEC::AddAPV(PRadGEMAPV *apv, const int &slot)
 // remove apv in the slot
 void PRadGEMFEC::RemoveAPV(const int &slot)
 {
-    if((size_t)slot < adc_list.size())
+    if((size_t)slot >= adc_list.size())
         return;
 
     adc_list[slot] = nullptr;

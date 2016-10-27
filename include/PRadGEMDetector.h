@@ -17,37 +17,46 @@ class PRadGEMAPV;
 class PRadGEMDetector
 {
 public:
-    PRadGEMDetector(PRadGEMSystem *gem_srs,
-                    const std::string &readoutBoard,
+    // constructor
+    PRadGEMDetector(const std::string &readoutBoard,
                     const std::string &detectorType,
-                    const std::string &detector);
+                    const std::string &detector,
+                    PRadGEMSystem *g = nullptr);
+
+    // copy/move constructors
+    PRadGEMDetector(const PRadGEMDetector &that);
+    PRadGEMDetector(PRadGEMDetector &&that);
+
+    // desctructor
     virtual ~PRadGEMDetector();
 
+    // copy/move assignment operators
+    PRadGEMDetector &operator =(const PRadGEMDetector &rhs);
+    PRadGEMDetector &operator =(PRadGEMDetector &&rhs);
+
+    // public member functions
+    void AssignID(PRadGEMSystem *sys, const int &i);
     void AddPlane(const int &type, PRadGEMPlane *plane);
     void AddPlane(const PRadGEMPlane::PlaneType &type, const std::string &name,
                   const double &size, const int &conn, const int &ori, const int &dir);
-    void ConnectAPV(const int &type, PRadGEMAPV *apv, const int &index);
+    void ConnectPlanes();
     void ReconstructHits(PRadGEMCluster *c);
     void ReconstructHits();
     void ClearHits();
-    int GetNClusters() {return NClusters;};
-    GEMHit *GetCluster(int &n);
-    std::vector<GEMHit> GetCluster();
 
     // get parameters
-    int GetID() {return id;};
-    int GetDetID() {return det_id;};
-    std::string GetName() {return name;};
-    std::string GetType() {return type;};
-    std::string GetReadoutBoard() {return readout_board;};
-    PRadGEMPlane *GetPlane(const int &type);
-    std::vector<PRadGEMPlane*> GetPlaneList();
-    std::vector<PRadGEMAPV*> GetAPVList(const int &type);
-    std::list<GEMPlaneCluster> &GetPlaneClusters(const int &type) throw(PRadException);
-    std::vector<std::list<GEMPlaneCluster>*> GetDetectorClusters();
-
-    // set parameters
-    void AssignID(const int &i);
+    int GetID() const {return id;};
+    int GetDetID() const {return det_id;};
+    const std::string &GetName() const {return name;};
+    const std::string &GetType() const {return type;};
+    const std::string &GetReadoutBoard() {return readout_board;};
+    PRadGEMPlane *GetPlane(const int &type) const;
+    std::vector<PRadGEMPlane*> GetPlaneList() const;
+    std::vector<PRadGEMAPV*> GetAPVList(const int &type) const;
+    int GetNClusters() const {return (int)gem_clusters.size();};
+    GEMHit *GetCluster(int &n);
+    std::vector<GEMHit> &GetCluster() {return gem_clusters;};
+    const std::vector<GEMHit> &GetCluster() const {return gem_clusters;};
 
 private:
     PRadGEMSystem *gem_srs;
@@ -57,8 +66,7 @@ private:
     std::string type;
     std::string readout_board;
     std::vector<PRadGEMPlane*> planes;
-    GEMHit gem_clusters[MAX_GCLUSTERS];
-    int NClusters;
+    std::vector<GEMHit> gem_clusters;
 };
 
 #endif

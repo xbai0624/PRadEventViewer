@@ -69,7 +69,6 @@ int main(int /*argc*/, char * /*argv*/ [])
         }
     }
 
-
     dst_parser->OpenInput("/work/hallb/prad/replay/prad_001287.dst");
 
     int count = 0;
