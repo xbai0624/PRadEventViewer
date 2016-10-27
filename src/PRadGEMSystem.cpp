@@ -121,20 +121,17 @@ void PRadGEMSystem::LoadConfiguration(const string &path) throw(PRadException)
         } else if(type == "APV") {
 
             string det_plane, status;
-            int fec_id, adc_ch, orient, index;
+            int fec_id, adc_ch, orient, index, time_sample;
             unsigned short header;
+            float common_thres, zero_thres;
 
-            c_parser >> fec_id >> adc_ch >> det_plane >> orient >> index >> header >> status;
+            c_parser >> fec_id >> adc_ch >> det_plane >> orient >> index >> header
+                     >> status >> time_sample >> common_thres >> zero_thres;
 
-            PRadGEMAPV *new_apv = new PRadGEMAPV(fec_id, adc_ch, orient, index, header, status);
-
-            // default levels
-            new_apv->SetTimeSample(3);
-            new_apv->SetCommonModeThresLevel(20.);
-            new_apv->SetZeroSupThresLevel(5.);
+            PRadGEMAPV *new_apv = new PRadGEMAPV(fec_id, adc_ch, orient, index, header, status,
+                                                 time_sample, common_thres, zero_thres);
 
             RegisterAPV(det_plane, new_apv);
-
         }
     }
 

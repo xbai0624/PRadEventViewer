@@ -26,7 +26,7 @@ public:
     int GetID() const {return groupID;};
     std::string GetName() const {return groupName;};
     ChannelAddress GetAddress() const {return address;};
-    size_t GetNbOfChs() const {return groupList.size();};
+    size_t GetNChannels() const {return groupList.size();};
     TH1I *GetHist() const {return tdcHist;};
     const std::vector<PRadDAQUnit *> &GetGroupList() const {return groupList;};
     std::vector<unsigned short> &GetTimeMeasure() {return timeMeasure;};

@@ -7,14 +7,21 @@
 #include "PRadEventStruct.h"
 #include "datastruct.h"
 
+//1 time sample data have 128 channel
+#define TIME_SAMPLE_SIZE 128
+
+// 12 words before real time sample data
+#define TIME_SAMPLE_DIFF 12+TIME_SAMPLE_SIZE
+
+//TODO, arbitrary number, additional buffer add on time sample data
+//need to know exact buffer size the apv need
+#define APV_EXTEND_SIZE 130
+
 class PRadGEMPlane;
 class TH1I;
 
 class PRadGEMAPV
 {
-#define TIME_SAMPLE_SIZE 128
-#define TIME_SAMPLE_DIFF 140
-#define SPLIT_SIZE 16
 public:
     struct Pedestal
     {
@@ -37,14 +44,29 @@ public:
     };
 
 public:
+    // constrcutor
     PRadGEMAPV(const int &fec_id,
                const int &adc_ch,
                const int &orientation,
                const int &plane_idx,
                const int &header_level,
-               const std::string &status);
+               const std::string &status,
+               const size_t &time_sample = 3,
+               const float &common_threshold = 20.,
+               const float &zero_threshold = 5.);
+
+    // copy/move constructors
+    PRadGEMAPV(const PRadGEMAPV &p);
+    PRadGEMAPV(PRadGEMAPV &&p);
+
+    // copy/move assignment operators
+    PRadGEMAPV &operator =(const PRadGEMAPV &p);
+    PRadGEMAPV &operator =(PRadGEMAPV &&p);
+
+    // destructor
     virtual ~PRadGEMAPV();
 
+    // member functions
     void ClearData();
     void ClearPedestal();
     void CreatePedHist();
@@ -63,7 +85,6 @@ public:
     void CommonModeCorrection_Split(float *buf, const size_t &size);
     void CollectZeroSupHits(std::vector<GEM_Data> &hits);
     void CollectZeroSupHits();
-    void BuildStripMap();
     void ResetHitPos();
     void PrintOutPedestal(std::ofstream &out);
     StripNb MapStrip(int ch);
@@ -72,15 +93,17 @@ public:
     int GetFECID() {return fec_id;};
     int GetADCChannel() {return adc_ch;};
     GEMChannelAddress GetAddress() {return GEMChannelAddress(fec_id, adc_ch);};
-    size_t GetNbOfTimeSamples() {return time_samples;};
+    size_t GetNTimeSamples() {return time_samples;};
     size_t GetTimeSampleSize() {return TIME_SAMPLE_SIZE;};
     int GetOrientation() {return orientation;};
     int GetPlaneIndex() {return plane_index;};
     int GetHeaderLevel() {return header_level;};
+    bool GetSplitStatus() {return split;};
+    float GetCommonModeThresLevel() {return common_thres;};
+    float GetZeroSupThresLevel() {return zerosup_thres;};
+    size_t GetBufferSize() {return buffer_size;};
     int GetLocalStripNb(const size_t &ch);
     int GetPlaneStripNb(const size_t &ch);
-    void GetAverage(float &ave, const float *buf, const size_t &set = 0);
-    size_t GetTimeSampleStart();
     PRadGEMPlane *GetPlane() {return plane;};
     std::vector<TH1I *> GetHistList();
     std::vector<Pedestal> GetPedestalList();
@@ -95,6 +118,11 @@ public:
     void SetZeroSupThresLevel(const float &t) {zerosup_thres = t;};
 
 private:
+    void getAverage(float &ave, const float *buf, const size_t &set = 0);
+    size_t getTimeSampleStart();
+    void buildStripMap();
+
+private:
     PRadGEMPlane *plane;
     int fec_id;
     int adc_ch;
@@ -105,7 +133,6 @@ private:
 
     bool split;
 
-    std::string status;
     float common_thres;
     float zerosup_thres;
     size_t buffer_size;
