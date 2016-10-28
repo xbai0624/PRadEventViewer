@@ -11,10 +11,10 @@
 #define TIME_SAMPLE_SIZE 128
 
 // 12 words before real time sample data
-#define TIME_SAMPLE_DIFF 12+TIME_SAMPLE_SIZE
+#define TIME_SAMPLE_DIFF 140 // 12 + TIME_SAMPLE_SIZE
 
-//TODO, arbitrary number, additional buffer add on time sample data
-//need to know exact buffer size the apv need
+// arbitrary number, additional buffer add on time sample data
+// this depends on the configuration in the readout list
 #define APV_EXTEND_SIZE 130
 
 

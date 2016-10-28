@@ -22,6 +22,13 @@
 
 using namespace std;
 
+
+
+//============================================================================//
+// constructor, assigment operator, destructor                                //
+//============================================================================//
+
+// constructor
 PRadGEMSystem::PRadGEMSystem(const string &config_file)
 : gem_recon(new PRadGEMCluster())
 {
@@ -29,11 +36,41 @@ PRadGEMSystem::PRadGEMSystem(const string &config_file)
         LoadConfiguration(config_file);
 }
 
+// the copy and move constructor will not only copy all the members that managed
+// by GEM System, but also build the connections between them
+// copy/move constructor
+PRadGEMSystem::PRadGEMSystem(const PRadGEMSystem &that)
+{
+
+}
+
+PRadGEMSystem::PRadGEMSystem(PRadGEMSystem &&that)
+{
+
+}
+
+// desctructor
 PRadGEMSystem::~PRadGEMSystem()
 {
     Clear();
     delete gem_recon;
 }
+
+PRadGEMSystem &PRadGEMSystem::operator =(const PRadGEMSystem &rhs)
+{
+    return *this;
+}
+
+PRadGEMSystem &PRadGEMSystem::operator =(PRadGEMSystem &&rhs)
+{
+    return *this;
+}
+
+
+
+//============================================================================//
+// Public Member Functions                                                    //
+//============================================================================//
 
 void PRadGEMSystem::Clear()
 {

@@ -286,7 +286,7 @@ void PRadGEMAPV::ReleasePedHist()
 void PRadGEMAPV::SetTimeSample(const size_t &t)
 {
     time_samples = t;
-    buffer_size = t*TIME_SAMPLE_SIZE + APV_EXTEND_SIZE;
+    buffer_size = t*TIME_SAMPLE_DIFF + APV_EXTEND_SIZE;
 
     // reallocate the memory for proper size
     delete[] raw_data;

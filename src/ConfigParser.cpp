@@ -297,7 +297,7 @@ std::string ConfigParser::str_lower(const std::string &str)
 }
 
 // return the upper case of this string
-std::string str_upper(const std::string &str)
+std::string ConfigParser::str_upper(const std::string &str)
 {
     string res = str;
     for(auto &c : res)
@@ -311,10 +311,28 @@ std::string str_upper(const std::string &str)
 string ConfigParser::str_remove(const string &str, const string &ignore)
 {
     string res = str;
+
     for(auto &c : ignore)
     {
         res.erase(remove(res.begin(), res.end(), c), res.end());
     }
+    return res;
+}
+
+// replace characters in the list with certain char
+string ConfigParser::str_replace(const string &str, const string &list, const char &rc)
+{
+    if(list.empty())
+        return str;
+
+    string res = str;
+
+    for(auto &c : res)
+    {
+        if(list.find(c) != string::npos)
+            c = rc;
+    }
+
     return res;
 }
 

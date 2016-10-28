@@ -145,6 +145,7 @@ public:
     static std::string trim(const std::string &str, const std::string &w);
     static std::queue<std::string> split(const std::string &str, const std::string &s);
     static std::string str_remove(const std::string &str, const std::string &ignore);
+    static std::string str_replace(const std::string &str, const std::string &ignore, const char &rc = ' ');
     static std::string str_lower(const std::string &str);
     static std::string str_upper(const std::string &str);
     static bool strcmp_case_insensitive(const std::string &str1, const std::string &str2);

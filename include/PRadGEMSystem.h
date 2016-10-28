@@ -36,9 +36,21 @@ namespace std
 class PRadGEMSystem
 {
 public:
+    // constructor
     PRadGEMSystem(const std::string &config_file = "");
+
+    // copy/move constructors
+    PRadGEMSystem(const PRadGEMSystem &that);
+    PRadGEMSystem(PRadGEMSystem &&that);
+
+    // destructor
     virtual ~PRadGEMSystem();
 
+    // copy/move assignment operators
+    PRadGEMSystem &operator =(const PRadGEMSystem &rhs);
+    PRadGEMSystem &operator =(PRadGEMSystem &&rhs);
+
+    // public member functions
     void Clear();
     void SortFECList();
     void ChooseEvent(const EventData &data);
