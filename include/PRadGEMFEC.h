@@ -9,13 +9,17 @@
 // maximum channels in a FEC
 #define FEC_CAPACITY 9
 
+class PRadGEMSystem;
 class PRadGEMAPV;
 
 class PRadGEMFEC
 {
 public:
     // constructor
-    PRadGEMFEC(const int &i, const std::string &p, const int &slots = FEC_CAPACITY);
+    PRadGEMFEC(const int &i,
+               const std::string &p,
+               const int &slots = FEC_CAPACITY,
+               PRadGEMSystem *g = nullptr);
 
     // copy/move constructors
     PRadGEMFEC(const PRadGEMFEC &that);
@@ -29,13 +33,11 @@ public:
     PRadGEMFEC &operator =(PRadGEMFEC &&rhs);
 
     // public member functions
+    void SetSystem(PRadGEMSystem *g);
+    void UnsetSystem(bool system_destroy = false);
     void SetCapacity(int slots);
-    void AddAPV(PRadGEMAPV *apv, const int &slot);
+    bool AddAPV(PRadGEMAPV *apv, const int &slot);
     void RemoveAPV(const int &slot);
-    void FitPedestal();
-    void ClearAPVData();
-    void ResetAPVHits();
-    void CollectZeroSupHits(std::vector<GEM_Data> &hits);
     void Clear();
 
     // get parameters
@@ -45,7 +47,21 @@ public:
     PRadGEMAPV *GetAPV(const int &slot) const;
     std::vector<PRadGEMAPV*> GetAPVList() const;
 
+    // functions apply to all apv members
+    // functions apply to all apv members
+    template<typename... Args>
+    void APVControl(void (PRadGEMAPV::*act)(Args...), Args&&... args)
+    {
+        for(auto apv : adc_list)
+        {
+            if(apv != nullptr)
+                (apv->*act)(std::forward<Args>(args)...);
+        }
+    }
+
+
 private:
+    PRadGEMSystem *gem_srs;
     int id;
     std::string ip;
     std::vector<PRadGEMAPV*> adc_list;

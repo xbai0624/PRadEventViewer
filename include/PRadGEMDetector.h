@@ -35,10 +35,12 @@ public:
     PRadGEMDetector &operator =(PRadGEMDetector &&rhs);
 
     // public member functions
-    void AssignID(PRadGEMSystem *sys, const int &i);
-    void AddPlane(const int &type, PRadGEMPlane *plane);
-    void AddPlane(const PRadGEMPlane::PlaneType &type, const std::string &name,
-                  const double &size, const int &conn, const int &ori, const int &dir);
+    void SetSystem(PRadGEMSystem *sys);
+    void UnsetSystem(bool system_destroy = false);
+    bool AddPlane(PRadGEMPlane *plane);
+    bool AddPlane(const int &type, const std::string &name, const double &size,
+                  const int &conn, const int &ori, const int &dir);
+    void RemovePlane(const int &type);
     void ConnectPlanes();
     void ReconstructHits(PRadGEMCluster *c);
     void ReconstructHits();
@@ -51,6 +53,7 @@ public:
     const std::string &GetType() const {return type;};
     const std::string &GetReadoutBoard() {return readout_board;};
     PRadGEMPlane *GetPlane(const int &type) const;
+    PRadGEMPlane *GetPlane(const std::string &type) const;
     std::vector<PRadGEMPlane*> GetPlaneList() const;
     std::vector<PRadGEMAPV*> GetAPVList(const int &type) const;
     int GetNClusters() const {return (int)gem_clusters.size();};

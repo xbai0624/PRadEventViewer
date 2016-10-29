@@ -2,6 +2,7 @@
 #define PRAD_GEM_SYSTEM_H
 
 #include <string>
+#include <queue>
 #include <vector>
 #include <unordered_map>
 #include <fstream>
@@ -18,7 +19,9 @@
 #include <mutex>
 #endif
 
-class TH1I;
+// fec id should be consecutive from 0
+// enlarge this value if there are more FECs
+#define MAX_FEC_ID 128
 
 // a simple hash function for GEM DAQ configuration
 namespace std
@@ -37,7 +40,9 @@ class PRadGEMSystem
 {
 public:
     // constructor
-    PRadGEMSystem(const std::string &config_file = "");
+    PRadGEMSystem(const std::string &config_file = "",
+                  int daq_cap = MAX_FEC_ID,
+                  int det_cap = PRadDetectors::Max_Dets);
 
     // copy/move constructors
     PRadGEMSystem(const PRadGEMSystem &that);
@@ -51,53 +56,62 @@ public:
     PRadGEMSystem &operator =(PRadGEMSystem &&rhs);
 
     // public member functions
-    void Clear();
-    void SortFECList();
-    void ChooseEvent(const EventData &data);
-    void Reconstruct(const EventData &data);
+    void RemoveDetector(int det_id);
+    void RemoveFEC(int fec_id);
     void LoadConfiguration(const std::string &path) throw(PRadException);
     void LoadClusterConfiguration(const std::string &path);
     void LoadPedestal(const std::string &path) throw(PRadException);
-    void RegisterDetector(PRadGEMDetector *det);
-    void RegisterFEC(PRadGEMFEC *fec);
-    void RegisterAPV(PRadGEMAPV *apv, const int &fec_id, const int &adc_ch,
-                     const std::string &plane_name, const int &plane_index);
-    void BuildAPVMap();
+    void Clear();
+    void ChooseEvent(const EventData &data);
+    void Reconstruct(const EventData &data);
+    void RebuildDetectorMap();
+    void RebuildDAQMap();
     void FillRawData(GEMRawData &raw, std::vector<GEM_Data> &container, const bool &fill_hist = false);
     void FillZeroSupData(std::vector<GEMZeroSupData> &data_pack, std::vector<GEM_Data> &container);
     void FillZeroSupData(GEMZeroSupData &data);
+    bool Register(PRadGEMDetector *det);
+    bool Register(PRadGEMFEC *fec);
 
     void SetUnivCommonModeThresLevel(const float &thres);
     void SetUnivZeroSupThresLevel(const float &thres);
     void SetUnivTimeSample(const size_t &thres);
     void SetPedestalMode(const bool &m);
     void FitPedestal();
-    void SavePedestal(const std::string &path);
-    void SaveHistograms(const std::string &path);
     void ClearAPVData();
+    void SavePedestal(const std::string &path) const;
+    void SaveHistograms(const std::string &path) const;
 
-    PRadGEMCluster *GetClusterMethod() {return gem_recon;};
-    PRadGEMDetector *GetDetector(const int &id);
-    PRadGEMDetector *GetDetector(const std::string &name);
-    PRadGEMPlane *GetDetectorPlane(const std::string &plane);
-    PRadGEMFEC *GetFEC(const int &id);
-    PRadGEMAPV *GetAPV(const GEMChannelAddress &addr);
-    PRadGEMAPV *GetAPV(const int &fec, const int &adc);
+    PRadGEMCluster *GetClusterMethod() const {return gem_recon;};
+    PRadGEMDetector *GetDetector(const int &id) const;
+    PRadGEMDetector *GetDetector(const std::string &name) const;
+    PRadGEMFEC *GetFEC(const int &id) const;
+    PRadGEMAPV *GetAPV(const GEMChannelAddress &addr) const;
+    PRadGEMAPV *GetAPV(const int &fec, const int &adc) const;
 
-    std::vector<GEM_Data> GetZeroSupData();
-    std::vector<PRadGEMDetector*> &GetDetectorList() {return det_list;};
-    std::vector<PRadGEMFEC*> &GetFECList() {return fec_list;};
-    std::vector<PRadGEMAPV*> GetAPVList();
+    std::vector<GEM_Data> GetZeroSupData() const;
+    std::vector<PRadGEMAPV*> GetAPVList() const;
+    std::vector<PRadGEMFEC*> GetFECList() const {return fec_list;};
+    const std::vector<PRadGEMDetector*> &GetDetectorList() const {return det_list;};
+
+private:
+    // private member functions
+    void buildDetector(std::queue<ConfigValue> &det_args);
+    void buildPlane(std::queue<ConfigValue> &pln_args);
+    void buildFEC(std::queue<ConfigValue> &fec_args);
+    void buildAPV(std::queue<ConfigValue> &apv_args);
+    bool checkArgs(const std::string &type, size_t size, size_t expect);
+    void connectAPVtoPlane(PRadGEMAPV *apv, const std::string &pname, int index);
 
 private:
     PRadGEMCluster *gem_recon;
-    std::vector<PRadGEMDetector*> det_list;
-    std::unordered_map<std::string, PRadGEMDetector*> det_map_name;
-    std::unordered_map<std::string, PRadGEMPlane*> det_plane_map;
-    std::vector<PRadGEMFEC*> fec_list;
-    std::unordered_map<int, PRadGEMFEC*> fec_map;
-    std::unordered_map<GEMChannelAddress, PRadGEMAPV*> apv_map;
     bool PedestalMode;
+    std::vector<PRadGEMDetector*> det_list;
+    std::vector<PRadGEMFEC*> fec_list;
+
+    // maps
+    std::vector<PRadGEMFEC*> daq_slots;
+    std::vector<PRadGEMDetector*> det_slots;
+    std::unordered_map<std::string, PRadGEMDetector*> det_name_map;
 
 #ifdef MULTI_THREAD
     std::mutex locker;

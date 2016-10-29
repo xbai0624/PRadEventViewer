@@ -37,6 +37,14 @@ int main(int /*argc*/, char * /*argv*/ [])
     gem_srs->SetPedestalMode(false);
     */
 
+    for(auto &fec : gem_srs->GetFECList())
+    {
+        cout << "FEC " << fec->GetID() << ": " << endl;
+        for(auto &apv : fec->GetAPVList())
+        {
+            cout << "     APV: " << apv->GetFECID() << ", " << apv->GetADCChannel() << endl;
+        }
+    }
 // show the APVs and their strip numbers on planes
     // show the plane list
     auto det_list = gem_srs->GetDetectorList();
@@ -72,7 +80,6 @@ int main(int /*argc*/, char * /*argv*/ [])
     dst_parser->OpenInput("/work/hallb/prad/replay/prad_001287.dst");
 
     int count = 0;
-
     // uncomment next line, it will not update calibration factor from dst file
 
     while(dst_parser->Read() && count < 30000)

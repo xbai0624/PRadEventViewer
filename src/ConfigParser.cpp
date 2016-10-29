@@ -78,7 +78,7 @@ void ConfigParser::ClearBuffer()
     queue<string>().swap(lines);
 }
 
-string ConfigParser::GetLine()
+string ConfigParser::TakeLine()
 {
     if(lines.size()) {
         string out = lines.front();
@@ -140,13 +140,13 @@ ConfigValue ConfigParser::TakeFirst()
     return ConfigValue(output);
 }
 
-vector<ConfigValue> ConfigParser::TakeAll()
+queue<ConfigValue> ConfigParser::TakeAll()
 {
-    vector<ConfigValue> output;
+    queue<ConfigValue> output;
 
     while(elements.size())
     {
-        output.push_back(ConfigValue(elements.front()));
+        output.push(elements.front());
         elements.pop();
     }
 

@@ -29,11 +29,14 @@ public:
         Plane_Max
     };
 
+    static const char *GetPlaneTypeName(int enumVal);
+    static int GetPlaneTypeID(const char *name);
+
 public:
     // constructors
     PRadGEMPlane(PRadGEMDetector *det = nullptr);
-    PRadGEMPlane(const std::string &n, const PlaneType &t, const float &s,
-                 const int &c, const int &o, const int &d, PRadGEMDetector *det = nullptr);
+    PRadGEMPlane(const std::string &n, const int &t, const float &s, const int &c,
+                 const int &o, const int &d, PRadGEMDetector *det = nullptr);
 
     // copy/move constructors
     PRadGEMPlane(const PRadGEMPlane &that);
@@ -58,7 +61,8 @@ public:
     float GetIntegratedCharge(const std::vector<float> &charges) const;
 
     // set parameter
-    void SetDetector(PRadGEMDetector *det) {detector = det;};
+    void SetDetector(PRadGEMDetector *det);
+    void UnsetDetector();
     void SetName(const std::string &n) {name = n;};
     void SetType(const PlaneType &t) {type = t;};
     void SetSize(const float &s) {size = s;};

@@ -9,100 +9,8 @@
 #include <queue>
 #include <typeinfo>
 
-// demangle type name
-#ifdef __GNUG__
-#include <cstdlib>
-#include <memory>
-#include <cxxabi.h>
-// gnu compiler needs to demangle type info
-static std::string demangle(const char* name)
-{
-
-    int status = 0;
-
-    //enable c++11 by passing the flag -std=c++11 to g++
-    std::unique_ptr<char, void(*)(void*)> res {
-        abi::__cxa_demangle(name, NULL, NULL, &status),
-        std::free
-    };
-
-    return (status==0) ? res.get() : name ;
-}
-#else
-// do nothing if not gnu compiler
-static std::string demangle(const char* name)
-{
-    return name;
-}
-#endif
-
 // config value class
-class ConfigValue
-{
-public:
-    std::string _value;
-
-    ConfigValue() {};
-
-    ConfigValue(const std::string &value);
-    ConfigValue(const int &value);
-    ConfigValue(const long &value);
-    ConfigValue(const long long &value);
-    ConfigValue(const unsigned &value);
-    ConfigValue(const unsigned long &value);
-    ConfigValue(const unsigned long long &value);
-    ConfigValue(const float &value);
-    ConfigValue(const double &value);
-    ConfigValue(const long double &value);
-
-    template<typename T>
-    T Convert()
-    const
-    {
-        std::stringstream iss(_value);
-        T _cvalue;
-
-        if(!(iss >> _cvalue)) {
-            std::cerr << "Config Value Warning: Undefined value returned, failed to convert "
-                      <<  _value
-                      << " to "
-                      << demangle(typeid(T).name())
-                      << std::endl;
-        }
-
-        return _cvalue;
-    };
-
-    char Char() const;
-    unsigned char UChar() const;
-    short Short() const;
-    unsigned short UShort() const;
-    int Int() const;
-    unsigned int UInt() const;
-    long Long() const;
-    long long LongLong() const;
-    unsigned long ULong() const;
-    unsigned long long ULongLong() const;
-    float Float() const;
-    double Double() const;
-    long double LongDouble() const;
-    const char *c_str() const;
-    std::string String() const {return _value;};
-    bool IsEmpty() const {return _value.empty();};
-
-    operator std::string() const
-    {
-        return _value;
-    };
-
-    bool operator ==(const std::string &rhs) const
-    {
-        return _value == rhs;
-    }
-};
-
-// show string content of the config value to ostream
-std::ostream &operator << (std::ostream &os, const ConfigValue &b);
+class ConfigValue;
 
 // config parser class
 class ConfigParser
@@ -118,16 +26,24 @@ public:
     void AddCommentMark(const std::string &c);
     void RemoveCommentMark(const std::string &c);
     void EraseCommentMarks();
+
     bool OpenFile(const std::string &path);
     void CloseFile();
+
     void OpenBuffer(char *);
     void ClearBuffer();
+
     bool ParseLine();
     void ParseLine(const std::string &line);
-    size_t NbofElements() {return elements.size();};
-    std::string GetLine();
+
+    size_t NbofElements() const {return elements.size();};
+    std::string TakeLine();
     ConfigValue TakeFirst();
-    std::vector<ConfigValue> TakeAll();
+    std::queue<ConfigValue> TakeAll();
+
+    const std::string &GetSplitters() const {return splitters;};
+    const std::string &GetWhiteSpace() const {return white_space;};
+    const std::vector<std::string> &GetCommentMarks() const {return comment_marks;};
 
 private:
     std::string splitters;
@@ -170,5 +86,107 @@ ConfigParser &operator >> (ConfigParser &c, double &v);
 ConfigParser &operator >> (ConfigParser &c, long double &v);
 ConfigParser &operator >> (ConfigParser &c, const char *&v);
 ConfigParser &operator >> (ConfigParser &c, ConfigValue &v);
+
+
+// demangle type name
+#ifdef __GNUG__
+#include <cstdlib>
+#include <memory>
+#include <cxxabi.h>
+// gnu compiler needs to demangle type info
+static std::string demangle(const char* name)
+{
+
+    int status = 0;
+
+    //enable c++11 by passing the flag -std=c++11 to g++
+    std::unique_ptr<char, void(*)(void*)> res {
+        abi::__cxa_demangle(name, NULL, NULL, &status),
+        std::free
+    };
+
+    return (status==0) ? res.get() : name ;
+}
+#else
+// do nothing if not gnu compiler
+static std::string demangle(const char* name)
+{
+    return name;
+}
+#endif
+
+class ConfigValue
+{
+public:
+    std::string _value;
+
+    ConfigValue() {};
+
+    ConfigValue(const std::string &value);
+    ConfigValue(const int &value);
+    ConfigValue(const long &value);
+    ConfigValue(const long long &value);
+    ConfigValue(const unsigned &value);
+    ConfigValue(const unsigned long &value);
+    ConfigValue(const unsigned long long &value);
+    ConfigValue(const float &value);
+    ConfigValue(const double &value);
+    ConfigValue(const long double &value);
+
+    template<typename T>
+    T Convert()
+    const
+    {
+        std::stringstream iss(_value);
+        T _cvalue;
+
+        if(!(iss >> _cvalue)) {
+            std::cerr << "Config Value Warning: Undefined value returned, failed to convert "
+                      <<  _value
+                      << " to "
+                      << demangle(typeid(T).name())
+                      << std::endl;
+        }
+
+        return _cvalue;
+    };
+
+    template<typename T>
+    void Convert(T &t)
+    const
+    {
+        t = (*this).Convert<T>();
+    }
+
+    char Char() const;
+    unsigned char UChar() const;
+    short Short() const;
+    unsigned short UShort() const;
+    int Int() const;
+    unsigned int UInt() const;
+    long Long() const;
+    long long LongLong() const;
+    unsigned long ULong() const;
+    unsigned long long ULongLong() const;
+    float Float() const;
+    double Double() const;
+    long double LongDouble() const;
+    const char *c_str() const;
+    std::string String() const {return _value;};
+    bool IsEmpty() const {return _value.empty();};
+
+    operator std::string() const
+    {
+        return _value;
+    };
+
+    bool operator ==(const std::string &rhs) const
+    {
+        return _value == rhs;
+    }
+};
+
+// show string content of the config value to ostream
+std::ostream &operator << (std::ostream &os, const ConfigValue &b);
 
 #endif

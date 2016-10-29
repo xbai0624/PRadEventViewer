@@ -7,26 +7,25 @@
 #include <iostream>
 #include <cstring>
 
-static const char *DetectorList[] = {"HyCal", "PRadGEM1", "PRadGEM2", "Undefined"};
+static const char *__detector_list[] = {"HyCal", "PRadGEM1", "PRadGEM2", "Undefined"};
 
 const char *PRadDetectors::getName(int enumVal)
 {
     if(enumVal < 0 || enumVal > (int)Max_Dets)
         return "";
 
-    return DetectorList[enumVal];
+    return __detector_list[enumVal];
 }
 
 int PRadDetectors::getID(const char *name)
 {
     for(int i = 0; i < (int)Max_Dets; ++i)
-        if(strcmp(name, DetectorList[i]) == 0)
+        if(strcmp(name, __detector_list[i]) == 0)
             return i;
 
-    std::cout << "PRad Detectors : Cannot find " << name
+    std::cerr << "PRad Detectors Error: Cannot find " << name
               << ", please check if the detector name exists in the PRadDetectors."
-              << " Return HyCal id as default."
               << std::endl;
     // not found
-    return HyCal;
+    return -1;
 }

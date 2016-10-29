@@ -12,6 +12,7 @@
 //============================================================================//
 
 #include "PRadGEMPlane.h"
+#include "PRadGEMDetector.h"
 #include "PRadGEMAPV.h"
 #include <iostream>
 #include <iterator>
@@ -31,17 +32,19 @@ PRadGEMPlane::PRadGEMPlane(PRadGEMDetector *det)
 }
 
 // constructor
-PRadGEMPlane::PRadGEMPlane(const std::string &n, const PlaneType &t, const float &s,
+PRadGEMPlane::PRadGEMPlane(const std::string &n, const int &t, const float &s,
                            const int &c, const int &o, const int &d, PRadGEMDetector *det)
-: detector(det), name(n), type(t), size(s), orient(o), direction(d)
+: detector(det), name(n), size(s), orient(o), direction(d)
 {
+    type = (PlaneType)t;
+
     apv_list.resize(c, nullptr);
 }
 
 // copy constructor
 // connections between it and apv/detector won't be copied
 PRadGEMPlane::PRadGEMPlane(const PRadGEMPlane &that)
-: name(that.name), type(that.type), size(that.size), orient(that.orient),
+: detector(nullptr), name(that.name), type(that.type), size(that.size), orient(that.orient),
   direction(that.direction), hit_list(that.hit_list), cluster_list(that.cluster_list)
 {
     apv_list.resize(that.apv_list.size(), nullptr);
@@ -49,8 +52,9 @@ PRadGEMPlane::PRadGEMPlane(const PRadGEMPlane &that)
 
 // move constructor
 PRadGEMPlane::PRadGEMPlane(PRadGEMPlane &&that)
-: name(std::move(that.name)), type(that.type), size(that.size), orient(that.orient),
-  direction(that.direction), hit_list(std::move(hit_list)), cluster_list(std::move(that.cluster_list))
+: detector(nullptr), name(std::move(that.name)), type(that.type), size(that.size),
+  orient(that.orient), direction(that.direction), hit_list(std::move(hit_list)),
+  cluster_list(std::move(that.cluster_list))
 {
     apv_list.resize(that.apv_list.size(), nullptr);
 }
@@ -58,6 +62,7 @@ PRadGEMPlane::PRadGEMPlane(PRadGEMPlane &&that)
 // destructor
 PRadGEMPlane::~PRadGEMPlane()
 {
+    UnsetDetector();
     ResetConnections();
 }
 
@@ -72,7 +77,7 @@ PRadGEMPlane &PRadGEMPlane::operator =(const PRadGEMPlane &rhs)
 PRadGEMPlane &PRadGEMPlane::operator =(PRadGEMPlane &&rhs)
 {
     // clear all the connections
-    detector = nullptr;
+    UnsetDetector();
     ResetConnections();
 
     name = std::move(rhs.name);
@@ -93,6 +98,23 @@ PRadGEMPlane &PRadGEMPlane::operator =(PRadGEMPlane &&rhs)
 //============================================================================//
 // Public Member Functions                                                    //
 //============================================================================//
+
+// set detector to the plane
+void PRadGEMPlane::SetDetector(PRadGEMDetector *det)
+{
+    UnsetDetector();
+    detector = det;
+}
+
+// disconnect the detector
+void PRadGEMPlane::UnsetDetector()
+{
+    if(detector == nullptr)
+        return;
+
+    detector->RemovePlane(type);
+    detector = nullptr;
+}
 
 // change the capacity
 void PRadGEMPlane::SetCapacity(int c)
@@ -254,5 +276,31 @@ void PRadGEMPlane::CollectAPVHits()
         if(apv != nullptr)
             apv->CollectZeroSupHits();
     }
+}
+
+//============================================================================//
+// Plane Type Enum Related                                                    //
+//============================================================================//
+static const char *__plane_type_list[] = {"X", "Y", "Undefined"};
+
+const char *PRadGEMPlane::GetPlaneTypeName(int enumVal)
+{
+    if(enumVal < 0 || enumVal > (int)Plane_Max)
+        return "";
+
+    return __plane_type_list[enumVal];
+}
+
+int PRadGEMPlane::GetPlaneTypeID(const char *name)
+{
+    for(int i = 0; i < (int)Plane_Max; ++i)
+        if(strcmp(name, __plane_type_list[i]) == 0)
+            return i;
+
+    std::cerr << "PRad GEM Plane Error: Undefined plane type "
+              << name << ", please check GetPlaneTypeID() in PRadGEMPlane class."
+              << std::endl;
+    // not found
+    return -1;
 }
 

@@ -39,9 +39,9 @@ PRadGEMDetector::PRadGEMDetector(const std::string &readoutBoard,
 // won't the id assigned by gem system
 // copy constructor
 PRadGEMDetector::PRadGEMDetector(const PRadGEMDetector &that)
-: det_id(that.det_id), name(that.name), type(that.type), readout_board(that.readout_board)
+: gem_srs(nullptr), det_id(that.det_id), name(that.name), type(that.type),
+  readout_board(that.readout_board), gem_clusters(that.gem_clusters)
 {
-    gem_clusters.reserve(MAX_GCLUSTERS);
     for(auto &plane : that.planes)
     {
         if(plane != nullptr)
@@ -55,9 +55,9 @@ PRadGEMDetector::PRadGEMDetector(const PRadGEMDetector &that)
 
 // move constructor
 PRadGEMDetector::PRadGEMDetector(PRadGEMDetector &&that)
-: det_id(that.det_id), name(std::move(that.name)), type(std::move(that.type)),
-  readout_board(std::move(that.readout_board)), planes(std::move(that.planes)),
-  gem_clusters(std::move(gem_clusters))
+: gem_srs(nullptr), det_id(that.det_id), name(std::move(that.name)),
+  type(std::move(that.type)), readout_board(std::move(that.readout_board)),
+  planes(std::move(that.planes)), gem_clusters(std::move(gem_clusters))
 {
     // reset the planes' detector
     ConnectPlanes();
@@ -76,6 +76,8 @@ PRadGEMDetector::~PRadGEMDetector()
 // copy assignment operator
 PRadGEMDetector &PRadGEMDetector::operator= (const PRadGEMDetector &rhs)
 {
+    // disconnect gem system
+    gem_srs = nullptr;
     PRadGEMDetector that(rhs); // use copy constructor
     *this = std::move(that); // use move assignment
     return *this;
@@ -84,6 +86,8 @@ PRadGEMDetector &PRadGEMDetector::operator= (const PRadGEMDetector &rhs)
 // move assignment operator
 PRadGEMDetector &PRadGEMDetector::operator= (PRadGEMDetector &&rhs)
 {
+    // disconnect gem system
+    gem_srs = nullptr;
     det_id = rhs.det_id;
     name = std::move(rhs.name);
     type = std::move(rhs.type);
@@ -100,47 +104,79 @@ PRadGEMDetector &PRadGEMDetector::operator= (PRadGEMDetector &&rhs)
 // Public Member Functions                                                    //
 //============================================================================//
 
-// assign id by gem system
-void PRadGEMDetector::AssignID(PRadGEMSystem *sys, const int &i)
+// set a new system, disconnect from the previous one
+void PRadGEMDetector::SetSystem(PRadGEMSystem *sys)
 {
+    UnsetSystem();
     gem_srs = sys;
-    id = i;
+}
+
+void PRadGEMDetector::UnsetSystem(bool system_destroy)
+{
+    if(gem_srs == nullptr)
+        return;
+
+    // if system is destroyed, not need to remove detector from it
+    if(!system_destroy)
+        gem_srs->RemoveDetector(det_id);
+
+    gem_srs = nullptr;
 }
 
 // add plane to the detector
-void PRadGEMDetector::AddPlane(const PRadGEMPlane::PlaneType &type,
+bool PRadGEMDetector::AddPlane(const int &type,
                                const std::string &name,
                                const double &size,
                                const int &conn,
                                const int &ori,
                                const int &dir)
 {
-    planes[(int)type] = new PRadGEMPlane(name, type, size, conn, ori, dir, this);
+    PRadGEMPlane *new_plane = new PRadGEMPlane(name, type, size, conn, ori, dir);
+
+    // successfully added plane in
+    if(AddPlane(new_plane))
+        return true;
+
+    delete new_plane;
+    return false;
 }
 
 // add plane to the detector
-void PRadGEMDetector::AddPlane(const int &type, PRadGEMPlane *plane)
+bool PRadGEMDetector::AddPlane(PRadGEMPlane *plane)
 {
+    if(plane == nullptr)
+        return false;
+
+    int idx = (int)plane->GetType();
+
     if(plane->GetDetector() != nullptr) {
         std::cerr << "PRad GEM Detector Error: "
                   << "Trying to add plane " << plane->GetName()
                   << " to detector " << name
                   << ", but the plane is belong to " << plane->GetDetector()->name
+                  << ". Action aborted."
                   << std::endl;
-        return;
+        return false;
     }
 
-    if(planes[type] != nullptr) {
-        std::cout << "PRad GEM Detector Warning: "
-                  << "Trying to add multiple planes with the same type "
-                  << "to detector " << name
-                  << ", there will be potential memory leakage if the original "
-                  << "plane is not released properly."
+    if(planes[idx] != nullptr) {
+        std::cerr << "PRad GEM Detector Error: "
+                  << "Trying to add multiple planes with the same type " << idx
+                  << "to detector " << name << ". Action aborted."
                   << std::endl;
+        return false;
     }
 
     plane->SetDetector(this);
-    planes[type] = plane;
+    planes[idx] = plane;
+    return true;
+}
+
+// remove plane
+void PRadGEMDetector::RemovePlane(const int &type)
+{
+    if((size_t)type < planes.size())
+        planes[type] = nullptr;
 }
 
 // Asure the connection to all the planes
@@ -188,6 +224,17 @@ void PRadGEMDetector::ClearHits()
         if(plane != nullptr)
             plane->ClearPlaneHits();
     }
+}
+
+PRadGEMPlane *PRadGEMDetector::GetPlane(const std::string &type)
+const
+{
+    size_t idx = (size_t) PRadGEMPlane::GetPlaneTypeID(type.c_str());
+
+    if(idx >= planes.size())
+        return nullptr;
+
+    return planes.at(idx);
 }
 
 // get the plane list

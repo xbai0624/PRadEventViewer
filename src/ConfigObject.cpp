@@ -16,8 +16,8 @@
 #include "PRadGEMDetector.h"
 
 // constructor
-ConfigObject::ConfigObject(const std::string &splitter, const std::string &space)
-: split_chars(splitter), space_chars(space), __empty_value("0")
+ConfigObject::ConfigObject(const std::string &splitter, const std::string &ignore)
+: split_chars(splitter), ignore_chars(ignore), __empty_value("0")
 {
     // place holder
 }
@@ -38,7 +38,7 @@ const ConfigValue &ConfigObject::GetConfigValue(const std::string &var_name)
 const
 {
     // convert to lower case and remove uninterested characters
-    std::string key = ConfigParser::str_upper(ConfigParser::str_replace(var_name, space_chars));
+    std::string key = ConfigParser::str_lower(ConfigParser::str_remove(var_name, ignore_chars));
 
     auto it = config_map.find(key);
     if(it == config_map.end())
@@ -50,7 +50,7 @@ const
 void ConfigObject::SetConfigValue(const std::string &var_name, const ConfigValue &c_value)
 {
     // convert to lower case and remove uninterested characters
-    std::string key = ConfigParser::str_upper(ConfigParser::str_replace(var_name, space_chars));
+    std::string key = ConfigParser::str_lower(ConfigParser::str_remove(var_name, ignore_chars));
 
     config_map[key] = c_value;
 }
@@ -102,7 +102,7 @@ void ConfigObject::readConfigFile(const std::string &path)
         c_parser >> var_name >> var_value;
 
         // convert to lower case and remove uninterested characters
-        key = ConfigParser::str_upper(ConfigParser::str_replace(var_name, space_chars));
+        key = ConfigParser::str_lower(ConfigParser::str_remove(var_name, ignore_chars));
 
         config_map[key] = var_value;
     }
@@ -113,7 +113,7 @@ ConfigValue ConfigObject::getConfigValue(const std::string &name,
                                          const ConfigValue &def_value,
                                          bool verbose)
 {
-    std::string key = ConfigParser::str_upper(ConfigParser::str_replace(name, space_chars));
+    std::string key = ConfigParser::str_lower(ConfigParser::str_remove(name, ignore_chars));
 
     auto it = config_map.find(key);
     if(it == config_map.end())
