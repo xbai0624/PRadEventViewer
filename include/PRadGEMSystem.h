@@ -58,9 +58,8 @@ public:
     // public member functions
     void RemoveDetector(int det_id);
     void RemoveFEC(int fec_id);
-    void LoadConfiguration(const std::string &path) throw(PRadException);
-    void LoadClusterConfiguration(const std::string &path);
-    void LoadPedestal(const std::string &path) throw(PRadException);
+    void Configure(const std::string &path) throw(PRadException);
+    void ReadPedestalFile(const std::string &path) throw(PRadException);
     void Clear();
     void ChooseEvent(const EventData &data);
     void Reconstruct(const EventData &data);
@@ -99,8 +98,8 @@ private:
     void buildPlane(std::queue<ConfigValue> &pln_args);
     void buildFEC(std::queue<ConfigValue> &fec_args);
     void buildAPV(std::queue<ConfigValue> &apv_args);
+    void configureClusterMethod(std::queue<ConfigValue> &apv_args);
     bool checkArgs(const std::string &type, size_t size, size_t expect);
-    void connectAPVtoPlane(PRadGEMAPV *apv, const std::string &pname, int index);
 
 private:
     PRadGEMCluster *gem_recon;

@@ -1015,7 +1015,7 @@ void PRadDataHandler::CorrectGainFactor(const int &ref)
 
 void PRadDataHandler::ReadGEMConfiguration(const string &path)
 {
-    gem_srs->LoadConfiguration(path);
+    gem_srs->Configure(path);
 }
 
 void PRadDataHandler::ReadTDCList(const string &path)
@@ -1154,7 +1154,7 @@ void PRadDataHandler::ReadPedestalFile(const string &path)
 
 void PRadDataHandler::ReadGEMPedestalFile(const string &path)
 {
-    gem_srs->LoadPedestal(path);
+    gem_srs->ReadPedestalFile(path);
 }
 
 void PRadDataHandler::ReadCalibrationFile(const string &path)
