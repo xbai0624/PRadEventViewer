@@ -1,5 +1,7 @@
 //============================================================================//
-// A simple parser class to read text file                                    //
+// A simple parser class to read text file into ConfigValue types             //
+// ConfigValue types is based on string container, add is implemented several //
+// conversion functions to be converted to different types of value           //
 //                                                                            //
 // Chao Peng                                                                  //
 // 06/07/2016                                                                 //

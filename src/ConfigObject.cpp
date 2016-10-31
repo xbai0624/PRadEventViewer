@@ -1,19 +1,18 @@
 //============================================================================//
-// Basic PRad Cluster Reconstruction Class For GEM                            //
-// GEM Planes send hits infromation and container for the GEM Clusters to this//
-// class reconstruct the clusters and send it back to GEM Planes.             //
-// Thus the clustering algorithm can be adjusted in this class.               //
+// A class based on the support from ConfigParser and ConfigValue             //
+// It provides a simple way to read text file as configuration file, and read //
+// or modify a parameter in the inherited class                               //
+// The Configure() function should be overloaded according to specialized     //
+// requirements, and be called after the parameters being configured          //
 //                                                                            //
-// Xinzhan Bai & Kondo Gnanvo, first version coding of the algorithm          //
-// Chao Peng, adapted to PRad analysis software package                       //
-// 10/21/2016                                                                 //
+// 10/31/2016                                                                 //
 //============================================================================//
 
 #include <iostream>
 #include <iomanip>
 #include <algorithm>
 #include "ConfigObject.h"
-#include "PRadGEMDetector.h"
+
 
 // constructor
 ConfigObject::ConfigObject(const std::string &splitter, const std::string &ignore)
