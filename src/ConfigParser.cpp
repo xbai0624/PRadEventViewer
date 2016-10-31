@@ -1,7 +1,5 @@
 //============================================================================//
-// A simple parser class to read text file into ConfigValue types             //
-// ConfigValue types is based on string container, add is implemented several //
-// conversion functions to be converted to different types of value           //
+// A simple parser class to read text file                                    //
 //                                                                            //
 // Chao Peng                                                                  //
 // 06/07/2016                                                                 //
@@ -20,8 +18,9 @@ using namespace std;
 ConfigParser::ConfigParser(const string &s,
                            const string &w,
                            const vector<string> &c)
-: splitters(s), white_space(w), comment_marks(c)
+: splitters(s), white_space(w), comment_marks(c), line_number(0)
 {
+
 }
 
 ConfigParser::~ConfigParser()
@@ -51,6 +50,7 @@ void ConfigParser::EraseCommentMarks()
 bool ConfigParser::OpenFile(const string &path)
 {
     infile.open(path);
+    line_number = 0;
     return infile.is_open();
 }
 
@@ -61,6 +61,9 @@ void ConfigParser::CloseFile()
 
 void ConfigParser::OpenBuffer(char *buf)
 {
+    CloseFile(); // close file first
+    line_number = 0;
+
     string buffer = buf;
 
     string line;
@@ -95,21 +98,22 @@ bool ConfigParser::ParseLine()
 {
     queue<string>().swap(elements);
 
-    if(infile.is_open()) {
-        string line;
+    if(infile.is_open()) { // if file is open, parse file
         while(elements.empty())
         {
-            if(!getline(infile, line))
+            if(!getline(infile, current_line))
                 return false; // end of file
-            ParseLine(line);
+
+            ParseLine(current_line);
         }
-    } else {
-       while(elements.empty())
+    } else { // if file is not closed, parse buffer
+        while(elements.empty())
         {
             if(lines.empty())
                 return false; // end of buffer
-            ParseLine(lines.front());
+            current_line = std::move(lines.front());
             lines.pop();
+            ParseLine(current_line);
         }
     }
     return true; // parsed a line
@@ -117,6 +121,7 @@ bool ConfigParser::ParseLine()
 
 void ConfigParser::ParseLine(const string &line)
 {
+    ++line_number;
     string trim_line = trim(comment_out(line), white_space);
     queue<string> eles = split(trim_line, splitters);
 
@@ -148,7 +153,7 @@ queue<ConfigValue> ConfigParser::TakeAll()
 
     while(elements.size())
     {
-        output.push(elements.front());
+        output.emplace(elements.front());
         elements.pop();
     }
 

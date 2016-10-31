@@ -36,7 +36,9 @@ public:
     bool ParseLine();
     void ParseLine(const std::string &line);
 
-    size_t NbofElements() const {return elements.size();};
+    int NbofElements() const {return elements.size();};
+    int LineNumber() const {return line_number;};
+    const std::string &CurrentLine() const {return current_line;};
     std::string TakeLine();
     ConfigValue TakeFirst();
     std::queue<ConfigValue> TakeAll();
@@ -50,6 +52,8 @@ private:
     std::string white_space;
     std::vector<std::string> comment_marks;
     std::queue<std::string> lines;
+    std::string current_line;
+    int line_number;
     std::queue<std::string> elements;
     std::ifstream infile;
 
