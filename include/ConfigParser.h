@@ -70,6 +70,7 @@ public:
     static void find_integer_helper(const std::string &str, std::vector<int> &result);
 };
 
+ConfigParser &operator >> (ConfigParser &c, bool &v);
 ConfigParser &operator >> (ConfigParser &c, std::string &v);
 ConfigParser &operator >> (ConfigParser &c, char &v);
 ConfigParser &operator >> (ConfigParser &c, unsigned char &v);
@@ -86,7 +87,6 @@ ConfigParser &operator >> (ConfigParser &c, double &v);
 ConfigParser &operator >> (ConfigParser &c, long double &v);
 ConfigParser &operator >> (ConfigParser &c, const char *&v);
 ConfigParser &operator >> (ConfigParser &c, ConfigValue &v);
-
 
 // demangle type name
 #ifdef __GNUG__
@@ -115,6 +115,10 @@ static std::string demangle(const char* name)
 }
 #endif
 
+// this helps template specialization in class
+template <typename T>
+struct __cv_identifier { typedef T type; };
+
 class ConfigValue
 {
 public:
@@ -123,6 +127,7 @@ public:
     ConfigValue() {};
 
     ConfigValue(const std::string &value);
+    ConfigValue(const bool &value);
     ConfigValue(const int &value);
     ConfigValue(const long &value);
     ConfigValue(const long long &value);
@@ -137,27 +142,10 @@ public:
     T Convert()
     const
     {
-        std::stringstream iss(_value);
-        T _cvalue;
-
-        if(!(iss >> _cvalue)) {
-            std::cerr << "Config Value Warning: Undefined value returned, failed to convert "
-                      <<  _value
-                      << " to "
-                      << demangle(typeid(T).name())
-                      << std::endl;
-        }
-
-        return _cvalue;
+        return convert( __cv_identifier<T>());
     };
 
-    template<typename T>
-    void Convert(T &t)
-    const
-    {
-        t = (*this).Convert<T>();
-    }
-
+    bool Bool() const;
     char Char() const;
     unsigned char UChar() const;
     short Short() const;
@@ -183,6 +171,31 @@ public:
     bool operator ==(const std::string &rhs) const
     {
         return _value == rhs;
+    }
+
+private:
+    template<typename T>
+    T convert(__cv_identifier<T> &&)
+    const
+    {
+        std::stringstream iss(_value);
+        T _cvalue;
+
+        if(!(iss >> _cvalue)) {
+            std::cerr << "Config Value Warning: Undefined value returned, failed to convert "
+                      <<  _value
+                      << " to "
+                      << demangle(typeid(T).name())
+                      << std::endl;
+        }
+
+        return _cvalue;
+    }
+
+    bool convert(__cv_identifier<bool> &&)
+    const
+    {
+        return (*this).Bool();
     }
 };
 

@@ -363,6 +363,12 @@ ConfigParser &operator >> (ConfigParser &c, std::string &v)
     return c;
 }
 
+ConfigParser &operator >> (ConfigParser &c, bool &v)
+{
+    v = c.TakeFirst().Bool();
+    return c;
+}
+
 ConfigParser &operator >> (ConfigParser &c, char &v)
 {
     v = c.TakeFirst().Char();
@@ -465,6 +471,14 @@ ConfigValue::ConfigValue(const string &value)
 : _value(value)
 {}
 
+ConfigValue::ConfigValue(const bool &value)
+{
+    if(value)
+        _value = "1";
+    else
+        _value = "0";
+}
+
 ConfigValue::ConfigValue(const int &value)
 : _value(to_string(value))
 {}
@@ -500,6 +514,25 @@ ConfigValue::ConfigValue(const double &value)
 ConfigValue::ConfigValue(const long double &value)
 : _value(to_string(value))
 {}
+
+bool ConfigValue::Bool()
+const
+{
+    if((_value == "1") ||
+       (ConfigParser::strcmp_case_insensitive(_value, "T")) ||
+       (ConfigParser::strcmp_case_insensitive(_value, "True")))
+        return true;
+
+    if((_value == "0") ||
+       (ConfigParser::strcmp_case_insensitive(_value, "F")) ||
+       (ConfigParser::strcmp_case_insensitive(_value, "False")))
+        return false;
+
+    cout << "Config Value: Failed to convert "
+         << _value << " to bool type. Return false."
+         << endl;
+    return false;
+}
 
 char ConfigValue::Char()
 const

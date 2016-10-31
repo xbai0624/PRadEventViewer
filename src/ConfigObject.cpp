@@ -130,3 +130,4 @@ ConfigValue ConfigObject::getConfigValue(const std::string &name,
 
     return it->second;
 }
+
