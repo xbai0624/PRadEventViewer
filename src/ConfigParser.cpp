@@ -147,13 +147,13 @@ ConfigValue ConfigParser::TakeFirst()
     return ConfigValue(output);
 }
 
-queue<ConfigValue> ConfigParser::TakeAll()
+list<ConfigValue> ConfigParser::TakeAll()
 {
-    queue<ConfigValue> output;
+    list<ConfigValue> output;
 
     while(elements.size())
     {
-        output.emplace(elements.front());
+        output.emplace_back(elements.front());
         elements.pop();
     }
 

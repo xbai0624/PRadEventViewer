@@ -2,7 +2,7 @@
 #define PRAD_GEM_SYSTEM_H
 
 #include <string>
-#include <queue>
+#include <list>
 #include <vector>
 #include <unordered_map>
 #include <fstream>
@@ -94,11 +94,11 @@ public:
 
 private:
     // private member functions
-    void buildDetector(std::queue<ConfigValue> &det_args);
-    void buildPlane(std::queue<ConfigValue> &pln_args);
-    void buildFEC(std::queue<ConfigValue> &fec_args);
-    void buildAPV(std::queue<ConfigValue> &apv_args);
-    void configureClusterMethod(std::queue<ConfigValue> &apv_args);
+    void buildDetector(std::list<ConfigValue> &det_args);
+    void buildPlane(std::list<ConfigValue> &pln_args);
+    void buildFEC(std::list<ConfigValue> &fec_args);
+    void buildAPV(std::list<ConfigValue> &apv_args);
+    void configureClusterMethod(std::list<ConfigValue> &apv_args);
     bool checkArgs(const std::string &type, size_t size, size_t expect);
 
 private:

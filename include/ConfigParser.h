@@ -7,6 +7,7 @@
 #include <fstream>
 #include <vector>
 #include <queue>
+#include <list>
 #include <typeinfo>
 
 // config value class
@@ -41,7 +42,7 @@ public:
     const std::string &CurrentLine() const {return current_line;};
     std::string TakeLine();
     ConfigValue TakeFirst();
-    std::queue<ConfigValue> TakeAll();
+    std::list<ConfigValue> TakeAll();
 
     const std::string &GetSplitters() const {return splitters;};
     const std::string &GetWhiteSpace() const {return white_space;};

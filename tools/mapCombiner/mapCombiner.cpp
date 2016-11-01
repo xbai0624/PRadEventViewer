@@ -43,7 +43,7 @@ int main(int argc, char *argv[])
     }
 
     ConfigParser parser;
-    unordered_map<string, vector<ConfigValue>> eles_map;
+    unordered_map<string, list<ConfigValue>> eles_map;
 
     if(input_list.size() < 2) {
         cerr << "Less than 2 input files, no need to combine" << endl;
@@ -71,7 +71,7 @@ int main(int argc, char *argv[])
                 key = parser.TakeFirst();
             }
 
-            vector<ConfigValue> eles = parser.TakeAll();
+            list<ConfigValue> eles = parser.TakeAll();
 
             auto it = eles_map.find(key);
             if(it == eles_map.end()) {
@@ -81,7 +81,7 @@ int main(int argc, char *argv[])
                 }
                 eles_map[key] = eles;
             } else {
-                it->second.insert(it->second.end(), eles.begin(), eles.end());
+                it->second.splice(it->second.end(), eles);
             }
         }
         parser.CloseFile();
@@ -106,7 +106,7 @@ int main(int argc, char *argv[])
         nb_ele = ele.second.size();
 
         outfile << setw(6) << ele.first;
-        vector<ConfigValue> eles = ele.second;
+        list<ConfigValue> eles = ele.second;
         for(auto e : eles)
         {
             outfile << setw(13) << e;

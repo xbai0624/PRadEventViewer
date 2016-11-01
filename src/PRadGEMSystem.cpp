@@ -191,7 +191,7 @@ void PRadGEMSystem::Configure(const string &path) throw(PRadException)
     // detector, plane, fec, apv
     vector<string> types = {"DET", "PLN", "FEC", "APV", "CLM"};
     // this vector is to store all the following arguments
-    vector<queue<ConfigValue>> args[types.size()];
+    vector<list<ConfigValue>> args[types.size()];
 
     // read all the elements in
     while(c_parser.ParseLine())
@@ -724,15 +724,15 @@ bool PRadGEMSystem::checkArgs(const string &type, size_t size, size_t expect)
 
 // a helper operator to make arguments reading easier
 template<typename T>
-queue<ConfigValue> &operator >>(queue<ConfigValue> &lhs, T &t)
+list<ConfigValue> &operator >>(list<ConfigValue> &lhs, T &t)
 {
     t = lhs.front().Convert<T>();
-    lhs.pop();
+    lhs.pop_front();
     return lhs;
 }
 
 // build the detectors according to the arguments
-void PRadGEMSystem::buildDetector(queue<ConfigValue> &det_args)
+void PRadGEMSystem::buildDetector(list<ConfigValue> &det_args)
 {
     if(!checkArgs("DET", det_args.size(), 3))
         return;
@@ -755,7 +755,7 @@ void PRadGEMSystem::buildDetector(queue<ConfigValue> &det_args)
 // build the planes according to the arguments
 // since planes need to be added into existing detectors, it requires all the
 // detectors to be built first and a proper detector map is generated
-void PRadGEMSystem::buildPlane(queue<ConfigValue> &pln_args)
+void PRadGEMSystem::buildPlane(list<ConfigValue> &pln_args)
 {
     if(!checkArgs("PLN", pln_args.size(), 6))
         return;
@@ -789,7 +789,7 @@ void PRadGEMSystem::buildPlane(queue<ConfigValue> &pln_args)
 }
 
 // build the FECs according to the arguments
-void PRadGEMSystem::buildFEC(queue<ConfigValue> &fec_args)
+void PRadGEMSystem::buildFEC(list<ConfigValue> &fec_args)
 {
     if(!checkArgs("FEC", fec_args.size(), 2))
         return;
@@ -812,7 +812,7 @@ void PRadGEMSystem::buildFEC(queue<ConfigValue> &fec_args)
 // build the APVs according to the arguments
 // since APVs need to be added into existing FECs, and be connected to existing
 // planes, it requires FEC and planes to be built first and proper maps are generated
-void PRadGEMSystem::buildAPV(queue<ConfigValue> &apv_args)
+void PRadGEMSystem::buildAPV(list<ConfigValue> &apv_args)
 {
     if(!checkArgs("APV", apv_args.size(), 11))
         return;
@@ -864,7 +864,7 @@ void PRadGEMSystem::buildAPV(queue<ConfigValue> &apv_args)
 }
 
 // configure the clustering method according to the arguments
-void PRadGEMSystem::configureClusterMethod(queue<ConfigValue> &clm_args)
+void PRadGEMSystem::configureClusterMethod(list<ConfigValue> &clm_args)
 {
     if(!checkArgs("CLM", clm_args.size(), 1))
         return;
