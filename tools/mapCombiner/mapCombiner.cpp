@@ -53,7 +53,7 @@ int main(int argc, char *argv[])
     while(input_list.size())
     {
         int line = 0;
-        parser.OpenFile(input_list.front());
+        parser.ReadFile(input_list.front());
         input_list.pop();
         while(parser.ParseLine())
         {

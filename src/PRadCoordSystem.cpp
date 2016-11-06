@@ -31,7 +31,7 @@ void PRadCoordSystem::LoadCoordData(const std::string &path, const int &chosen_r
 {
     ConfigParser c_parser;
 
-    if(!c_parser.OpenFile(path)) {
+    if(!c_parser.ReadFile(path)) {
         std::cerr << "PRad Coord System Error: Cannot open data file "
                   << "\"" << path << "\"."
                   << std::endl;

@@ -26,7 +26,7 @@ void PRadEventFilter::LoadBadEventList(const std::string &path)
     // remove *, space and tab at both ends of each element
     c_parser.SetWhiteSpace(" \t*");
 
-    if (!c_parser.OpenFile(path)) {
+    if (!c_parser.ReadFile(path)) {
         std::cerr << "PRad Event Filter Error: Cannot open bad event list "
                   <<"\"" << path << "\""
                   << std::endl;

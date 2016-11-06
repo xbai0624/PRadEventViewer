@@ -183,7 +183,7 @@ void PRadGEMSystem::Configure(const string &path) throw(PRadException)
     ConfigParser c_parser;
     c_parser.SetSplitters(",");
 
-    if(!c_parser.OpenFile(path)) {
+    if(!c_parser.ReadFile(path)) {
         throw PRadException("GEM System", "cannot open configuration file " + path);
     }
 
@@ -245,7 +245,7 @@ void PRadGEMSystem::ReadPedestalFile(const string &path) throw(PRadException)
     ConfigParser c_parser;
     c_parser.SetSplitters(",: \t");
 
-    if(!c_parser.OpenFile(path)) {
+    if(!c_parser.ReadFile(path)) {
         throw PRadException("GEM System", "cannot open pedestal data file " + path);
     }
 

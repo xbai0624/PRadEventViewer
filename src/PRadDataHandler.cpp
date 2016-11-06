@@ -87,7 +87,7 @@ void PRadDataHandler::ReadConfig(const string &path)
     ConfigParser c_parser;
     c_parser.SetSplitters(":,");
 
-    if(!c_parser.OpenFile(path)) {
+    if(!c_parser.ReadFile(path)) {
         cerr << "Data Handler: Cannot open configuration file "
              << "\"" << path << "\"."
              << endl;
@@ -1022,7 +1022,7 @@ void PRadDataHandler::ReadTDCList(const string &path)
 {
     ConfigParser c_parser;
 
-    if(!c_parser.OpenFile(path)) {
+    if(!c_parser.ReadFile(path)) {
         cout << "WARNING: Fail to open tdc group list file "
              << "\"" << path << "\""
              << ", no tdc groups created from this file."
@@ -1049,7 +1049,7 @@ void PRadDataHandler::ReadChannelList(const string &path)
 {
     ConfigParser c_parser;
 
-    if(!c_parser.OpenFile(path)) {
+    if(!c_parser.ReadFile(path)) {
         cerr << "WARNING: Fail to open channel list file "
                   << "\"" << path << "\""
                   << ", no channel created from this file."
@@ -1086,7 +1086,7 @@ void PRadDataHandler::ReadEPICSChannels(const string &path)
 {
     ConfigParser c_parser;
 
-    if(!c_parser.OpenFile(path)) {
+    if(!c_parser.ReadFile(path)) {
         cout << "WARNING: Fail to open EPICS channel file "
              << "\"" << path << "\""
              << ", no EPICS channel created!"
@@ -1121,7 +1121,7 @@ void PRadDataHandler::ReadPedestalFile(const string &path)
 {
     ConfigParser c_parser;
 
-    if(!c_parser.OpenFile(path)) {
+    if(!c_parser.ReadFile(path)) {
         cout << "WARNING: Fail to open pedestal file "
              << "\"" << path << "\""
              << ", no pedestal data are read!"
@@ -1157,7 +1157,7 @@ void PRadDataHandler::ReadCalibrationFile(const string &path)
 {
     ConfigParser c_parser;
 
-    if(!c_parser.OpenFile(path)) {
+    if(!c_parser.ReadFile(path)) {
         cout << "WARNING: Failed to calibration factor file "
              << " \"" << path << "\""
              << " , no calibration factors updated!"
@@ -1198,7 +1198,7 @@ void PRadDataHandler::ReadGainFactor(const string &path, const int &ref)
 
     ConfigParser c_parser;
 
-    if(!c_parser.OpenFile(path)) {
+    if(!c_parser.ReadFile(path)) {
         cout << "WARNING: Failed to gain factor file "
              << " \"" << path << "\""
              << " , no gain factors updated!"

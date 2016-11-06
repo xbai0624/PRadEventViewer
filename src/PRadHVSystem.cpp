@@ -197,7 +197,7 @@ void PRadHVSystem::RestoreSetting(const string &path)
 {
     ConfigParser c_parser;
 
-    c_parser.OpenFile(path);
+    c_parser.ReadFile(path);
 
     while(c_parser.ParseLine())
     {

@@ -28,7 +28,7 @@ ConfigParser::ConfigParser(const string &s,
 
 ConfigParser::~ConfigParser()
 {
-    // place holder
+    CloseFile();
 }
 
 void ConfigParser::AddCommentMark(const string &c)
@@ -52,35 +52,47 @@ void ConfigParser::EraseCommentMarks()
 
 bool ConfigParser::OpenFile(const string &path)
 {
-    ClearBuffer();
+    Clear();
 
     infile.open(path);
 
-    if(!infile.is_open())
+    return infile.is_open();
+}
+
+bool ConfigParser::ReadFile(const string &path)
+{
+    Clear();
+
+    ifstream f(path);
+
+    if(!f.is_open())
         return false;
 
-    infile.seekg(0, ios::end);
-    buffer.reserve(infile.tellg());
-    infile.seekg(0, ios::beg);
+    string buffer;
 
-    buffer.assign((istreambuf_iterator<char>(infile)), istreambuf_iterator<char>());
-    infile.close();
+    f.seekg(0, ios::end);
+    buffer.reserve(f.tellg());
+    f.seekg(0, ios::beg);
+
+    buffer.assign((istreambuf_iterator<char>(f)), istreambuf_iterator<char>());
+    f.close();
 
     // remove comments and break the buffers into lines
-    pre_process();
+    buffer_process(buffer);
     return true;
 }
 
-void ConfigParser::OpenBuffer(const char *buf)
+void ConfigParser::ReadBuffer(const char *buf)
 {
-    ClearBuffer();
+    Clear();
 
-    buffer = buf;
+    string buffer = buf;
 
-    pre_process();
+    // remove comments and break the buffers into lines
+    buffer_process(buffer);
 }
 
-void ConfigParser::pre_process()
+void ConfigParser::buffer_process(string &buffer)
 {
     if(comment_pair.first.size() && comment_pair.second.size()) {
         // comment by pair marks
@@ -98,14 +110,18 @@ void ConfigParser::pre_process()
             line.clear();
         }
     }
-
-    buffer.clear();
 }
 
-void ConfigParser::ClearBuffer()
+void ConfigParser::Clear()
 {
     line_number = 0;
+    infile.close();
     queue<string>().swap(lines);
+}
+
+void ConfigParser::CloseFile()
+{
+    infile.close();
 }
 
 string ConfigParser::TakeLine()
@@ -123,6 +139,56 @@ bool ConfigParser::ParseLine()
 {
     queue<string>().swap(elements);
 
+    if(infile.is_open())
+        return parse_file();
+    else
+        return parse_buffer();
+}
+
+inline bool ConfigParser::parse_file()
+{
+    // comment pair needs to be taken care here
+    while(elements.empty())
+    {
+        if(!getline(infile, current_line))
+            return false; // end of file
+
+        // no need to take care comment pair
+        if(comment_pair.first.empty() || comment_pair.second.empty()) {
+            ParseLine(current_line);
+        } else {
+            if(in_comment_pair) {
+                auto c_end = current_line.find(comment_pair.second);
+                if(c_end != string::npos) {
+                    // end of a comment pair
+                    ParseLine(current_line.substr(c_end + comment_pair.second.size()));
+                    in_comment_pair = false;
+                } else {
+                    // still inside a comment pair
+                    ParseLine("");
+                }
+            } else {
+                // remove complete pair in one line
+                while(comment_between(current_line, comment_pair.first, comment_pair.second))
+                {;}
+                auto c_beg = current_line.find(comment_pair.first);
+                if(c_beg != string::npos) {
+                    ParseLine(current_line.substr(0, c_beg));
+                    in_comment_pair = true;
+                } else {
+                    ParseLine(current_line);
+                }
+            }
+        }
+    }
+
+    return true;
+}
+
+inline bool ConfigParser::parse_buffer()
+{
+    // comment pair has been taken care before breaking into lines,
+    // so it's simple here
     while(elements.empty())
     {
         if(lines.empty())
@@ -184,7 +250,6 @@ bool ConfigParser::comment_between(string &str, const string &open, const string
     if(begin != string::npos) {
         auto end = str.find(close, begin + open.size());
         if(end != string::npos) {
-            cout << str.substr(begin, end - begin + close.size()) << endl;
             str.erase(begin, end + close.size() - begin);
             return true;
         }

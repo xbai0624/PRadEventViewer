@@ -78,7 +78,7 @@ void ConfigObject::readConfigFile(const std::string &path)
 {
     ConfigParser c_parser(split_chars); // self-defined splitters
 
-    if(!c_parser.OpenFile(path)) {
+    if(!c_parser.ReadFile(path)) {
         std::cerr << "PRad HyCal Cluster Error: Cannot open file "
                   << "\"" << path << "\""
                   << std::endl;

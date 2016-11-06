@@ -471,7 +471,7 @@ void PRadEventViewer::readModuleList()
     handler->ReadTDCList("config/tdc_group_list.txt");
 
     ConfigParser c_parser;
-    if(!c_parser.OpenFile("config/module_list.txt")) {
+    if(!c_parser.ReadFile("config/module_list.txt")) {
         std::cerr << "ERROR: Missing configuration file \"config/module_list.txt\""
                   << ", cannot generate HyCal channels!"
                   << std::endl;
@@ -510,7 +510,6 @@ void PRadEventViewer::readModuleList()
                       << std::endl;
         }
     }
-
 
     // make handler to build the module map
     handler->BuildChannelMap();
@@ -1107,7 +1106,7 @@ void PRadEventViewer::readCustomValue(const QString &filepath)
 {
     ConfigParser c_parser;
 
-    if(!c_parser.OpenFile(filepath.toStdString())) {
+    if(!c_parser.ReadFile(filepath.toStdString())) {
         std::cerr << "Cannot open custom map file "
                   << "\"" << filepath.toStdString() << "\"."
                   << std::endl;

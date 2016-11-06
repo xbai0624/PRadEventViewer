@@ -32,8 +32,10 @@ public:
     void EraseCommentMarks();
 
     bool OpenFile(const std::string &path);
-    void OpenBuffer(const char *);
-    void ClearBuffer();
+    bool ReadFile(const std::string &path);
+    void ReadBuffer(const char *);
+    void CloseFile();
+    void Clear();
 
     bool ParseLine();
     void ParseLine(const std::string &line);
@@ -49,10 +51,8 @@ public:
     const std::string &GetWhiteSpace() const {return white_space;};
     const std::vector<std::string> &GetCommentMarks() const {return comment_marks;};
     const std::pair<std::string, std::string> &GetCommentPair() const {return comment_pair;};
-private:
-    void pre_process();
 
-    std::string buffer;
+private:
     std::string splitters;
     std::string white_space;
     std::vector<std::string> comment_marks;
@@ -65,6 +65,9 @@ private:
     std::ifstream infile;
 
 private:
+    void buffer_process(std::string &buffer);
+    bool parse_file();
+    bool parse_buffer();
     std::string comment_out(const std::string &str, size_t index = 0);
     bool comment_between(std::string &str, const std::string &open, const std::string &close);
 
