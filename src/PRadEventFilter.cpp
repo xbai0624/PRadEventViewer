@@ -45,7 +45,6 @@ void PRadEventFilter::LoadBadEventList(const std::string &path)
         bad_events_list.emplace_back(val1, val2);
     }
 
-    c_parser.CloseFile();
 }
 
 bool PRadEventFilter::IsBadEvent(const EventData &event)

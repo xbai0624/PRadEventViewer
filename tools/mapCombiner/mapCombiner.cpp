@@ -84,7 +84,6 @@ int main(int argc, char *argv[])
                 it->second.splice(it->second.end(), eles);
             }
         }
-        parser.CloseFile();
         first_map = false;
     }
 

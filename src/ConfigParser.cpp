@@ -6,6 +6,7 @@
 //============================================================================//
 
 #include "ConfigParser.h"
+#include <streambuf>
 #include <cstring>
 #include <climits>
 #include <algorithm>
@@ -17,15 +18,17 @@ using namespace std;
 //============================================================================//
 ConfigParser::ConfigParser(const string &s,
                            const string &w,
-                           const vector<string> &c)
-: splitters(s), white_space(w), comment_marks(c), line_number(0)
+                           const vector<string> &c,
+                           const pair<string, string> &p)
+: splitters(s), white_space(w), comment_marks(c), comment_pair(p),
+  line_number(0), in_comment_pair(false)
 {
-
+    // place holder
 }
 
 ConfigParser::~ConfigParser()
 {
-    CloseFile();
+    // place holder
 }
 
 void ConfigParser::AddCommentMark(const string &c)
@@ -49,37 +52,59 @@ void ConfigParser::EraseCommentMarks()
 
 bool ConfigParser::OpenFile(const string &path)
 {
+    ClearBuffer();
+
     infile.open(path);
-    line_number = 0;
-    return infile.is_open();
-}
 
-void ConfigParser::CloseFile()
-{
+    if(!infile.is_open())
+        return false;
+
+    infile.seekg(0, ios::end);
+    buffer.reserve(infile.tellg());
+    infile.seekg(0, ios::beg);
+
+    buffer.assign((istreambuf_iterator<char>(infile)), istreambuf_iterator<char>());
     infile.close();
+
+    // remove comments and break the buffers into lines
+    pre_process();
+    return true;
 }
 
-void ConfigParser::OpenBuffer(char *buf)
+void ConfigParser::OpenBuffer(const char *buf)
 {
-    CloseFile(); // close file first
-    line_number = 0;
+    ClearBuffer();
 
-    string buffer = buf;
+    buffer = buf;
+
+    pre_process();
+}
+
+void ConfigParser::pre_process()
+{
+    if(comment_pair.first.size() && comment_pair.second.size()) {
+        // comment by pair marks
+        while(comment_between(buffer, comment_pair.first, comment_pair.second))
+        {;}
+    }
 
     string line;
-    for(auto c : buffer)
+    for(auto &c : buffer)
     {
-        if(c != '\n') {
+        if( c != '\n') {
             line += c;
         } else {
             lines.push(line);
-            line = "";
+            line.clear();
         }
     }
+
+    buffer.clear();
 }
 
 void ConfigParser::ClearBuffer()
 {
+    line_number = 0;
     queue<string>().swap(lines);
 }
 
@@ -98,31 +123,24 @@ bool ConfigParser::ParseLine()
 {
     queue<string>().swap(elements);
 
-    if(infile.is_open()) { // if file is open, parse file
-        while(elements.empty())
-        {
-            if(!getline(infile, current_line))
-                return false; // end of file
-
-            ParseLine(current_line);
-        }
-    } else { // if file is not closed, parse buffer
-        while(elements.empty())
-        {
-            if(lines.empty())
-                return false; // end of buffer
-            current_line = std::move(lines.front());
-            lines.pop();
-            ParseLine(current_line);
-        }
+    while(elements.empty())
+    {
+        if(lines.empty())
+            return false; // end of buffer
+        current_line = move(lines.front());
+        lines.pop();
+        ParseLine(current_line);
     }
+
     return true; // parsed a line
 }
 
 void ConfigParser::ParseLine(const string &line)
 {
     ++line_number;
+
     string trim_line = trim(comment_out(line), white_space);
+
     queue<string> eles = split(trim_line, splitters);
 
     while(eles.size())
@@ -158,6 +176,21 @@ list<ConfigValue> ConfigParser::TakeAll()
     }
 
     return output;
+}
+
+bool ConfigParser::comment_between(string &str, const string &open, const string &close)
+{
+    auto begin = str.find(open);
+    if(begin != string::npos) {
+        auto end = str.find(close, begin + open.size());
+        if(end != string::npos) {
+            cout << str.substr(begin, end - begin + close.size()) << endl;
+            str.erase(begin, end + close.size() - begin);
+            return true;
+        }
+    }
+
+    return false;
 }
 
 string ConfigParser::comment_out(const string &str, size_t index)
@@ -293,7 +326,7 @@ void ConfigParser::find_integer_helper(const string &str, vector<int> &result)
 }
 
 // return the lower case of this string
-std::string ConfigParser::str_lower(const std::string &str)
+string ConfigParser::str_lower(const string &str)
 {
     string res = str;
     for(auto &c : res)
@@ -304,7 +337,7 @@ std::string ConfigParser::str_lower(const std::string &str)
 }
 
 // return the upper case of this string
-std::string ConfigParser::str_upper(const std::string &str)
+string ConfigParser::str_upper(const string &str)
 {
     string res = str;
     for(auto &c : res)
@@ -360,11 +393,76 @@ bool ConfigParser::strcmp_case_insensitive(const string &str1, const string &str
     return true;
 }
 
+vector<pair<int, int>> ConfigParser::find_pair(const string &str,
+                                               const string &op,
+                                               const string &cl)
+{
+    vector<pair<int, int>> result;
+
+    if(op == cl) {
+        cerr << "find_between: do not accept identical open and close marks."
+                  << endl;
+        return result;
+    }
+
+    if(op.empty() || cl.empty())
+        return result;
+
+    int mark_size = op.size() + cl.size();
+
+    // there won't be any
+    if(mark_size > (int)str.size())
+        return result;
+
+    list<int> opens;
+    for(int i = 0; i < (int)str.size(); ++i)
+    {
+        if(str.substr(i, op.size()) == op)
+            opens.push_back(i);
+    }
+
+    list<int> closes;
+    for(int i = 0; i < (int)str.size(); ++i)
+    {
+        if(str.substr(i, cl.size()) == cl)
+        {
+            bool share_char = false;
+            for(auto &idx : opens)
+            {
+                if(abs(i - idx) < op.size())
+                    share_char = true;
+            }
+
+            if(!share_char)
+                closes.push_back(i);
+        }
+    }
+
+    if(closes.size() != opens.size()) {
+        cout << "find_between: find unmatched open and close marks."
+                  << endl;
+    }
+
+    for(auto cl_it = closes.begin(); cl_it != closes.end(); ++cl_it)
+    {
+        for(auto op_it = opens.rbegin(); op_it != opens.rend(); ++op_it)
+        {
+            if((*cl_it - *op_it) >= mark_size)
+            {
+                result.emplace_back(*op_it, *cl_it);
+                opens.erase(next(op_it).base());
+                break;
+            }
+        }
+    }
+
+    return result;
+}
 //============================================================================//
 // trivial funcs                                                              //
 //============================================================================//
 
-ConfigParser &operator >> (ConfigParser &c, std::string &v)
+ConfigParser &operator >> (ConfigParser &c, string &v)
 {
     v = c.TakeFirst().String();
     return c;
@@ -527,12 +625,16 @@ const
 {
     if((_value == "1") ||
        (ConfigParser::strcmp_case_insensitive(_value, "T")) ||
-       (ConfigParser::strcmp_case_insensitive(_value, "True")))
+       (ConfigParser::strcmp_case_insensitive(_value, "True")) ||
+       (ConfigParser::strcmp_case_insensitive(_value, "Y")) ||
+       (ConfigParser::strcmp_case_insensitive(_value, "Yes")))
         return true;
 
     if((_value == "0") ||
        (ConfigParser::strcmp_case_insensitive(_value, "F")) ||
-       (ConfigParser::strcmp_case_insensitive(_value, "False")))
+       (ConfigParser::strcmp_case_insensitive(_value, "False")) ||
+       (ConfigParser::strcmp_case_insensitive(_value, "N")) ||
+       (ConfigParser::strcmp_case_insensitive(_value, "No")))
         return false;
 
     cout << "Config Value: Failed to convert "

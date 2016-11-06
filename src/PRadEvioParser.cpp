@@ -471,7 +471,7 @@ void PRadEvioParser::parseTIData(const uint32_t *data, const size_t &size, const
 
 void PRadEvioParser::parseEPICS(const uint32_t *data)
 {
-    c_parser->OpenBuffer((char*) data);
+    c_parser->OpenBuffer((const char*) data);
 
     while(c_parser->ParseLine())
     {

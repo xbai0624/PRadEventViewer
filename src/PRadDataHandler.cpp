@@ -1043,7 +1043,6 @@ void PRadDataHandler::ReadTDCList(const string &path)
         }
     }
 
-    c_parser.CloseFile();
 }
 
 void PRadDataHandler::ReadChannelList(const string &path)
@@ -1079,7 +1078,6 @@ void PRadDataHandler::ReadChannelList(const string &path)
         }
     }
 
-    c_parser.CloseFile();
 
     BuildChannelMap();
 }
@@ -1117,7 +1115,6 @@ void PRadDataHandler::ReadEPICSChannels(const string &path)
         }
     }
 
-    c_parser.CloseFile();
 };
 
 void PRadDataHandler::ReadPedestalFile(const string &path)
@@ -1149,7 +1146,6 @@ void PRadDataHandler::ReadPedestalFile(const string &path)
         }
     }
 
-    c_parser.CloseFile();
 };
 
 void PRadDataHandler::ReadGEMPedestalFile(const string &path)
@@ -1190,7 +1186,6 @@ void PRadDataHandler::ReadCalibrationFile(const string &path)
 
     }
 
-    c_parser.CloseFile();
 }
 
 void PRadDataHandler::ReadGainFactor(const string &path, const int &ref)
@@ -1229,7 +1224,6 @@ void PRadDataHandler::ReadGainFactor(const string &path, const int &ref)
 
     }
 
-    c_parser.CloseFile();
 }
 
 // Refill energy hist after correct gain factos

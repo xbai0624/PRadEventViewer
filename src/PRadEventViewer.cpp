@@ -511,7 +511,6 @@ void PRadEventViewer::readModuleList()
         }
     }
 
-    c_parser.CloseFile();
 
     // make handler to build the module map
     handler->BuildChannelMap();

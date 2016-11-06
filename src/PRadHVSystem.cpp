@@ -222,7 +222,6 @@ void PRadHVSystem::RestoreSetting(const string &path)
     }
 
     cout << "Restore the High Voltage Setting from " << path << endl;
-    c_parser.CloseFile();
 }
 
 void PRadHVSystem::SetVoltage(const ChannelAddress &addr, const float &Vset)
