@@ -16,7 +16,7 @@ public:
     void SetSplitChars(const std::string &splitter) {split_chars = splitter;};
     void SaveConfig(const std::string &path = "");
 
-    const ConfigValue &GetConfigValue(const std::string &var_name) const;
+    ConfigValue GetConfigValue(const std::string &var_name) const;
     const std::string &GetConfigPath() const {return config_path;};
     const std::string &GetSplitChars() const {return split_chars;};
     const std::string &GetSpaceChars() const {return ignore_chars;};
@@ -33,6 +33,9 @@ public:
 
 protected:
     void readConfigFile(const std::string &path);
+    ConfigValue form(const std::string &input,
+                     const std::string &open = "{",
+                     const std::string &close = "}") const;
     ConfigValue getConfigValue(const std::string &var_name,
                                const ConfigValue &def_value,
                                bool verbose = true);
@@ -46,7 +49,7 @@ protected:
     std::string split_chars;
     std::string ignore_chars;
     std::string config_path;
-    std::unordered_map<std::string, ConfigValue> config_map;
+    std::unordered_map<std::string, std::string> config_map;
 
     // return this reference when there is no value found in the map
     const ConfigValue __empty_value;

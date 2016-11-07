@@ -6,12 +6,12 @@ EPICS Channels: config/epics_channels.txt
 GEM Configuration: config/gem_map.conf
 
 # initialize by file
-#Run Number: 1323
+#Run Number: 001323
 #HyCal Pedestal: config/pedestal.dat
 #GEM Pedestal: config/gem_ped.dat
 
 # initialize by data
-#Initialize File: /data/totape/prad_001498.evio.0
+#Initialize File: /data/totape/prad_{Run Number}.evio.0
 
 # Setup HyCal Reconstruction
 Island Cluster Configuration: config/island.conf

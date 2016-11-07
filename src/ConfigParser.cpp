@@ -641,6 +641,10 @@ ConfigValue::ConfigValue(const string &value)
 : _value(value)
 {}
 
+ConfigValue::ConfigValue(string &&value)
+: _value(move(value))
+{}
+
 ConfigValue::ConfigValue(const bool &value)
 {
     if(value)

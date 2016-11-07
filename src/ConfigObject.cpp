@@ -33,7 +33,7 @@ void ConfigObject::Configure(const std::string & /*path*/)
     // to be overloaded
 }
 
-const ConfigValue &ConfigObject::GetConfigValue(const std::string &var_name)
+ConfigValue ConfigObject::GetConfigValue(const std::string &var_name)
 const
 {
     // convert to lower case and remove uninterested characters
@@ -43,7 +43,7 @@ const
     if(it == config_map.end())
         return __empty_value;
     else
-        return it->second;
+        return form(it->second);
 }
 
 void ConfigObject::SetConfigValue(const std::string &var_name, const ConfigValue &c_value)
@@ -102,7 +102,6 @@ void ConfigObject::readConfigFile(const std::string &path)
 
         // convert to lower case and remove uninterested characters
         key = ConfigParser::str_lower(ConfigParser::str_remove(var_name, ignore_chars));
-
         config_map[key] = var_value;
     }
 }
@@ -127,6 +126,26 @@ ConfigValue ConfigObject::getConfigValue(const std::string &name,
         return def_value;
     }
 
-    return it->second;
+    return form(it->second);
 }
 
+ConfigValue ConfigObject::form(const std::string &input,
+                               const std::string &op,
+                               const std::string &cl)
+const
+{
+    ConfigValue res(input);
+
+    auto pairs = ConfigParser::find_pair(res._value, op, cl);
+
+    for(auto &pair : pairs)
+    {
+        int beg_pos = pair.first + op.size();
+        int end_pos = pair.second - cl.size();
+        int size = end_pos - beg_pos + 1;
+        ConfigValue val = GetConfigValue(res._value.substr(beg_pos, size));
+        res._value.replace(pair.first, pair.second - pair.first + 1, val.c_str());
+    }
+
+    return res;
+}

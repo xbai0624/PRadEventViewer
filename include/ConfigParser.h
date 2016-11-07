@@ -145,6 +145,7 @@ public:
     ConfigValue() {};
 
     ConfigValue(const std::string &value);
+    ConfigValue(std::string &&value);
     ConfigValue(const bool &value);
     ConfigValue(const int &value);
     ConfigValue(const long &value);
