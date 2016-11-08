@@ -20,9 +20,9 @@ class ConfigParser
 public:
     ConfigParser(const std::string &s = " ,\t",  // splitters
                  const std::string &w = " \t",  // white_space
-                 const std::vector<std::string> &c = {"#", "//"}, // comment_mark
-                 const std::pair<std::string, std::string> &p = std::make_pair("/*", "*/")); // comment_pair
+                 const std::vector<std::string> &c = {"#", "//"}); // comment_mark
     virtual ~ConfigParser();
+
     void SetSplitters(const std::string &s) {splitters = s;};
     void SetWhiteSpace(const std::string &w) {white_space = w;};
     void SetCommentMarks(const std::vector<std::string> &c) {comment_marks = c;};

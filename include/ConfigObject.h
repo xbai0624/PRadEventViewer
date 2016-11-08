@@ -2,24 +2,38 @@
 #define CONFIG_OBJECT_H
 
 #include <string>
+#include <utility>
+#include <vector>
 #include <unordered_map>
 #include "ConfigParser.h"
 
 class ConfigObject
 {
 public:
-    ConfigObject(const std::string &spliiter = ":=", const std::string &ignore = " _\t");
+    ConfigObject(const std::string &spliiter = ":=",
+                 const std::string &ignore = " _\t");
+
     virtual ~ConfigObject();
+
+    void ClearConfig();
+    void SaveConfig(const std::string &path = "") const;
+    void ListKeys() const;
+    bool HasKey(const std::string &name) const;
 
     void SetConfigValue(const std::string &var_name, const ConfigValue &c_value);
     void SetIgnoreChars(const std::string &ignore) {ignore_chars = ignore;};
     void SetSplitChars(const std::string &splitter) {split_chars = splitter;};
-    void SaveConfig(const std::string &path = "");
+    void SetReplacePair(const std::string &open, const std::string &close)
+    {
+        replace_pair = std::make_pair(open, close);
+    }
 
     ConfigValue GetConfigValue(const std::string &var_name) const;
     const std::string &GetConfigPath() const {return config_path;};
     const std::string &GetSplitChars() const {return split_chars;};
     const std::string &GetSpaceChars() const {return ignore_chars;};
+    const std::pair<std::string, std::string> &GetReplacePair() const {return replace_pair;};
+    std::vector<std::string> GetKeyList() const;
 
     template<typename T>
     T GetConfig(const std::string &var_name)
@@ -48,6 +62,7 @@ protected:
 protected:
     std::string split_chars;
     std::string ignore_chars;
+    std::pair<std::string, std::string> replace_pair;
     std::string config_path;
     std::unordered_map<std::string, std::string> config_map;
 

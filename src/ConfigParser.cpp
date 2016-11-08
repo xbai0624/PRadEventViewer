@@ -18,12 +18,11 @@ using namespace std;
 //============================================================================//
 ConfigParser::ConfigParser(const string &s,
                            const string &w,
-                           const vector<string> &c,
-                           const pair<string, string> &p)
-: splitters(s), white_space(w), comment_marks(c), comment_pair(p),
-  line_number(0), in_comment_pair(false)
+                           const vector<string> &c)
+: splitters(s), white_space(w), comment_marks(c), line_number(0),
+  in_comment_pair(false)
 {
-    // place holder
+    comment_pair = std::make_pair("/*", "*/");
 }
 
 ConfigParser::~ConfigParser()

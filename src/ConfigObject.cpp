@@ -15,10 +15,12 @@
 
 
 // constructor
-ConfigObject::ConfigObject(const std::string &splitter, const std::string &ignore)
+ConfigObject::ConfigObject(const std::string &splitter,
+                           const std::string &ignore)
 : split_chars(splitter), ignore_chars(ignore), __empty_value("0")
 {
-    // place holder
+    // set default replace bracket
+    replace_pair = std::make_pair("{", "}");
 }
 
 // destructor
@@ -33,28 +35,43 @@ void ConfigObject::Configure(const std::string & /*path*/)
     // to be overloaded
 }
 
-ConfigValue ConfigObject::GetConfigValue(const std::string &var_name)
-const
+void ConfigObject::ClearConfig()
 {
-    // convert to lower case and remove uninterested characters
-    std::string key = ConfigParser::str_lower(ConfigParser::str_remove(var_name, ignore_chars));
-
-    auto it = config_map.find(key);
-    if(it == config_map.end())
-        return __empty_value;
-    else
-        return form(it->second);
+    config_path = "";
+    config_map.clear();
 }
 
-void ConfigObject::SetConfigValue(const std::string &var_name, const ConfigValue &c_value)
+bool ConfigObject::HasKey(const std::string &var_name)
+const
 {
-    // convert to lower case and remove uninterested characters
     std::string key = ConfigParser::str_lower(ConfigParser::str_remove(var_name, ignore_chars));
+    if(config_map.find(key) != config_map.end())
+        return true;
+    return false;
+}
 
-    config_map[key] = c_value;
+void ConfigObject::ListKeys()
+const
+{
+    for(auto &it : config_map)
+    {
+        std::cout << it.first << std::endl;
+    }
+}
+
+std::vector<std::string> ConfigObject::GetKeyList()
+const
+{
+    std::vector<std::string> res;
+
+    for(auto &it : config_map)
+        res.push_back(it.first);
+
+    return res;
 }
 
 void ConfigObject::SaveConfig(const std::string &path)
+const
 {
     std::string save_path;
 
@@ -71,6 +88,27 @@ void ConfigObject::SaveConfig(const std::string &path)
              << it.second
              << std::endl;
     }
+}
+
+ConfigValue ConfigObject::GetConfigValue(const std::string &var_name)
+const
+{
+    // convert to lower case and remove uninterested characters
+    std::string key = ConfigParser::str_lower(ConfigParser::str_remove(var_name, ignore_chars));
+
+    auto it = config_map.find(key);
+    if(it == config_map.end())
+        return __empty_value;
+    else
+        return form(it->second, replace_pair.first, replace_pair.second);
+}
+
+void ConfigObject::SetConfigValue(const std::string &var_name, const ConfigValue &c_value)
+{
+    // convert to lower case and remove uninterested characters
+    std::string key = ConfigParser::str_lower(ConfigParser::str_remove(var_name, ignore_chars));
+
+    config_map[key] = c_value;
 }
 
 // read configuration file and build the configuration map
@@ -126,7 +164,7 @@ ConfigValue ConfigObject::getConfigValue(const std::string &name,
         return def_value;
     }
 
-    return form(it->second);
+    return form(it->second, replace_pair.first, replace_pair.second);
 }
 
 ConfigValue ConfigObject::form(const std::string &input,
