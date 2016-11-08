@@ -16,10 +16,12 @@ using namespace std;
 PRadSquareCluster::PRadSquareCluster(PRadDataHandler *h)
 : PRadHyCalCluster(h)
 {
+    // place holder
 }
 
 PRadSquareCluster::~PRadSquareCluster()
 {
+    // place holder
 }
 
 void PRadSquareCluster::Configure(const string &c_path)

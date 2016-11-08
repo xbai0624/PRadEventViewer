@@ -15,7 +15,15 @@ PRadIslandCluster::PRadIslandCluster(PRadDataHandler *h)
 {
     fZ0[0] = 2.67; fZ0[1] = 0.86;
     fE0[0] = 2.84e-3; fE0[1] = 1.1e-3;
+    UpdateModuleInfo();
 }
+
+void PRadIslandCluster::SetHandler(PRadDataHandler *h)
+{
+    PRadHyCalCluster::SetHandler(h);
+    UpdateModuleInfo();
+}
+
 //________________________________________________________________
 void PRadIslandCluster::Configure(const std::string &c_path)
 {
@@ -43,9 +51,6 @@ void PRadIslandCluster::Configure(const std::string &c_path)
 
     // load block info, cluster profile in the PrimEx format
     std::string path;
-    path = getConfig<std::string>("BLOCK_INFO_FILE", "config/blockinfo.dat", verbose);
-    LoadBlockInfo(path);
-
     path = getConfig<std::string>("CRYSTAL_PROFILE", "config/prof_pwo.dat", verbose);
     LoadCrystalProfile(path);
 
@@ -80,79 +85,55 @@ void PRadIslandCluster::LoadNonLinearity(const std::string &path)
 }
 */
 //________________________________________________________________
-void PRadIslandCluster::LoadBlockInfo(const std::string &path)
+void PRadIslandCluster::UpdateModuleInfo()
 {
-    //load module info to the fBlockINFO array
-    FILE *fp;
-    int ival;
-    union {int i; float f;} ieu;
+    // cannot update
+    if(fHandler == nullptr)
+        return;
 
-    fp = fopen(path.c_str(), "r");
-    if(!fp) {
-        printf("cannot open config file %s\n", path.c_str());
-        exit(1);
-    }
-
+    // initialize block info
     for(int i = 0; i < T_BLOCKS; ++i)
     {
-        if(fread(&ival, sizeof(ival), 1, fp))
-            fBlockINFO[i].id = ival;
-
-        if(fread(&ival, sizeof(ival), 1, fp))
-        {
-            ieu.i = ival;
-            fBlockINFO[i].x = ieu.f;
-        }
-
-        if(fread(&ival, sizeof(ival), 1, fp))
-        {
-            ieu.i = ival;
-            fBlockINFO[i].y = ieu.f;
-        }
-
-        if(fread(&ival, sizeof(ival), 1, fp))
-            fBlockINFO[i].sector = ival;
-
-        if(fread(&ival, sizeof(ival), 1, fp))
-            fBlockINFO[i].row = ival;
-
-        if(fread(&ival, sizeof(ival), 1, fp))
-            fBlockINFO[i].col = ival;
+        fBlockINFO[i].id = i+1;
+        fBlockINFO[i].x = 0;
+        fBlockINFO[i].y = 0;
+        fBlockINFO[i].sector = -1;
+        fBlockINFO[i].row = 0;
+        fBlockINFO[i].col = 0;
     }
 
-    fclose(fp);
-
-    // initialize module table
+    // initialize module status table
     for(int k = 0; k <= 4; ++k)
-        for(int i = 1; i <= MCOL; ++i)
-            for(int j = 1; j <= MROW; ++j)
-                fModuleStatus[k][i-1][j-1] = 0;
-    //  mark PWO hole:
-    fModuleStatus[0][17-1][17-1] = -1;
-    fModuleStatus[0][17-1][18-1] = -1;
-    fModuleStatus[0][18-1][17-1] = -1;
-    fModuleStatus[0][18-1][18-1] = -1;
+        for(int i = 0; i < MCOL; ++i)
+            for(int j = 0; j < MROW; ++j)
+                fModuleStatus[k][i][j] = -1;
 
-    //  mark dead channles:
-    for(int i = 0; i < T_BLOCKS; ++i)
+    // update block info from module list
+    for(auto &module : fHandler->GetChannelList())
     {
-        int isector = fBlockINFO[i].sector;
-        if(isector >=0 && isector <= 4)
-        {
-            int thisid = fBlockINFO[i].id;
-            if(thisid == i+1)
-            {
-                int thisrow = fBlockINFO[i].row;
-                int thiscol = fBlockINFO[i].col;
-                fModuleStatus[isector][thiscol-1][thisrow-1] = 0; // HYCAL_STATUS[i];
-                if(thisid == 1835 || thisid == 16  || thisid == 107  || thisid == 900 ){
-                    fModuleStatus[isector][thiscol-1][thisrow-1] = 1; // HYCAL_STATUS[i];
-                    fDeadModules.push_back(fBlockINFO[i]); //save dead module info
-                }
-            }
+        if(!module->IsHyCalModule())
+            continue;
+
+        int id = module->GetPrimexID() - 1;
+        fBlockINFO[id].x = module->GetX()/10.;
+        fBlockINFO[id].y = module->GetY()/10.;
+
+        int sector = module->GetGeometry().sector;
+        int row = module->GetGeometry().row;
+        int column = module->GetGeometry().column;
+
+        fBlockINFO[id].sector = sector;
+        fBlockINFO[id].row = row;
+        fBlockINFO[id].col = column;
+        if(module->IsDead()) {
+            fModuleStatus[sector][column-1][row-1] = 1;
+            fDeadModules.push_back(fBlockINFO[id]);
+        } else {
+            fModuleStatus[sector][column-1][row-1] = 0;
         }
     }
 }
+
 //______________________________________________________________
 void PRadIslandCluster::Clear()
 {
@@ -851,7 +832,7 @@ void PRadIslandCluster::FinalProcessing()
         // current PRad coordinates
         fHyCalCluster[i].E *= 1000.; // GeV to MeV
         fHyCalCluster[i].sigma_E *= 1000.; // GeV to MeV
-        fHyCalCluster[i].x *= -10.; // cm to mm
+        fHyCalCluster[i].x *= 10.; // cm to mm
         fHyCalCluster[i].y *= 10.; // cm to mm
         fHyCalCluster[i].z *= 10.; //cm to mm
 

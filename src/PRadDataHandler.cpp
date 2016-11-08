@@ -240,6 +240,10 @@ void PRadDataHandler::BuildChannelMap()
     // DAQ configuration map
     for(auto &channel : channelList)
         map_daq[channel->GetDAQInfo()] = channel;
+
+    // update reconstruction
+    for(auto &recon : hycal_recon_map)
+        recon.second->UpdateModuleInfo();
 }
 
 // erase the data container

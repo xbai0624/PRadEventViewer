@@ -12,9 +12,66 @@ PRadDAQUnit::PRadDAQUnit(const std::string &name,
                          const ChannelAddress &daqAddr,
                          const std::string &tdc,
                          const Geometry &geo)
-: channelName(name), geometry(geo), address(daqAddr), pedestal(Pedestal(0, 0)),
-  tdcName(tdc), tdcGroup(nullptr),
-  occupancy(0), sparsify(0), channelID(0), adc_value(0), primexID(-1)
+: channelName(name), dead(false), geometry(geo), address(daqAddr),
+  pedestal(Pedestal(0, 0)), tdcName(tdc), tdcGroup(nullptr),
+  occupancy(0), sparsify(0), channelID(0), adc_value(0)
+{
+    initHist();
+
+    //save the primex ID
+    if(channelName.at(0) == 'W') {
+        primexID = std::stoi(channelName.substr(1)) + 1000;
+    } else if(channelName.at(0) == 'G') {
+        primexID = std::stoi(channelName.substr(1));
+    } else {
+        primexID = -1;
+    }
+
+    // TODO create a enum for sector information, probably in the HyCal class
+    // calculate geometry information
+    if(geometry.type == LeadTungstate) { // crystal module
+        int id = primexID - 1001;
+        geometry.sector = 0;
+        geometry.row = id/34 + 1;
+        geometry.column = id%34 + 1;
+    }
+
+    if(geometry.type == LeadGlass) { // lead glass module
+        int id = primexID - 1;
+        int g_row = id/30 + 1;
+        int g_col = id%30 + 1;
+        if(g_col <= 24 && g_row <= 6) {
+            geometry.sector = 1;
+            geometry.row = g_row;
+            geometry.column = g_col;
+        }
+        if(g_col > 24 && g_row <= 24) {
+            geometry.sector = 2;
+            geometry.row = g_row;
+            geometry.column = g_col - 24;
+        }
+        if(g_col > 6 && g_row > 24) {
+            geometry.sector = 3;
+            geometry.row = g_row - 24;
+            geometry.column = g_col - 6;
+        }
+        if(g_col <= 6 && g_row > 6) {
+            geometry.sector = 4;
+            geometry.row = g_row - 6;
+            geometry.column = g_col;
+        }
+    }
+}
+
+PRadDAQUnit::~PRadDAQUnit()
+{
+    for(auto &ele : histograms)
+    {
+        delete ele.second, ele.second = nullptr;
+    }
+}
+
+void PRadDAQUnit::initHist()
 {
     std::string hist_name;
 
@@ -29,7 +86,7 @@ PRadDAQUnit::PRadDAQUnit(const std::string &name,
     AddHist("LMS", "Integer", (channelName + " LED Source"), 2048, 0, 8191);
 
     // default hist-trigger mapping
-//    MapHist("PED", TI_Error);
+    //    MapHist("PED", TI_Error);
     if(channelName.find("LMS") != std::string::npos) {
         MapHist("PHYS", LMS_Alpha);
         MapHist("PED", PHYS_LeadGlassSum);
@@ -44,22 +101,6 @@ PRadDAQUnit::PRadDAQUnit(const std::string &name,
         MapHist("PHYS", PHYS_Scintillator);
     }
     MapHist("LMS", LMS_Led);
-
-    //save the primex ID
-    if (channelName.at(0) == 'W'){
-      primexID = stoi(channelName.substr(1)) + 1000;
-    }
-    else if (channelName.at(0) == 'G'){
-      primexID = stoi(channelName.substr(1));
-    }
-}
-
-PRadDAQUnit::~PRadDAQUnit()
-{
-    for(auto &ele : histograms)
-    {
-        delete ele.second, ele.second = nullptr;
-    }
 }
 
 void PRadDAQUnit::AddHist(const std::string &n)

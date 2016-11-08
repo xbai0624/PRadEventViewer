@@ -19,11 +19,12 @@ public:
     PRadHyCalCluster(PRadDataHandler *h = nullptr);
     virtual ~PRadHyCalCluster();
 
-    void SetHandler(PRadDataHandler *h);
 
     // functions that to be overloaded
+    virtual void SetHandler(PRadDataHandler *h);
     virtual void Reconstruct(EventData &event);
     virtual void Clear();
+    virtual void UpdateModuleInfo();
     virtual int GetNClusters() {return fNHyCalClusters;};
     virtual HyCalHit *GetCluster() {return fHyCalCluster;};
 

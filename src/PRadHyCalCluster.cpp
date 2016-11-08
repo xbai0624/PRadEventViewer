@@ -32,6 +32,11 @@ void PRadHyCalCluster::SetHandler(PRadDataHandler *h)
     fHandler = h;
 }
 
+void PRadHyCalCluster::UpdateModuleInfo()
+{
+    // to be implemented by methods
+}
+
 void PRadHyCalCluster::Reconstruct(EventData & /*event*/)
 {
     // to be implemented by methods

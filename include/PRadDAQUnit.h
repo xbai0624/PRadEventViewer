@@ -15,7 +15,7 @@ class PRadDAQUnit
 public:
     enum ChannelType
     {
-        LeadGlass,
+        LeadGlass = 0,
         LeadTungstate,
         Scintillator,
         LightMonitor,
@@ -29,16 +29,22 @@ public:
         double size_y;
         double x;
         double y;
+        int sector;
+        int row;
+        int column;
 
         Geometry()
-        : type(Undefined), size_x(0), size_y(0), x(0), y(0)
+        : type(Undefined), size_x(0), size_y(0), x(0), y(0),
+          sector(-1), row(0), column(0)
         {};
+
         Geometry(const ChannelType &t,
                  const double &sx,
                  const double &sy,
                  const double &pos_x,
                  const double &pos_y)
-        : type(t), size_x(sx), size_y(sy), x(pos_x), y(pos_y)
+        : type(t), size_x(sx), size_y(sy), x(pos_x), y(pos_y),
+          sector(-1), row(0), column(0)
         {};
     };
 
@@ -95,10 +101,14 @@ public:
     };
 
 public:
-    PRadDAQUnit(const std::string &name, const ChannelAddress &daqAddr, const std::string &tdc_name = "", const Geometry &geo = Geometry());
+    PRadDAQUnit(const std::string &name,
+                const ChannelAddress &daqAddr,
+                const std::string &tdc_name = "",
+                const Geometry &geo = Geometry());
     virtual ~PRadDAQUnit();
     void AssignID(const unsigned short &id) {channelID = id;};
     void SetTDCGroup(PRadTDCGroup *t) {tdcGroup = t;};
+    void SetDead(bool d) {dead = d;};
     void UpdatePedestal(const Pedestal &ped);
     void UpdatePedestal(const double &m, const double &s);
     void UpdateCalibrationConstant(const CalibrationConstant &c) {cal_const = c;};
@@ -111,6 +121,9 @@ public:
     void MapHist(const std::string &name, PRadTriggerType type);
 
     bool IsHyCalModule() const {return (geometry.type == LeadGlass) || (geometry.type == LeadTungstate);};
+    bool IsLeadTungstate() const {return geometry.type == LeadTungstate;};
+    bool IsLeadGlass() const {return geometry.type == LeadGlass;};
+    bool IsDead() const {return dead;};
     virtual double Calibration(const unsigned short &adcVal) const; // will be implemented by the derivative class
     virtual unsigned short Sparsification(const unsigned short &adcVal);
     static std::string NameFromPrimExID(int pid);
@@ -129,7 +142,7 @@ public:
     Pedestal GetPedestal() const {return pedestal;};
     CalibrationConstant GetCalibrationConstant() const {return cal_const;};
     ChannelType GetType() const {return geometry.type;};
-    Geometry GetGeometry() const {return geometry;};
+    const Geometry &GetGeometry() const {return geometry;};
     TH1 *GetHist(const std::string &name = "PHYS") const;
     TH1 *GetHist(PRadTriggerType type) const {return hist[(size_t)type];};
     std::vector<TH1*> GetHistList() const;
@@ -197,8 +210,12 @@ public:
         return lhs_val < rhs_val;
     }
 
+private:
+    void initHist();
+
 protected:
     std::string channelName;
+    bool dead;
     Geometry geometry;
     ChannelAddress address;
     Pedestal pedestal;
