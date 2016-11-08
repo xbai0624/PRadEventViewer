@@ -26,10 +26,10 @@ PRadGEMDetector::PRadGEMDetector(const std::string &readoutBoard,
                                  const std::string &detectorType,
                                  const std::string &detector,
                                  PRadGEMSystem *g)
-: gem_srs(g), name(detector), type(detectorType), readout_board(readoutBoard)
+: PRadDetector(detector),
+  gem_srs(g), type(detectorType), readout_board(readoutBoard)
 {
     planes.resize(PRadGEMPlane::Plane_Max, nullptr);
-    det_id = PRadDetectors::getID(name.c_str());
 
     gem_clusters.reserve(MAX_GCLUSTERS);
 }
@@ -39,7 +39,7 @@ PRadGEMDetector::PRadGEMDetector(const std::string &readoutBoard,
 // won't the id assigned by gem system
 // copy constructor
 PRadGEMDetector::PRadGEMDetector(const PRadGEMDetector &that)
-: gem_srs(nullptr), det_id(that.det_id), name(that.name), type(that.type),
+: PRadDetector(that), gem_srs(nullptr), type(that.type),
   readout_board(that.readout_board), gem_clusters(that.gem_clusters)
 {
     for(auto &plane : that.planes)
@@ -55,9 +55,9 @@ PRadGEMDetector::PRadGEMDetector(const PRadGEMDetector &that)
 
 // move constructor
 PRadGEMDetector::PRadGEMDetector(PRadGEMDetector &&that)
-: gem_srs(nullptr), det_id(that.det_id), name(std::move(that.name)),
-  type(std::move(that.type)), readout_board(std::move(that.readout_board)),
-  planes(std::move(that.planes)), gem_clusters(std::move(gem_clusters))
+: PRadDetector(that), gem_srs(nullptr), type(std::move(that.type)),
+  readout_board(std::move(that.readout_board)), planes(std::move(that.planes)),
+  gem_clusters(std::move(gem_clusters))
 {
     // reset the planes' detector
     ConnectPlanes();
@@ -87,9 +87,8 @@ PRadGEMDetector &PRadGEMDetector::operator= (const PRadGEMDetector &rhs)
 PRadGEMDetector &PRadGEMDetector::operator= (PRadGEMDetector &&rhs)
 {
     // disconnect gem system
+    PRadDetector::operator=(rhs);
     gem_srs = nullptr;
-    det_id = rhs.det_id;
-    name = std::move(rhs.name);
     type = std::move(rhs.type);
     readout_board = std::move(rhs.readout_board);
     planes = std::move(rhs.planes);
@@ -152,8 +151,8 @@ bool PRadGEMDetector::AddPlane(PRadGEMPlane *plane)
     if(plane->GetDetector() != nullptr) {
         std::cerr << "PRad GEM Detector Error: "
                   << "Trying to add plane " << plane->GetName()
-                  << " to detector " << name
-                  << ", but the plane is belong to " << plane->GetDetector()->name
+                  << " to detector " << det_name
+                  << ", but the plane is belong to " << plane->GetDetector()->GetName()
                   << ". Action aborted."
                   << std::endl;
         return false;
@@ -162,7 +161,7 @@ bool PRadGEMDetector::AddPlane(PRadGEMPlane *plane)
     if(planes[idx] != nullptr) {
         std::cerr << "PRad GEM Detector Error: "
                   << "Trying to add multiple planes with the same type " << idx
-                  << "to detector " << name << ". Action aborted."
+                  << "to detector " << det_name << ". Action aborted."
                   << std::endl;
         return false;
     }

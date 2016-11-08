@@ -6,7 +6,7 @@
 #include "PRadException.h"
 #include "PRadGEMPlane.h"
 #include "PRadEventStruct.h"
-#include "PRadDetectors.h"
+#include "PRadDetector.h"
 
 #define MAX_GCLUSTERS 250
 
@@ -14,7 +14,7 @@ class PRadGEMSystem;
 class PRadGEMCluster;
 class PRadGEMAPV;
 
-class PRadGEMDetector
+class PRadGEMDetector : public PRadDetector
 {
 public:
     // constructor
@@ -48,8 +48,6 @@ public:
 
     // get parameters
     int GetID() const {return id;};
-    int GetDetID() const {return det_id;};
-    const std::string &GetName() const {return name;};
     const std::string &GetType() const {return type;};
     const std::string &GetReadoutBoard() {return readout_board;};
     PRadGEMPlane *GetPlane(const int &type) const;
@@ -64,8 +62,6 @@ public:
 private:
     PRadGEMSystem *gem_srs;
     int id;
-    int det_id;
-    std::string name;
     std::string type;
     std::string readout_board;
     std::vector<PRadGEMPlane*> planes;

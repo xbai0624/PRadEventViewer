@@ -320,7 +320,7 @@ void PRadIslandCluster::CallIsland(int isect)
         }
 
         fHyCalCluster[n].flag     = 0;
-        fHyCalCluster[n].det_id   = PRadDetectors::HyCal;
+        fHyCalCluster[n].det_id   = PRadDetector::HyCal;
         fHyCalCluster[n].type     = type;
         fHyCalCluster[n].nblocks  = dime;
         fHyCalCluster[n].E        = e;

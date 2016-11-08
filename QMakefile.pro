@@ -62,7 +62,7 @@ HEADERS += include/PRadEventViewer.h \
            include/Spectrum.h \
            include/SpectrumSettingPanel.h \
            include/HtmlDelegate.h \
-           include/PRadDetectors.h \
+           include/PRadDetector.h \
            include/PRadDAQUnit.h \
            include/PRadTDCGroup.h \
            include/PRadEvioParser.h \
@@ -97,7 +97,7 @@ SOURCES += src/main.cpp \
            src/Spectrum.cpp \
            src/SpectrumSettingPanel.cpp \
            src/HtmlDelegate.cpp \
-           src/PRadDetectors.cpp \
+           src/PRadDetector.cpp \
            src/PRadDAQUnit.cpp \
            src/PRadTDCGroup.cpp \
            src/PRadEvioParser.cpp \

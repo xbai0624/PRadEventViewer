@@ -40,7 +40,7 @@ ReconSettingPanel::ReconSettingPanel(QWidget *parent)
     coordBox.resize(COORD_ITEMS, nullptr);
     matchConfLabel.resize(MATCH_ITEMS, nullptr);
     matchConfBox.resize(MATCH_ITEMS, nullptr);
-    markSettings.resize(PRadDetectors::Max_Dets, nullptr);
+    markSettings.resize(PRadDetector::Max_Dets, nullptr);
 
     QFormLayout *grid = new QFormLayout;
     grid->addRow(createMarkGroup());
@@ -70,7 +70,7 @@ QGroupBox *ReconSettingPanel::createMarkGroup()
         markSettings[i]->SetWidth(mark_width[i]);
         markSettings[i]->SetSize(mark_size[i]);
         markSettings[i]->SetColor(mark_color[i]);
-        layout->addRow(tr(PRadDetectors::getName(i)), markSettings[i]);
+        layout->addRow(tr(PRadDetector::getName(i)), markSettings[i]);
     }
 
     markGroup->setLayout(layout);
@@ -289,7 +289,7 @@ void ReconSettingPanel::ConnectCoordSystem(PRadCoordSystem *c)
 
     for(auto &coord : det_coords)
     {
-        coordType->addItem(PRadDetectors::getName(coord.det_enum));
+        coordType->addItem(PRadDetector::getName(coord.det_enum));
     }
 
     coordType->setCurrentIndex(0);
@@ -481,7 +481,7 @@ void ReconSettingPanel::ApplyChanges()
 
 bool ReconSettingPanel::ShowDetector(int det)
 {
-    if(det < 0 || det >= PRadDetectors::Max_Dets)
+    if(det < 0 || det >= PRadDetector::Max_Dets)
         return false;
 
     return markSettings[det]->IsChecked();
@@ -489,7 +489,7 @@ bool ReconSettingPanel::ShowDetector(int det)
 
 bool ReconSettingPanel::ShowMatchedDetector(int det)
 {
-    if(det < 0 || det >= PRadDetectors::Max_Dets)
+    if(det < 0 || det >= PRadDetector::Max_Dets)
         return false;
 
     return markSettings[det]->IsMatchChecked();
@@ -505,7 +505,7 @@ HyCalScene::MarkAttributes ReconSettingPanel::GetMarkAttributes(int det)
 
 int ReconSettingPanel::GetMarkIndex(int det)
 {
-    if(det < 0 || det >= PRadDetectors::Max_Dets)
+    if(det < 0 || det >= PRadDetector::Max_Dets)
         return -1;
 
     return markSettings[det]->GetCurrentMarkIndex();
@@ -513,7 +513,7 @@ int ReconSettingPanel::GetMarkIndex(int det)
 
 QString ReconSettingPanel::GetMarkName(int det)
 {
-    if(det < 0 || det >= PRadDetectors::Max_Dets)
+    if(det < 0 || det >= PRadDetector::Max_Dets)
         return "";
 
     return markSettings[det]->GetCurrentMarkName();
@@ -521,7 +521,7 @@ QString ReconSettingPanel::GetMarkName(int det)
 
 int ReconSettingPanel::GetMarkWidth(int det)
 {
-    if(det < 0 || det >= PRadDetectors::Max_Dets)
+    if(det < 0 || det >= PRadDetector::Max_Dets)
         return 1;
 
     return markSettings[det]->GetWidth();
@@ -529,7 +529,7 @@ int ReconSettingPanel::GetMarkWidth(int det)
 
 QColor ReconSettingPanel::GetMarkColor(int det)
 {
-    if(det < 0 || det >= PRadDetectors::Max_Dets)
+    if(det < 0 || det >= PRadDetector::Max_Dets)
         return Qt::black;
 
     return markSettings[det]->GetColor();
@@ -537,7 +537,7 @@ QColor ReconSettingPanel::GetMarkColor(int det)
 
 double ReconSettingPanel::GetMarkSize(int det)
 {
-    if(det < 0 || det >= PRadDetectors::Max_Dets)
+    if(det < 0 || det >= PRadDetector::Max_Dets)
         return 0;
 
     return markSettings[det]->GetSize();

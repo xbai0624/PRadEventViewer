@@ -1473,10 +1473,10 @@ void PRadEventViewer::showReconEvent(int evt)
     auto matched = detMatch->Match(hycal_hit, n, gem1_hit, n1, gem2_hit, n2);
 
     // display HyCal hits
-    if(reconSetting->ShowDetector(PRadDetectors::HyCal)) {
+    if(reconSetting->ShowDetector(PRadDetector::HyCal)) {
 
-        HyCalScene::MarkAttributes attr = reconSetting->GetMarkAttributes(PRadDetectors::HyCal);
-        if(reconSetting->ShowMatchedDetector(PRadDetectors::HyCal)) {
+        HyCalScene::MarkAttributes attr = reconSetting->GetMarkAttributes(PRadDetector::HyCal);
+        if(reconSetting->ShowMatchedDetector(PRadDetector::HyCal)) {
             for(auto &m : matched)
             {
                 QPointF p(CARTESIAN_TO_HYCALSCENE(hycal_hit[m.hycal].x, hycal_hit[m.hycal].y));
@@ -1493,10 +1493,10 @@ void PRadEventViewer::showReconEvent(int evt)
     }
 
     // display GEM1 hits
-    if(reconSetting->ShowDetector(PRadDetectors::PRadGEM1)) {
+    if(reconSetting->ShowDetector(PRadDetector::PRadGEM1)) {
 
-        HyCalScene::MarkAttributes attr = reconSetting->GetMarkAttributes(PRadDetectors::PRadGEM1);
-        if(reconSetting->ShowMatchedDetector(PRadDetectors::PRadGEM1)) {
+        HyCalScene::MarkAttributes attr = reconSetting->GetMarkAttributes(PRadDetector::PRadGEM1);
+        if(reconSetting->ShowMatchedDetector(PRadDetector::PRadGEM1)) {
             for(auto &m : matched)
             {
                 if(m.gem1 != -1) {
@@ -1514,10 +1514,10 @@ void PRadEventViewer::showReconEvent(int evt)
     }
 
     // display GEM2 hits
-    if(reconSetting->ShowDetector(PRadDetectors::PRadGEM1)) {
+    if(reconSetting->ShowDetector(PRadDetector::PRadGEM1)) {
 
-        HyCalScene::MarkAttributes attr = reconSetting->GetMarkAttributes(PRadDetectors::PRadGEM2);
-        if(reconSetting->ShowMatchedDetector(PRadDetectors::PRadGEM2)) {
+        HyCalScene::MarkAttributes attr = reconSetting->GetMarkAttributes(PRadDetector::PRadGEM2);
+        if(reconSetting->ShowMatchedDetector(PRadDetector::PRadGEM2)) {
             for(auto &m : matched)
             {
                 if(m.gem2 != -1) {

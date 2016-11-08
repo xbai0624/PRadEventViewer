@@ -54,13 +54,13 @@ void PRadCoordSystem::LoadCoordData(const std::string &path, const int &chosen_r
                  >> x >> y >> z >> theta_x >> theta_y >> theta_z;
 
         size_t index = 0;
-        for(; index < (size_t) PRadDetectors::Max_Dets; ++index)
+        for(; index < (size_t) PRadDetector::Max_Dets; ++index)
         {
-            if(det_name.find(PRadDetectors::getName(index)) != std::string::npos)
+            if(det_name.find(PRadDetector::getName(index)) != std::string::npos)
                 break;
         }
 
-        if(index >= (size_t) PRadDetectors::Max_Dets) {
+        if(index >= (size_t) PRadDetector::Max_Dets) {
             std::cout << "PRad Coord System Warning: Unrecognized detector "
                       << det_name << ", skipped reading its offsets."
                       << std::endl;
@@ -72,7 +72,7 @@ void PRadCoordSystem::LoadCoordData(const std::string &path, const int &chosen_r
         auto it = coords_data.find(run);
         if(it == coords_data.end()) {
             // create a new entry
-            std::vector<DetCoord> new_entry((size_t)PRadDetectors::Max_Dets);
+            std::vector<DetCoord> new_entry((size_t)PRadDetector::Max_Dets);
             new_entry[index] = new_off;
 
             coords_data[run] = new_entry;
@@ -145,7 +145,7 @@ void PRadCoordSystem::SetCurrentCoord(const std::vector<PRadCoordSystem::DetCoor
 {
     current_coord = coords;
 
-    current_coord.resize((int)PRadDetectors::Max_Dets);
+    current_coord.resize((int)PRadDetector::Max_Dets);
 
     coords_data[current_coord.begin()->run_number] = current_coord;
 }
@@ -244,7 +244,7 @@ PRadCoordSystem::Point PRadCoordSystem::origin()
 std::ostream &operator << (std::ostream &os, const PRadCoordSystem::DetCoord &det)
 {
     return os << std::setw(8)  << det.run_number
-              << std::setw(12) << PRadDetectors::getName(det.det_enum)
+              << std::setw(12) << PRadDetector::getName(det.det_enum)
               << std::setw(12) << det.x_ori
               << std::setw(12) << det.y_ori
               << std::setw(12) << det.z_ori

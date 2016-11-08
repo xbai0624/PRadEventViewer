@@ -6,7 +6,7 @@
 #include <QDialog>
 #include "HyCalScene.h"
 #include "PRadCoordSystem.h"
-#include "PRadDetectors.h"
+#include "PRadDetector.h"
 
 class PRadDataHandler;
 class PRadDetMatch;

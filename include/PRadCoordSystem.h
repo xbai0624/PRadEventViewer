@@ -6,7 +6,7 @@
 #include <iostream>
 #include <map>
 #include <cmath>
-#include "PRadDetectors.h"
+#include "PRadDetector.h"
 #include "PRadEventStruct.h"
 
 class PRadCoordSystem
@@ -153,7 +153,7 @@ public:
     // by default it projects to HyCal surface from origin
     template<class T>
     void Projection(T &t, const Point &pi = origin(),
-                    int det_id = (int)PRadDetectors::HyCal)
+                    int det_id = (int)PRadDetector::HyCal)
     const
     {
         float zf = current_coord[det_id].z_ori;
@@ -173,7 +173,7 @@ public:
 
     template<class T>
     void Projection(T *t, int NCluster, const Point &pi = origin(),
-                    int det_id = (int)PRadDetectors::HyCal)
+                    int det_id = (int)PRadDetector::HyCal)
     const
     {
         float zf = current_coord[det_id].z_ori;
@@ -196,7 +196,7 @@ public:
 
     template<class T_it>
     void Projection(T_it first, T_it last, const Point &pi = origin(),
-                    int det_id = (int)PRadDetectors::HyCal)
+                    int det_id = (int)PRadDetector::HyCal)
     const
     {
         float zf = current_coord[det_id].z_ori;

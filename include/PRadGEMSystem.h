@@ -42,7 +42,7 @@ public:
     // constructor
     PRadGEMSystem(const std::string &config_file = "",
                   int daq_cap = MAX_FEC_ID,
-                  int det_cap = PRadDetectors::Max_Dets);
+                  int det_cap = PRadDetector::Max_Dets);
 
     // copy/move constructors
     PRadGEMSystem(const PRadGEMSystem &that);
