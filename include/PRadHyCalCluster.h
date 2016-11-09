@@ -19,6 +19,8 @@ public:
     PRadHyCalCluster(PRadDataHandler *h = nullptr);
     virtual ~PRadHyCalCluster();
 
+    // some functions that can be applied for all of the clustering methods
+    void NonLinearCorrection();
 
     // functions that to be overloaded
     virtual void SetHandler(PRadDataHandler *h);

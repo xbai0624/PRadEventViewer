@@ -41,3 +41,18 @@ void PRadHyCalCluster::Reconstruct(EventData & /*event*/)
 {
     // to be implemented by methods
 }
+
+// currently it only accepts GeV
+void PRadHyCalCluster::NonLinearCorrection()
+{
+    for(int i = 0; i < fNHyCalClusters; ++i)
+    {
+        PRadDAQUnit *module = fHandler->GetChannelPrimex(fHyCalCluster[i].cid);
+        float alpha = module->GetNonLinearConst();
+        float Ecal = module->GetCalibrationEnergy();
+        float ecorr = 1. + alpha*(fHyCalCluster[i].E - Ecal/1000.);
+        // prevent unreasonably 
+        if(fabs(ecorr - 1.) < 0.6)
+            fHyCalCluster[i].E /= ecorr;
+    }
+}

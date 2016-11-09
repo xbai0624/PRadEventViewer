@@ -1170,16 +1170,16 @@ void PRadDataHandler::ReadCalibrationFile(const string &path)
     }
 
     string name;
-    double calFactor, ref1, ref2, ref3, nl;
+    double calFactor, Ecal, ref1, ref2, ref3, nl;
     PRadDAQUnit *tmp;
 
     while(c_parser.ParseLine())
     {
         if(c_parser.NbofElements() >= 7) {
-            c_parser >> name >> calFactor >> ref1 >> ref2 >> ref3 >> nl;
+            c_parser >> name >> calFactor >> Ecal >> ref1 >> ref2 >> ref3 >> nl;
             vector<double> ref_gain = {ref1, ref2, ref3};
 
-            PRadDAQUnit::CalibrationConstant calConst(calFactor, ref_gain, nl);
+            PRadDAQUnit::CalibrationConstant calConst(calFactor, Ecal, ref_gain, nl);
 
             if((tmp = GetChannel(name)) != nullptr)
                 tmp->UpdateCalibrationConstant(calConst);
@@ -1192,14 +1192,8 @@ void PRadDataHandler::ReadCalibrationFile(const string &path)
 
 }
 
-void PRadDataHandler::ReadGainFactor(const string &path, const int &ref)
+void PRadDataHandler::ReadGainFile(const string &path)
 {
-    if(ref < 0 || ref > 2) {
-        cerr << "Unknown Reference PMT " << ref
-             << ", please choose Ref. PMT 1 - 3" << endl;
-        return;
-    }
-
     ConfigParser c_parser;
 
     if(!c_parser.ReadFile(path)) {
@@ -1212,22 +1206,61 @@ void PRadDataHandler::ReadGainFactor(const string &path, const int &ref)
 
     string name;
     double ref_gain[3];
-    PRadDAQUnit *tmp;
+    int ref;
 
-    while(c_parser.ParseLine())
-    {
-        if(c_parser.NbofElements() == 4) {
-            c_parser >> name >> ref_gain[0] >> ref_gain[1] >> ref_gain[2];
+    // first line will be gains for 3 reference PMTs
+    if(c_parser.ParseLine()) {
+        c_parser >> name;
 
-            if((tmp = GetChannel(name)) != nullptr)
-                tmp->GainCorrection(ref_gain[ref-1], ref); //TODO we only use reference 2 for now
-        } else {
-            cout << "Unrecognized input format in gain factor file, skipped one line!"
+        if(!ConfigParser::strcmp_case_insensitive(name, "REF_GAIN")) {
+            cerr << "ERROR: Expected Reference PMT information at the first line"
+                 << " in gain factor file " << path << ", abort reading."
                  << endl;
+            return;
         }
 
+        c_parser >> ref_gain[0] >> ref_gain[1] >> ref_gain[2] >> ref;
+
+        ref--;
+        if(ref < 0 || ref > 2) {
+            cerr << "Unknown Reference PMT " << ref
+                 << ", please choose Ref. PMT 1 - 3" << endl;
+            return;
+        }
     }
 
+    double lms_mean, lms_sig, ped_mean, ped_sig;
+    int status;
+    // following lines will be information about modules
+    while(c_parser.ParseLine())
+    {
+        if(c_parser.NbofElements() != 6) {
+            cout << "Unrecognized input format in gain factor file, skipped one line!"
+                 << endl;
+            continue;
+        }
+        c_parser >> name >> ped_mean >> ped_sig >> lms_mean >> lms_sig >> status;
+
+        PRadDAQUnit *tmp = GetChannel(name);
+        // did not find this channel
+        if(tmp == nullptr) {
+            cout << "Cannot find channel " << name
+                 << ", information update aborted."
+                 << endl;
+            continue;
+        }
+
+        tmp->UpdatePedestal(ped_mean, ped_sig);
+        tmp->GainCorrection((lms_mean - ped_mean)/ref_gain[ref], ref);
+        if(status & 1)
+            tmp->SetDead(true);
+        else
+            tmp->SetDead(false);
+    }
+
+    // update reconstruction
+    for(auto &recon : hycal_recon_map)
+        recon.second->UpdateModuleInfo();
 }
 
 // Refill energy hist after correct gain factos

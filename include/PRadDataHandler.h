@@ -10,6 +10,9 @@
 #include "ConfigParser.h"
 #include <thread>
 
+// PMT 0 - 2
+#define DEFAULT_REF_PMT 2
+
 class PRadEvioParser;
 class PRadHyCalCluster;
 class PRadDSTParser;
@@ -88,6 +91,7 @@ public:
     void ReadPedestalFile(const std::string &path);
     void ReadGEMPedestalFile(const std::string &path);
     void ReadCalibrationFile(const std::string &path);
+    void ReadGainFile(const std::string &path);
     void ReadEPICSChannels(const std::string &path);
 
     // file reading and writing
@@ -158,7 +162,7 @@ public:
     void PrintOutEPICS(const std::string &name);
 
     // analysis tools
-    void InitializeByData(const std::string &path = "", int run = -1, int ref = 2);
+    void InitializeByData(const std::string &path = "", int run = -1, int ref = DEFAULT_REF_PMT);
     void ResetChannelHists();
     void SaveHistograms(const std::string &path);
     std::vector<double> FitHistogram(const std::string &channel,
@@ -168,8 +172,7 @@ public:
                                      const double &range_max,
                                      const bool &verbose = false) throw(PRadException);
     void FitPedestal();
-    void ReadGainFactor(const std::string &path, const int &ref = 2);
-    void CorrectGainFactor(const int &ref = 2);
+    void CorrectGainFactor(const int &ref = DEFAULT_REF_PMT);
     void RefillEnergyHist();
     int FindEventIndex(const int &event_number);
     void HyCalReconstruct(const int &event_index);

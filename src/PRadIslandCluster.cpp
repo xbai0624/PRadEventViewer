@@ -508,13 +508,9 @@ void PRadIslandCluster::GlueTransitionClusters()
         }
     }
 
-    // apply energy nonlin corr.:
-    for(int i = 0; i < fNHyCalClusters; ++i)
-    {
-        float olde = fHyCalCluster[i].E;
-        int central_id = fHyCalCluster[i].cid;
-        fHyCalCluster[i].E = EnergyCorrect(olde, central_id);
-    }
+    // apply energy nonlin corr.
+    if(fDoNonLinCorr)
+        NonLinearCorrection();
 
     int ifdiscarded;
 
@@ -711,16 +707,7 @@ void PRadIslandCluster::MergeClusters(int i, int j)
 
     fHyCalCluster[i].nblocks = kk;
 }
-//____________________________________________________________________________
-float PRadIslandCluster::EnergyCorrect (float c_energy, int central_id)
-{
-    float energy = c_energy;
-    if (fDoNonLinCorr){
-        float ecorr = 1. + fNonLin[central_id-1]*(energy-0.55);
-        if(fabs(ecorr-1.) < 0.6) energy /= ecorr;
-    }
-    return energy;
-}
+
 //____________________________________________________________________________
 void PRadIslandCluster::ClusterProcessing()
 {

@@ -61,16 +61,20 @@ public:
     {
         double factor;
         double base_factor;
+        double base_energy;
         std::vector<double> base_gain;
-        double non_linearity;
+        double non_linear;
 
         CalibrationConstant()
-        : factor(0), base_factor(0), non_linearity(0.)
+        : factor(0), base_factor(0), base_energy(0), non_linear(0.)
         {};
+
         CalibrationConstant(const double &calf,
+                            const double &ene,
                             const std::vector<double> &gain,
                             const double &nl = 0.)
-        : factor(calf), base_factor(calf), base_gain(gain), non_linearity(nl)
+        : factor(calf), base_factor(calf), base_energy(ene), base_gain(gain),
+          non_linear(nl)
         {};
 
         void AddReferenceGain(const double &gain)
@@ -136,6 +140,8 @@ public:
     double GetX() const {return geometry.x;};
     double GetY() const {return geometry.y;};
     double GetCalibrationFactor() const {return cal_const.factor;};
+    double GetNonLinearConst() const {return cal_const.non_linear;};
+    double GetCalibrationEnergy() const {return cal_const.base_energy;};
     double GetReferenceGain(const size_t &ref) {return cal_const.GetReferenceGain(ref);};
     unsigned short GetADC() const {return adc_value;};
     ChannelAddress GetDAQInfo() const {return address;};

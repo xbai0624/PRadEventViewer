@@ -809,7 +809,7 @@ void PRadEventViewer::openCalibrationFile()
 
 void PRadEventViewer::openGainFactorFile()
 {
-    QString dir = QDir::currentPath() + "/config";
+    QString dir = QDir::currentPath() + "/database";
 
     QStringList filters;
     filters << "Data files (*.dat *.txt)"
@@ -818,7 +818,7 @@ void PRadEventViewer::openGainFactorFile()
     QString file = getFileName(tr("Open gain factors file"), dir, filters, "");
 
     if (!file.isEmpty()) {
-        handler->ReadGainFactor(file.toStdString());
+        handler->ReadGainFile(file.toStdString());
     }
 }
 
