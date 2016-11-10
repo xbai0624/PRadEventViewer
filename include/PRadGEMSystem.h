@@ -23,19 +23,6 @@
 // enlarge this value if there are more FECs
 #define MAX_FEC_ID 128
 
-// a simple hash function for GEM DAQ configuration
-namespace std
-{
-    template <>
-    struct hash<GEMChannelAddress>
-    {
-        size_t operator()(const GEMChannelAddress &cfg) const
-        {
-            return (cfg.fec_id << 8 | cfg.adc_ch);
-        }
-    };
-}
-
 class PRadGEMSystem
 {
 public:

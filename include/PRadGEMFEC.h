@@ -41,6 +41,7 @@ public:
     void Clear();
 
     // get parameters
+    PRadGEMSystem *GetSystem() const {return gem_srs;};
     int GetID() const {return id;};
     const std::string &GetIP() const {return ip;};
     size_t GetCapacity() const {return adc_list.size();};

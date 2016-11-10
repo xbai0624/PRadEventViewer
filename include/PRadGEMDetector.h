@@ -47,9 +47,10 @@ public:
     void ClearHits();
 
     // get parameters
+    PRadGEMSystem *GetSystem() const {return gem_srs;};
     int GetID() const {return id;};
     const std::string &GetType() const {return type;};
-    const std::string &GetReadoutBoard() {return readout_board;};
+    const std::string &GetReadoutBoard() const {return readout_board;};
     PRadGEMPlane *GetPlane(const int &type) const;
     PRadGEMPlane *GetPlane(const std::string &type) const;
     std::vector<PRadGEMPlane*> GetPlaneList() const;
