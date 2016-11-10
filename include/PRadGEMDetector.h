@@ -50,7 +50,6 @@ public:
 
     // get parameters
     PRadGEMSystem *GetSystem() const {return gem_srs;};
-    int GetID() const {return id;};
     const std::string &GetType() const {return type;};
     const std::string &GetReadoutBoard() const {return readout_board;};
     PRadGEMPlane *GetPlane(const int &type) const;
@@ -64,7 +63,6 @@ public:
 
 private:
     PRadGEMSystem *gem_srs;
-    int id;
     std::string type;
     std::string readout_board;
     std::vector<PRadGEMPlane*> planes;
