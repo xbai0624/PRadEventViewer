@@ -96,12 +96,13 @@ void PRadSquareCluster::Reconstruct(EventData &event)
             double thisY = thisModule->GetY();
 
             double weight = thisModule->GetEnergy()/clusterEnergy;
+            double weight_log = fLogWeightThres + log(weight);
 /*
             weightX += weight*thisX;
             weightY += weight*thisY;
             totalWeight += weight;
 */
-            if (double weight_log = fLogWeightThres + log(weight) > 0.) {
+            if (weight_log > 0.) {
                 weightX_log += weight_log*thisX;
                 weightY_log += weight_log*thisY;
                 totalWeight_log += weight_log;
