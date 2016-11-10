@@ -31,7 +31,7 @@ PRadGEMDetector::PRadGEMDetector(const std::string &readoutBoard,
 {
     planes.resize(PRadGEMPlane::Plane_Max, nullptr);
 
-    gem_clusters.reserve(MAX_GCLUSTERS);
+    gem_clusters.reserve(GEM_CLUSTERS_BUFFER);
 }
 
 // copy and move assignment will copy or move the planes because planes are 

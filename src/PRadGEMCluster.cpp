@@ -76,7 +76,7 @@ void PRadGEMCluster::Reconstruct(PRadGEMPlane *plane)
 
 // group consecutive hits
 void PRadGEMCluster::clusterHits(std::vector<GEMPlaneHit> &hit_list,
-                               std::list<GEMPlaneCluster> &cluster_list)
+                                 std::list<GEMPlaneCluster> &cluster_list)
 {
     // sort the hits by its strip number
     std::sort(hit_list.begin(), hit_list.end(),
@@ -253,6 +253,7 @@ void PRadGEMCluster::FormClusters(PRadGEMDetector *det)
     PRadGEMPlane *x_plane = det->GetPlane(PRadGEMPlane::Plane_X);
     PRadGEMPlane *y_plane = det->GetPlane(PRadGEMPlane::Plane_Y);
 
+    // sanity check
     if(x_plane == nullptr || y_plane == nullptr) {
         std::cerr << "PRad GEM Cluster Error: Input plane is not instantiated, cannot "
                   << "form clusters"
@@ -260,8 +261,7 @@ void PRadGEMCluster::FormClusters(PRadGEMDetector *det)
         return;
     }
 
-    // TODO, probably add some criteria here to form less clusters
-
+    // get x, y plane clusters
     auto x_cluster = x_plane->GetPlaneClusters();
     auto y_cluster = y_plane->GetPlaneClusters();
 
@@ -271,6 +271,8 @@ void PRadGEMCluster::FormClusters(PRadGEMDetector *det)
     // empty first
     container.clear();
 
+    // TODO, probably add some criteria here to filter out some bad clusters
+    // fill possible clusters in
     for(auto &xc : x_cluster)
     {
         for(auto &yc : y_cluster)
@@ -279,10 +281,6 @@ void PRadGEMCluster::FormClusters(PRadGEMDetector *det)
                                    xc.total_charge, yc.total_charge,
                                    xc.peak_charge, yc.peak_charge, // fill in peak charge
                                    xc.hits.size(), yc.hits.size()); // number of hits
-
-            // defined in PRadGEMDetectors
-            if(container.size() >= MAX_GCLUSTERS)
-                return; // reached limit, return
         }
     }
 }

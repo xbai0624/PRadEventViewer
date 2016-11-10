@@ -8,7 +8,9 @@
 #include "PRadEventStruct.h"
 #include "PRadDetector.h"
 
-#define MAX_GCLUSTERS 250
+
+// reserve space for faster filling of clusters
+#define GEM_CLUSTERS_BUFFER 500
 
 class PRadGEMSystem;
 class PRadGEMCluster;
