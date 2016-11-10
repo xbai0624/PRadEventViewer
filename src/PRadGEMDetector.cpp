@@ -66,6 +66,8 @@ PRadGEMDetector::PRadGEMDetector(PRadGEMDetector &&that)
 // destructor
 PRadGEMDetector::~PRadGEMDetector()
 {
+    UnsetSystem();
+
     for(auto &plane : planes)
     {
         if(plane != nullptr)
@@ -74,21 +76,20 @@ PRadGEMDetector::~PRadGEMDetector()
 }
 
 // copy assignment operator
-PRadGEMDetector &PRadGEMDetector::operator= (const PRadGEMDetector &rhs)
+PRadGEMDetector &PRadGEMDetector::operator =(const PRadGEMDetector &rhs)
 {
-    // disconnect gem system
-    gem_srs = nullptr;
     PRadGEMDetector that(rhs); // use copy constructor
     *this = std::move(that); // use move assignment
     return *this;
 }
 
 // move assignment operator
-PRadGEMDetector &PRadGEMDetector::operator= (PRadGEMDetector &&rhs)
+PRadGEMDetector &PRadGEMDetector::operator =(PRadGEMDetector &&rhs)
 {
     // disconnect gem system
+    UnsetSystem();
+
     PRadDetector::operator=(rhs);
-    gem_srs = nullptr;
     type = std::move(rhs.type);
     readout_board = std::move(rhs.readout_board);
     planes = std::move(rhs.planes);
