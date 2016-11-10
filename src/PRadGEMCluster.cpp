@@ -38,9 +38,9 @@ void PRadGEMCluster::Configure(const std::string &path)
         verbose = true;
     }
 
-    min_cluster_hits = getConfig<unsigned int>("Min Cluster Hits", 1, verbose);
-    max_cluster_hits = getConfig<unsigned int>("Max Cluster Hits", 20, verbose);
-    split_cluster_diff = getConfig<float>("Split Threshold", 14, verbose);
+    min_cluster_hits = getDefConfig<unsigned int>("Min Cluster Hits", 1, verbose);
+    max_cluster_hits = getDefConfig<unsigned int>("Max Cluster Hits", 20, verbose);
+    split_cluster_diff = getDefConfig<float>("Split Threshold", 14, verbose);
 }
 
 // reconstruct, accepts GEM detector

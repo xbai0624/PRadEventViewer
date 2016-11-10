@@ -42,12 +42,12 @@ void PRadDetMatch::Configure(const std::string &path)
         verbose = true;
     }
 
-    leadGlassRes = getConfig<float>("Lead_Glass_Resolution", 10, verbose);
-    transitionRes = getConfig<float>("Transition_Resolution", 7, verbose);
-    crystalRes = getConfig<float>("Crystal_Resolution", 3, verbose);
-    gemRes = getConfig<float>("GEM_Resolution", 0.08, verbose);
-    matchSigma = getConfig<float>("Match_Factor", 5, verbose);
-    overlapSigma = getConfig<float>("GEM_Overlap_Factor", 10, verbose);
+    leadGlassRes = getDefConfig<float>("Lead_Glass_Resolution", 10, verbose);
+    transitionRes = getDefConfig<float>("Transition_Resolution", 7, verbose);
+    crystalRes = getDefConfig<float>("Crystal_Resolution", 3, verbose);
+    gemRes = getDefConfig<float>("GEM_Resolution", 0.08, verbose);
+    matchSigma = getDefConfig<float>("Match_Factor", 5, verbose);
+    overlapSigma = getDefConfig<float>("GEM_Overlap_Factor", 10, verbose);
 }
 
 std::vector<MatchedIndex> PRadDetMatch::Match(HyCalHit *hycal, int nHyCal,

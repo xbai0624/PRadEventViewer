@@ -45,8 +45,8 @@ void PRadHVSystem::AddCrate(const string &name,
      }
 
     if(GetCrate(id) || GetCrate(name)) {
-        cerr << "Crate " << name 
-             << ", id "<< id 
+        cerr << "Crate " << name
+             << ", id "<< id
              << " exists in HV system, skip adding it." << endl;
         return;
     }

@@ -36,25 +36,25 @@ void PRadIslandCluster::Configure(const std::string &c_path)
     }
 
     // set all the parameters
-    fDoShowerDepth = getConfig<int>("DO_SHOWER_DEPTH", 0, verbose);
-    fUse2ExpWeight = getConfig<int>("USE_DOUBLE_EXP_WEIGHT", 0, verbose);
-    fDoNonLinCorr  = getConfig<int>("DO_NON_LINEARITY_CORRECTION", 0, verbose);
-    fMinHitE       = getConfig<float>("MIN_BLOCK_ENERGY", 0.005, verbose);
+    fDoShowerDepth = getDefConfig<int>("DO_SHOWER_DEPTH", 0, verbose);
+    fUse2ExpWeight = getDefConfig<int>("USE_DOUBLE_EXP_WEIGHT", 0, verbose);
+    fDoNonLinCorr  = getDefConfig<int>("DO_NON_LINEARITY_CORRECTION", 0, verbose);
+    fMinHitE       = getDefConfig<float>("MIN_BLOCK_ENERGY", 0.005, verbose);
     // default value is 3.6, suggested by the study with GEM (Weizhi)
-    fWeightFreePar = getConfig<float>("WEIGHT_FREE_PAR", 3.6, verbose);
-    fMinClusterE   = getConfig<float>("MIN_CLUSTER_E", 0.05, verbose);
-    fMinCenterE    = getConfig<float>("MIN_CENTER_E", 0.01, verbose);
-    fZLGToPWO      = getConfig<float>("Z_LG_TO_PWO", -10.12, verbose);
-//    fZHyCal        = getConfig<float>("Z_HYCAL", 581.7, verbose);
-    fCutOffThr     = getConfig<float>("CUT_OFF_THRESHOLD", 0.01, verbose);
-    f2ExpFreeWeight= getConfig<float>("DOUBLE_EXP_FREE_WEIGHT", 0.4, verbose);
+    fWeightFreePar = getDefConfig<float>("WEIGHT_FREE_PAR", 3.6, verbose);
+    fMinClusterE   = getDefConfig<float>("MIN_CLUSTER_E", 0.05, verbose);
+    fMinCenterE    = getDefConfig<float>("MIN_CENTER_E", 0.01, verbose);
+    fZLGToPWO      = getDefConfig<float>("Z_LG_TO_PWO", -10.12, verbose);
+//    fZHyCal        = getDefConfig<float>("Z_HYCAL", 581.7, verbose);
+    fCutOffThr     = getDefConfig<float>("CUT_OFF_THRESHOLD", 0.01, verbose);
+    f2ExpFreeWeight= getDefConfig<float>("DOUBLE_EXP_FREE_WEIGHT", 0.4, verbose);
 
     // load block info, cluster profile in the PrimEx format
     std::string path;
-    path = getConfig<std::string>("CRYSTAL_PROFILE", "config/prof_pwo.dat", verbose);
+    path = getDefConfig<std::string>("CRYSTAL_PROFILE", "config/prof_pwo.dat", verbose);
     LoadCrystalProfile(path);
 
-    path = getConfig<std::string>("LEADGLASS_PROFILE", "config/prof_lg.dat", verbose);
+    path = getDefConfig<std::string>("LEADGLASS_PROFILE", "config/prof_lg.dat", verbose);
     LoadLeadGlassProfile(path);
 }
 //________________________________________________________________

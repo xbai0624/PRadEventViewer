@@ -34,16 +34,16 @@ void PRadSquareCluster::Configure(const string &c_path)
         verbose = true;
     }
 
-    fMoliereCrystal = getConfig<double>("MOLIERE_CRYSTAL", 20.5, verbose);
-    fMoliereLeadGlass = getConfig<double>("MOLIERE_LEADGLASS", 38.2, verbose);
+    fMoliereCrystal = getDefConfig<double>("MOLIERE_CRYSTAL", 20.5, verbose);
+    fMoliereLeadGlass = getDefConfig<double>("MOLIERE_LEADGLASS", 38.2, verbose);
     fMoliereRatio = fMoliereLeadGlass/fMoliereCrystal;
 
-    fBaseR = getConfig<double>("CLUSTER_SEP_DISTANCE", 60.0, verbose);
-    fMinClusterCenterE = getConfig<double>("MIN_CLUSTER_CENTER_E", 10.0, verbose);
-    fMinClusterE = getConfig<double>("MIN_CLUSTER_TOTAL_E", 50.0, verbose);
+    fBaseR = getDefConfig<double>("CLUSTER_SEP_DISTANCE", 60.0, verbose);
+    fMinClusterCenterE = getDefConfig<double>("MIN_CLUSTER_CENTER_E", 10.0, verbose);
+    fMinClusterE = getDefConfig<double>("MIN_CLUSTER_TOTAL_E", 50.0, verbose);
 
     // default value is 3.6, suggested by the study with GEM by Weizhi
-    fLogWeightThres = getConfig<double>("WEIGHT_FREE_PAR", 3.6, verbose);
+    fLogWeightThres = getDefConfig<double>("WEIGHT_FREE_PAR", 3.6, verbose);
 }
 
 void PRadSquareCluster::Clear()

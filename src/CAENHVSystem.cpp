@@ -275,7 +275,7 @@ void CAEN_Board::SetVoltage(const vector<float> &Vset)
         list[k] = k;
         val[k] = Vset[k];
     }
- 
+
     err = CAENHV_SetChParam(handle, slot, "V0Set", nChan, list, val);
     CAEN_ShowError("HV Board Set Voltage", err);
 }
@@ -429,7 +429,7 @@ void CAEN_Crate::ReadCrateMap()
     } else {
         CAEN_ShowError("HV Crate Read Map", err);
     }
-    
+
     free(NbofChList);
     free(modelList);
     free(descList);
@@ -541,17 +541,26 @@ void CAEN_ShowError(const string &prefix, const int &err, const bool &ShowSucces
 
 float CAEN_VoltageLimit(const string &name)
 {
+    // Lead Glass
     if(name[0] == 'G') return 1950;
+    // Lead Tungstate
     if(name[0] == 'W') return 1450;
+    // LMS Reference PMT
     if(name[0] == 'L') return 2000;
+    // Scintillator
     if(name[0] == 'S') return 2000;
+    // Primary Channel
     if(name[0] == 'P') return 3000;
+    // PrimEx Veto Counter Channels
     if(name[0] == 'H') return 2000;
+
+    // not configured
     return 1500;
 }
 
 void CAEN_ShowChError(const string &n, const unsigned int &err_bit)
 {
+    // known problematic channels
     if((n == "W305") || n == "G900") return;
 
     if(err_bit&(1 << 3)) cerr << "Channel " << n << " is in overcurrent!" << endl;
