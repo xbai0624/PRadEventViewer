@@ -3,28 +3,38 @@
 
 #include <fstream>
 #include <cstdint>
+#include "ConfigParser.h"
 #include "datastruct.h"
 #include "PRadException.h"
 
 class PRadDataHandler;
-class ConfigParser;
 
 class PRadEvioParser
 {
 public:
+    // constructor, destructor
     PRadEvioParser(PRadDataHandler* handler);
     virtual ~PRadEvioParser();
-    unsigned int GetEventNumber() {return event_number;};
-    void SetEventNumber(const unsigned int &ev) {event_number = ev;};
-    void ReadEvioFile(const char *filepath, const int &evt = -1, const bool &verbose = false);
-    void ParseEventByHeader(PRadEventHeader *evt_header);
 
+    // public member functions
+    void ReadEvioFile(const char *filepath, int evt = -1, bool verbose = false);
+    int ReadEventBuffer(const void *buf);
+
+    void SetHandler(PRadDataHandler *h) {myHandler = h;};
+    void SetEventNumber(const unsigned int &ev) {event_number = ev;};
+    unsigned int GetEventNumber() const {return event_number;};
+
+public:
+    // static functions
     static PRadTriggerType bit_to_trigger(const unsigned int &bit);
     static unsigned int trigger_to_bit(const PRadTriggerType &trg);
 
 private:
-    void parseROCBank(PRadEventHeader *roc_header);
-    void parseDataBank(PRadEventHeader *data_header);
+    // private member functions
+    int parseEvioBlock(std::ifstream &s, uint32_t *buf, int max_evt) throw(PRadException);
+    int parseEvent(const PRadEventHeader *evt_header);
+    void parseROCBank(const PRadEventHeader *roc_header);
+    void parseDataBank(const PRadEventHeader *data_header);
     void parseADC1881M(const uint32_t *data);
     void parseGEMData(const uint32_t *data, const size_t &size, const int &fec_id);
     void parseGEMZeroSupData(const uint32_t *data, const size_t &size);
@@ -34,11 +44,10 @@ private:
     void parseTIData(const uint32_t *data, const size_t &size, const int &roc_id);
     void parseEPICS(const uint32_t *data);
     size_t getAPVDataSize(const uint32_t *data);
-    int getEvioBlock(std::ifstream &s, uint32_t *buf) throw(PRadException);
 
 private:
     PRadDataHandler *myHandler;
-    ConfigParser *c_parser;
+    ConfigParser c_parser;
     unsigned int event_number;
 };
 

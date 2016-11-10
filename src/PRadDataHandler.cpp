@@ -163,8 +163,7 @@ void PRadDataHandler::ExecuteConfigCommand(void (PRadDataHandler::*act)(Args...)
 // decode event buffer
 void PRadDataHandler::Decode(const void *buffer)
 {
-    PRadEventHeader *header = (PRadEventHeader *)buffer;
-    parser->ParseEventByHeader(header);
+    parser->ReadEventBuffer(buffer);
 
     WaitEventProcess();
 }

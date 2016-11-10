@@ -1,7 +1,6 @@
 //============================================================================//
 // A class to parse data buffer from file or ET                               //
 // Make sure the endianness is correct or change the code befire using it     //
-// Multi-thread can be disabled in PRadDataHandler.h                          //
 //                                                                            //
 // Chao Peng                                                                  //
 // 02/27/2016                                                                 //
@@ -9,57 +8,78 @@
 
 #include "PRadEvioParser.h"
 #include "PRadDataHandler.h"
-#include "ConfigParser.h"
 #include <sstream>
 #include <iostream>
 #include <iomanip>
 
 #ifdef MULTI_THREAD
 #include <thread>
+#define ROC_THREAD_THRES 5000     // open a new thread for large roc buffer size
 #endif
 
-#define HEADER_SIZE 2
-#define MAX_BUFFER_SIZE 100000
-#define ROC_THREAD_THRES 5000
+#define MAX_BUFFER_SIZE 100000    // buffer to store a evio block
+#define BLOCK_HEADER_SIZE 8       // evio block header size
+
 
 using namespace std;
 
+
+
+//============================================================================//
+// Constuctor, Destructor                                                     //
+//============================================================================//
+
+// constructor
 PRadEvioParser::PRadEvioParser(PRadDataHandler *handler)
-: myHandler(handler), c_parser(new ConfigParser()), event_number(0)
+: myHandler(handler), event_number(0)
 {
+    // place holder
 }
 
+// destructor
 PRadEvioParser::~PRadEvioParser()
 {
-    delete c_parser;
+    // place holder
 }
 
-// Simple binary reading for evio format files
-void PRadEvioParser::ReadEvioFile(const char *filepath, const int &evt, const bool &verbose)
+
+
+//============================================================================//
+// Public Member Functions                                                    //
+//============================================================================//
+
+// simple binary reading for evio format files
+void PRadEvioParser::ReadEvioFile(const char *filepath, int evt, bool verbose)
 {
+    // evio file is written in binary
     ifstream evio_in(filepath, ios::binary | ios::in);
 
     if(!evio_in.is_open()) {
-        cerr << "Cannot open evio file " << filepath << endl;
+        cerr << "Cannot open evio file "
+             << "\"" << filepath << "\""
+             << endl;
         return;
     }
 
+    // get the total length of file
     evio_in.seekg(0, evio_in.end);
     int64_t length = evio_in.tellg();
     evio_in.seekg(0, evio_in.beg);
 
+    // buffer is to store current event block, make sure it is large enough
     uint32_t *buffer = new uint32_t[MAX_BUFFER_SIZE];
 
     if(verbose) {
         cout << "Reading evio file " << filepath << endl;
     }
 
+    // parse block, stop when read enough event
+    // if evt <= 0, it reads all events
     int count = 0;
-
     while(evio_in.tellg() < length && evio_in.tellg() != -1)
     {
         try {
-            count += getEvioBlock(evio_in, buffer);
+            count += parseEvioBlock(evio_in, buffer, evt-count);
         } catch (PRadException &e) {
             cerr << e.FailureType() << ": "
                  << e.FailureDesc() << endl;
@@ -76,12 +96,22 @@ void PRadEvioParser::ReadEvioFile(const char *filepath, const int &evt, const bo
     evio_in.close();
 }
 
-int PRadEvioParser::getEvioBlock(ifstream &in, uint32_t *buf) throw(PRadException)
+// read a event buffer, return its type
+int PRadEvioParser::ReadEventBuffer(const void *buf)
 {
-#define CODA_BLOCK_SIZE 8
+    return parseEvent((const PRadEventHeader *)buf);
+}
 
+
+//============================================================================//
+// Private Member Functions                                                   //
+//============================================================================//
+
+// parse a evio block data
+int PRadEvioParser::parseEvioBlock(ifstream &in, uint32_t *buf, int max_evt)
+throw(PRadException)
+{
     streamsize buf_size = sizeof(uint32_t);
-    int buffer_cnt = 0;
 
     // read the block size
     in.read((char*) &buf[0], buf_size);
@@ -92,21 +122,34 @@ int PRadEvioParser::getEvioBlock(ifstream &in, uint32_t *buf) throw(PRadExceptio
     }
 
     // read the whole block in
-    in.read((char*) &buf[1], buf_size * (buf[0] - 1));
+    in.read((char*) &buf[1], buf_size*(buf[0] - 1));
 
-    size_t index = CODA_BLOCK_SIZE; // strip off block header
+    // skip the block header
+    size_t index = BLOCK_HEADER_SIZE;
 
+    int buffer_cnt = 0;
+    // inside a block
     while(index < buf[0])
     {
-        ParseEventByHeader((PRadEventHeader *) &buf[index]);
+        int type = parseEvent((const PRadEventHeader *) &buf[index]);
+
+        // only count physics event
+        if((type == CODA_Event) ||
+           (type == CODA_Sync))
+            buffer_cnt ++;
+
+        // to next event buffer
         index += buf[index] + 1;
-        buffer_cnt++;
+
+        if(max_evt > 0 && buffer_cnt >= max_evt)
+            break;
     }
 
     return  buffer_cnt;
 }
 
-void PRadEvioParser::ParseEventByHeader(PRadEventHeader *header)
+// parse an evio event
+int PRadEvioParser::parseEvent(const PRadEventHeader *header)
 {
     // first check event type
     switch(header->tag)
@@ -114,27 +157,34 @@ void PRadEvioParser::ParseEventByHeader(PRadEventHeader *header)
     case CODA_Event:
     case CODA_Sync:
     case EPICS_Info:
-        break; // go on to process
+        // go on to parse event data
+        break;
+
     case CODA_Prestart:
     case CODA_Go:
     case CODA_End:
     default:
-        return; // not interested event type
+        // no need to parse these events
+        return header->tag;
     }
 
+    // inform handler the start of a new event
     myHandler->StartofNewEvent(header->tag);
 
-    uint32_t buf_size = header->length - 1;
-    uint32_t *buf = (uint32_t*) &header[1]; // skip current header
+    // skip current header
+    const uint32_t buf_size = header->length - 1;
+    const uint32_t *buf = (const uint32_t*) &header[1];
     uint32_t index = 0;
 
 #ifdef MULTI_THREAD
     vector<thread> roc_threads;
 #endif
 
+    // parse ROC data
     while(index < buf_size)
     {
 #ifdef MULTI_THREAD
+        // open a new thread for large roc data bank
         if(buf[index] > ROC_THREAD_THRES)
             roc_threads.emplace_back(&PRadEvioParser::parseROCBank, this, (PRadEventHeader *)&buf[index]);
         else
@@ -149,12 +199,17 @@ void PRadEvioParser::ParseEventByHeader(PRadEventHeader *header)
         if(roc.joinable()) roc.join();
     }
 #endif
-    myHandler->EndofThisEvent(event_number); // inform handler the end of event
+    // inform handler the end of this event
+    myHandler->EndofThisEvent(event_number);
+
+    // return parsed event type
+    return header->tag;
 }
 
-void PRadEvioParser::parseROCBank(PRadEventHeader *roc_header)
+// parse ROC data
+void PRadEvioParser::parseROCBank(const PRadEventHeader *roc_header)
 {
-    uint32_t *buf = (uint32_t*) &roc_header[1]; // skip current header
+    const uint32_t *buf = (const uint32_t*) &roc_header[1]; // skip current header
 
     switch(roc_header->tag)
     {
@@ -164,7 +219,7 @@ void PRadEvioParser::parseROCBank(PRadEventHeader *roc_header)
     case PRadROC_3: // Fastbus, ROC id 6
     case PRadROC_2: // Fastbus, ROC id 5
     case PRadROC_1: // Fastbus, ROC id 4
-    case PRadTS: // VME, ROC id 1
+    case PRadTS:    // VME, ROC id 1
     case EPICS_IOC:
         break; // Interested in ROCs, to next header
     case EVINFO_BANK: // special bank
@@ -183,7 +238,8 @@ void PRadEvioParser::parseROCBank(PRadEventHeader *roc_header)
     }
 }
 
-void PRadEvioParser::parseDataBank(PRadEventHeader *data_header)
+// parse data banks
+void PRadEvioParser::parseDataBank(const PRadEventHeader *data_header)
 {
     const uint32_t *buffer = (const uint32_t*) &data_header[1]; // skip current header
     size_t dataSize = data_header->length - 1;
@@ -217,6 +273,7 @@ void PRadEvioParser::parseDataBank(PRadEventHeader *data_header)
     }
 }
 
+// Fastbus ADC1881M data
 void PRadEvioParser::parseADC1881M(const uint32_t *data)
 {
     // Self defined crate data header
@@ -270,16 +327,16 @@ void PRadEvioParser::parseADC1881M(const uint32_t *data)
 
 }
 
-// temporary decoder for gem data, not finished
+// GEM data
 void PRadEvioParser::parseGEMData(const uint32_t *data, const size_t &size,  const int &fec_id)
 {
-    // our zero suppression data is in bank 99
-
+    // pre-zero-suppressed GEM data are in bank 99
     if(fec_id == 99) {
         parseGEMZeroSupData(data, size);
         return;
     }
 
+    // parse raw GEM data
     GEMRawData gemData;
     size_t i = 0;
 
@@ -300,9 +357,10 @@ void PRadEvioParser::parseGEMData(const uint32_t *data, const size_t &size,  con
     }
 }
 
+// parse zero-suppressed GEM data
 void PRadEvioParser::parseGEMZeroSupData(const uint32_t *data, const size_t &size)
 {
-    // hit structure (32 bit word)
+    // data word structure (32 bit word)
     // detector: 1 bit
     // plane: 1 bit
     // fec id: 4 bit
@@ -311,7 +369,6 @@ void PRadEvioParser::parseGEMZeroSupData(const uint32_t *data, const size_t &siz
     // time sample number: 3 bit
     // polarity: 1 bit
     // adc value: 11 bit
-    //
 
     if((data[0]&0xffffff00) != GEMDATA_ZEROSUP) {
         cerr << "Unrecognized GEM zero suppressed data header word: "
@@ -319,7 +376,7 @@ void PRadEvioParser::parseGEMZeroSupData(const uint32_t *data, const size_t &siz
              << endl;
     }
 
-    std::vector<GEMZeroSupData> gemDataPack;
+    vector<GEMZeroSupData> gemDataPack;
     for(size_t i = 1; i < size; ++i)
     {
         GEMZeroSupData gemData;
@@ -335,6 +392,7 @@ void PRadEvioParser::parseGEMZeroSupData(const uint32_t *data, const size_t &siz
     myHandler->FeedData(gemDataPack);
 }
 
+// a helper function to determine the APV data size
 size_t PRadEvioParser::getAPVDataSize(const uint32_t *data)
 {
     size_t idx = 0;
@@ -421,6 +479,7 @@ void PRadEvioParser::parseTDCV1190(const uint32_t *data, const size_t &size, con
     }
 }
 
+// parse JLab distriminator data
 void PRadEvioParser::parseDSCData(const uint32_t *data, const size_t &size)
 {
 #define GATED_TDC_GROUP 3
@@ -441,6 +500,7 @@ void PRadEvioParser::parseDSCData(const uint32_t *data, const size_t &size)
     myHandler->FeedData(dscData);
 }
 
+// parse JLab TI data
 void PRadEvioParser::parseTIData(const uint32_t *data, const size_t &size, const int &roc_id)
 {
     // update trigger type
@@ -469,20 +529,30 @@ void PRadEvioParser::parseTIData(const uint32_t *data, const size_t &size, const
     }
 }
 
+// parse EPICS data (in textual format
 void PRadEvioParser::parseEPICS(const uint32_t *data)
 {
-    c_parser->ReadBuffer((const char*) data);
+    // using config parser to deal with text buffer
+    c_parser.ReadBuffer((const char*) data);
 
-    while(c_parser->ParseLine())
+    while(c_parser.ParseLine())
     {
-        if(c_parser->NbofElements() == 2) {
+        // expect 2 elements for each line
+        // channel_name  channel_value
+        if(c_parser.NbofElements() == 2) {
             float number;
             string name;
-            (*c_parser) >> number >> name;
+            c_parser >> number >> name;
             myHandler->UpdateEPICS(name, number);
         }
     }
 }
+
+
+
+//============================================================================//
+// Public Static Member Functions                                             //
+//============================================================================//
 
 PRadTriggerType PRadEvioParser::bit_to_trigger(const unsigned int &bit)
 {
