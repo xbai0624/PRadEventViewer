@@ -1,6 +1,7 @@
 #include <string>
 #include <vector>
 #include <queue>
+#include <list>
 #include <iostream>
 #include <iomanip>
 #include <unordered_map>
@@ -71,7 +72,7 @@ int main(int argc, char *argv[])
                 key = parser.TakeFirst();
             }
 
-            list<ConfigValue> eles = parser.TakeAll();
+            list<ConfigValue> eles = parser.TakeAll<list>();
 
             auto it = eles_map.find(key);
             if(it == eles_map.end()) {

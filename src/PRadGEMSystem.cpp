@@ -20,6 +20,7 @@
 #include <iostream>
 #include <iomanip>
 #include <algorithm>
+#include <list>
 #include "TFile.h"
 #include "TH1.h"
 
@@ -201,7 +202,7 @@ void PRadGEMSystem::Configure(const string &path) throw(PRadException)
         for(; i < types.size(); ++i)
         {
             if(ConfigParser::strcmp_case_insensitive(key, types.at(i))) {
-                args[i].push_back(c_parser.TakeAll());
+                args[i].push_back(c_parser.TakeAll<list>());
                 break;
             }
         }

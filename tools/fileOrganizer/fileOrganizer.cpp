@@ -57,13 +57,11 @@ int main(int argc, char *argv[])
         if(!parser.NbofElements())
             continue;
 
-        auto ele_list = parser.TakeAll();
-        vector<ConfigValue> eles;
-        for(auto &ele : ele_list)
-            eles.push_back(ele);
+        vector<ConfigValue> eles = parser.TakeAll<vector>();
 
         for(auto &ord : orders)
             out << setw(12) << eles.at(ord);
+
         out << endl;
     }
 
