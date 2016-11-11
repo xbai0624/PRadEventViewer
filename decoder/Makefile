@@ -64,6 +64,9 @@ LIB_OBJECTS   = $(LIB_OBJ_DIR)/PRadDAQUnit.o \
                 $(LIB_OBJ_DIR)/ConfigValue.o \
                 $(LIB_OBJ_DIR)/ConfigObject.o \
                 $(LIB_OBJ_DIR)/PRadDetector.o \
+                $(LIB_OBJ_DIR)/PRadHyCalSystem.o \
+                $(LIB_OBJ_DIR)/PRadHyCalDetector.o \
+                $(LIB_OBJ_DIR)/PRadHyCalModule.o \
                 $(LIB_OBJ_DIR)/PRadHyCalCluster.o \
                 $(LIB_OBJ_DIR)/PRadIslandCluster.o \
                 $(LIB_OBJ_DIR)/PRadSquareCluster.o \
@@ -84,6 +87,7 @@ TARGET        = testIsland \
                 testEPICS \
                 testLMS \
                 testGEM \
+                testHyCal \
                 testSim \
                 testCombine \
                 testMatch \
@@ -123,6 +127,9 @@ testLMS: src/testLMS.cpp
 	$(CXX) $(CXXFLAGS) -o $@ $< $(INCPATH) $(LIBS) $(EXE_LIBS)
 
 testGEM: src/testGEM.cpp
+	$(CXX) $(CXXFLAGS) -o $@ $< $(INCPATH) $(LIBS) $(EXE_LIBS)
+
+testHyCal: src/testHyCal.cpp
 	$(CXX) $(CXXFLAGS) -o $@ $< $(INCPATH) $(LIBS) $(EXE_LIBS)
 
 testSim: src/testSim.cpp

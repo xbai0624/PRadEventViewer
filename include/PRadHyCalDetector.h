@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <string>
+#include <iostream>
 #include <unordered_map>
 #include "PRadException.h"
 #include "PRadHyCalModule.h"
@@ -30,10 +31,11 @@ public:
     // public member functions
     void SetSystem(PRadHyCalSystem *sys);
     void UnsetSystem(bool system_destroy = false);
-    void AddModule(PRadHyCalModule *module);
+    bool AddModule(PRadHyCalModule *module);
     void RemoveModule(PRadHyCalModule *module);
     void SortModuleList();
     void ClearModuleList();
+    void OutputModuleList(std::ostream &os);
     void ConnectDAQ();
     void ReconstructHits();
     void ClearHits();

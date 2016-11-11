@@ -39,6 +39,7 @@ public:
     void ParseLine(const std::string &line, const bool &count = true);
 
     // get current parsing status
+    bool CheckElements(int num);
     int NbofElements() const {return elements.size();};
     int LineNumber() const {return line_number;};
     const std::string &CurrentLine() const {return current_line;};

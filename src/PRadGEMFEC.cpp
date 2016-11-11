@@ -65,7 +65,6 @@ PRadGEMFEC::~PRadGEMFEC()
 // copy constructor
 PRadGEMFEC &PRadGEMFEC::operator =(const PRadGEMFEC &rhs)
 {
-    UnsetSystem();
     Clear();
 
     id = rhs.id;
@@ -84,7 +83,6 @@ PRadGEMFEC &PRadGEMFEC::operator =(const PRadGEMFEC &rhs)
 // move constructor
 PRadGEMFEC &PRadGEMFEC::operator =(PRadGEMFEC &&rhs)
 {
-    UnsetSystem();
     Clear();
 
     id = rhs.id;
@@ -106,6 +104,9 @@ PRadGEMFEC &PRadGEMFEC::operator =(PRadGEMFEC &&rhs)
 // set the GEM System for FEC, and disconnect it from the previous GEM System
 void PRadGEMFEC::SetSystem(PRadGEMSystem *g)
 {
+    if(g == gem_srs)
+        return;
+
     UnsetSystem();
     gem_srs = g;
 }

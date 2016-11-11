@@ -5,12 +5,12 @@
 #include <vector>
 #include <unordered_map>
 #include "PRadEventStruct.h"
+#include "PRadGEMAPV.h"
 
 // maximum channels in a FEC
 #define FEC_CAPACITY 9
 
 class PRadGEMSystem;
-class PRadGEMAPV;
 
 class PRadGEMFEC
 {

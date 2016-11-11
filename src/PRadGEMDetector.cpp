@@ -86,9 +86,6 @@ PRadGEMDetector &PRadGEMDetector::operator =(const PRadGEMDetector &rhs)
 // move assignment operator
 PRadGEMDetector &PRadGEMDetector::operator =(PRadGEMDetector &&rhs)
 {
-    // disconnect gem system
-    UnsetSystem();
-
     PRadDetector::operator=(rhs);
     type = std::move(rhs.type);
     readout_board = std::move(rhs.readout_board);
@@ -107,6 +104,9 @@ PRadGEMDetector &PRadGEMDetector::operator =(PRadGEMDetector &&rhs)
 // set a new system, disconnect from the previous one
 void PRadGEMDetector::SetSystem(PRadGEMSystem *sys)
 {
+    if(sys == gem_srs)
+        return;
+
     UnsetSystem();
     gem_srs = sys;
 }

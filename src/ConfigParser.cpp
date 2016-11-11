@@ -164,6 +164,20 @@ void ConfigParser::ParseLine(const string &line, const bool &count)
     }
 }
 
+bool ConfigParser::CheckElements(int num)
+{
+    if(elements.size() == (size_t)num)
+        return true;
+
+    std::cout << "Config Parser Warning: Wrong format at line " << line_number
+              << ", expecting " << num << " elements. "
+              << std::endl
+              << "\"" << current_line << "\""
+              << std::endl;
+    return false;
+}
+
+
 // take the first element
 ConfigValue ConfigParser::TakeFirst()
 {

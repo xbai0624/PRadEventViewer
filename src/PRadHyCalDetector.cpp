@@ -9,7 +9,7 @@
 #include "PRadHyCalSystem.h"
 #include "PRadHyCalCluster.h"
 #include <algorithm>
-#include <iostream>
+#include <iomanip>
 
 
 
@@ -19,7 +19,7 @@
 
 // constructor
 PRadHyCalDetector::PRadHyCalDetector(const std::string &det, PRadHyCalSystem *sys)
-: PRadDetector(detector), system(sys)
+: PRadDetector(det), system(sys)
 {
     // place holder
 }
@@ -32,7 +32,7 @@ PRadHyCalDetector::PRadHyCalDetector(const PRadHyCalDetector &that)
 {
     for(auto module : that.module_list)
     {
-        AddModule(PRadHyCalModule(*module));
+        AddModule(new PRadHyCalModule(*module));
     }
 }
 
@@ -84,6 +84,8 @@ PRadHyCalDetector &PRadHyCalDetector::operator =(PRadHyCalDetector &&rhs)
     return *this;
 }
 
+
+
 //============================================================================//
 // Public Member Functions                                                    //
 //============================================================================//
@@ -133,6 +135,7 @@ bool PRadHyCalDetector::AddModule(PRadHyCalModule *module)
         return false;
     }
 
+    module->SetDetector(this);
     module_list.push_back(module);
     name_map[name] = module;
     id_map[id] = module;
@@ -146,9 +149,12 @@ void PRadHyCalDetector::RemoveModule(PRadHyCalModule *module)
     if(module == nullptr)
         return;
 
-    module_list.erase(module);
     id_map.erase(module->GetID());
     name_map.erase(module->GetName());
+
+    module_list.clear();
+    for(auto &it : id_map)
+        module_list.push_back(it.second);
 }
 
 void PRadHyCalDetector::SortModuleList()
@@ -156,7 +162,7 @@ void PRadHyCalDetector::SortModuleList()
     std::sort(module_list.begin(), module_list.end(),
              [](const PRadHyCalModule *m1, const PRadHyCalModule *m2)
              {
-                return m1->GetID() < m2->GetID();
+                return *m1 < *m2;
              });
 }
 
@@ -174,14 +180,28 @@ void PRadHyCalDetector::ClearModuleList()
     name_map.clear();
 }
 
+void PRadHyCalDetector::OutputModuleList(std::ostream &os)
+{
+    for(auto module : module_list)
+    {
+        os << *module << std::endl;
+    }
+}
+
 PRadHyCalModule *PRadHyCalDetector::GetModule(const int &id)
 const
 {
-
+    auto it = id_map.find(id);
+    if(it == id_map.end())
+        return nullptr;
+    return it->second;
 }
 
 PRadHyCalModule *PRadHyCalDetector::GetModule(const std::string &name)
 const
 {
-
+    auto it = name_map.find(name);
+    if(it == name_map.end())
+        return nullptr;
+    return it->second;
 }

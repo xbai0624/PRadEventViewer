@@ -159,10 +159,7 @@ PRadGEMAPV &PRadGEMAPV::operator= (const PRadGEMAPV &rhs)
 // move assignment operator
 PRadGEMAPV &PRadGEMAPV::operator= (PRadGEMAPV &&rhs)
 {
-    // similar to move constructor, but need to disconnect
-    DisconnectFEC();
-    DisconnectPlane();
-    // and release memory
+    // release memory
     ReleasePedHist();
     delete[] raw_data;
 
@@ -209,6 +206,9 @@ PRadGEMAPV &PRadGEMAPV::operator= (PRadGEMAPV &&rhs)
 // connect the apv to GEM FEC
 void PRadGEMAPV::SetFEC(PRadGEMFEC *f, int slot)
 {
+    if(f == fec && slot == adc_ch)
+        return;
+
     DisconnectFEC();
     if(f == nullptr)
         return;

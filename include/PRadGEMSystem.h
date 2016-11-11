@@ -9,9 +9,7 @@
 #include "PRadEventStruct.h"
 #include "PRadException.h"
 #include "PRadGEMDetector.h"
-#include "PRadGEMPlane.h"
 #include "PRadGEMFEC.h"
-#include "PRadGEMAPV.h"
 #include "PRadGEMCluster.h"
 
 #ifdef MULTI_THREAD

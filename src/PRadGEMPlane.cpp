@@ -76,10 +76,6 @@ PRadGEMPlane &PRadGEMPlane::operator =(const PRadGEMPlane &rhs)
 
 PRadGEMPlane &PRadGEMPlane::operator =(PRadGEMPlane &&rhs)
 {
-    // clear all the connections
-    UnsetDetector();
-    ResetConnections();
-
     name = std::move(rhs.name);
     type = rhs.type;
     size = rhs.size;
@@ -102,6 +98,9 @@ PRadGEMPlane &PRadGEMPlane::operator =(PRadGEMPlane &&rhs)
 // set detector to the plane
 void PRadGEMPlane::SetDetector(PRadGEMDetector *det)
 {
+    if(det == detector)
+        return;
+
     UnsetDetector();
     detector = det;
 }
