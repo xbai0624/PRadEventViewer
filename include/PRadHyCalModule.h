@@ -66,18 +66,21 @@ public:
     PRadHyCalModule(const std::string &n,
                     int type, double size_x, double size_y, double x, double y,
                     PRadHyCalDetector *det = nullptr);
+
     // copy/move constructors
     PRadHyCalModule(const PRadHyCalModule &that);
     PRadHyCalModule(PRadHyCalModule &&that);
+
     // destructor
     virtual ~PRadHyCalModule();
+
     // asignment operators
     PRadHyCalModule &operator =(const PRadHyCalModule &rhs);
     PRadHyCalModule &operator =(PRadHyCalModule &&rhs);
 
     // set members
-    void SetDetector(PRadHyCalDetector *det);
-    void UnsetDetector(bool det_destroy = false);
+    void SetDetector(PRadHyCalDetector *det, bool force_set = false);
+    void UnsetDetector(bool force_unset = false);
     void SetGeometry(const Geometry &geo) {geometry = geo;};
 
     // check type

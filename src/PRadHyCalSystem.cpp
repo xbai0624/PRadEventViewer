@@ -90,17 +90,20 @@ void PRadHyCalSystem::ReadModuleList(const std::string &path)
 }
 
 // add detector, remove the original detector
-void PRadHyCalSystem::AddDetector(PRadHyCalDetector *h)
+void PRadHyCalSystem::SetDetector(PRadHyCalDetector *h)
 {
-    if(hycal)
-        hycal->UnsetSystem();
-
     hycal = h;
-    hycal->SetSystem(this);
+
+    if(hycal)
+        hycal->SetSystem(this);
 }
+
 // remove current detector
 void PRadHyCalSystem::RemoveDetector()
 {
-    hycal = nullptr;
+    if(hycal) {
+        hycal->UnsetSystem(true);
+        hycal = nullptr;
+    }
 }
 

@@ -141,8 +141,8 @@ PRadGEMAPV::PRadGEMAPV(PRadGEMAPV &&that)
 // destructor
 PRadGEMAPV::~PRadGEMAPV()
 {
-    DisconnectFEC();
-    DisconnectPlane();
+    UnsetFEC();
+    UnsetDetectorPlane();
     ReleasePedHist();
 
     delete[] raw_data;
@@ -204,52 +204,63 @@ PRadGEMAPV &PRadGEMAPV::operator= (PRadGEMAPV &&rhs)
 //============================================================================//
 
 // connect the apv to GEM FEC
-void PRadGEMAPV::SetFEC(PRadGEMFEC *f, int slot)
+void PRadGEMAPV::SetFEC(PRadGEMFEC *f, int slot, bool force_set)
 {
     if(f == fec && slot == adc_ch)
         return;
 
-    DisconnectFEC();
-    if(f == nullptr)
-        return;
+    if(!force_set)
+        UnsetFEC();
 
-    fec = f;
-    fec_id = fec->GetID();
-    adc_ch = slot;
-}
-
-// connect the apv to GEM Plane
-void PRadGEMAPV::SetDetectorPlane(PRadGEMPlane *p, int slot)
-{
-    DisconnectPlane();
-    if(p == nullptr)
-        return;
-
-    plane = p;
-    plane_index = slot;
-    // strip map is related to plane that connected, thus build the map
-    buildStripMap();
+    if(f) {
+        fec = f;
+        fec_id = fec->GetID();
+        adc_ch = slot;
+    }
 }
 
 // disconnect the fec, reset fec id and adc ch
-void PRadGEMAPV::DisconnectFEC()
+void PRadGEMAPV::UnsetFEC(bool force_unset)
 {
-    if(fec != nullptr) {
+    if(!fec)
+        return;
+
+    if(!force_unset)
         fec->RemoveAPV(adc_ch);
-        fec = nullptr;
-        fec_id = -1;
-        adc_ch = -1;
+
+    fec = nullptr;
+    fec_id = -1;
+    adc_ch = -1;
+}
+
+// connect the apv to GEM Plane
+void PRadGEMAPV::SetDetectorPlane(PRadGEMPlane *p, int slot, bool force_set)
+{
+    if(p == plane && slot == plane_index)
+        return;
+
+    if(!force_set)
+        UnsetDetectorPlane();
+
+    if(p) {
+        plane = p;
+        plane_index = slot;
+        // strip map is related to plane that connected, thus build the map
+        buildStripMap();
     }
 }
 
 // disconnect the plane, reset plane index
-void PRadGEMAPV::DisconnectPlane()
+void PRadGEMAPV::UnsetDetectorPlane(bool force_unset)
 {
-    if(plane != nullptr) {
+    if(!plane)
+        return;
+
+    if(!force_unset)
         plane->DisconnectAPV(plane_index);
-        plane = nullptr;
-        plane_index = -1;
-    }
+
+    plane = nullptr;
+    plane_index = -1;
 }
 
 // create histograms

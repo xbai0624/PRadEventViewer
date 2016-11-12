@@ -13,7 +13,7 @@ public:
 
     void Configure(const std::string &path);
     void ReadModuleList(const std::string &path);
-    void AddDetector(PRadHyCalDetector *h);
+    void SetDetector(PRadHyCalDetector *h);
     void RemoveDetector();
 
     PRadHyCalDetector *GetDetector() const {return hycal;};

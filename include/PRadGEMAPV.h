@@ -70,8 +70,6 @@ public:
     void ClearPedestal();
     void CreatePedHist();
     void ReleasePedHist();
-    void DisconnectFEC();
-    void DisconnectPlane();
     void FillPedHist();
     void FitPedestal();
     void FillRawData(const uint32_t *buf, const size_t &siz);
@@ -111,8 +109,10 @@ public:
     std::vector<Pedestal> GetPedestalList() const;
 
     // set parameters
-    void SetFEC(PRadGEMFEC *f, int adc_ch);
-    void SetDetectorPlane(PRadGEMPlane *p, int pl_idx);
+    void SetFEC(PRadGEMFEC *f, int adc_ch, bool force_set = false);
+    void UnsetFEC(bool force_unset = false);
+    void SetDetectorPlane(PRadGEMPlane *p, int pl_idx, bool force_set = false);
+    void UnsetDetectorPlane(bool force_unset = false);
     void SetTimeSample(const size_t &t);
     void SetOrientation(const int &o) {orient = o;};
     void SetHeaderLevel(const int &h) {header_level = h;};

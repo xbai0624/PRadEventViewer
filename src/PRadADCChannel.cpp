@@ -18,8 +18,8 @@
 
 // constructor
 PRadADCChannel::PRadADCChannel(const std::string &name, const ChannelAddress &daqAddr)
-: module(nullptr), tdc_group(nullptr), ch_id(-1), ch_name(name),
-  address(daqAddr), dead(false), occupancy(0), sparsify(0), adc_value(0)
+: PRadDAQChannel(name, daqAddr),
+  module(nullptr), tdc_group(nullptr), occupancy(0), sparsify(0), adc_value(0)
 {
     // initialize histograms
     trg_hist.resize(MAX_Trigger, nullptr);
@@ -49,8 +49,8 @@ PRadADCChannel::PRadADCChannel(const std::string &name, const ChannelAddress &da
 
 // copy constructor
 PRadADCChannel::PRadADCChannel(const PRadADCChannel &that)
-: module(nullptr), tdc_group(nullptr), ch_id(that.ch_id), ch_name(that.ch_name),
-  address(that.address), dead(that.dead), occupancy(that.occupancy),
+: PRadDAQChannel(that),
+  module(nullptr), tdc_group(nullptr), occupancy(that.occupancy),
   sparsify(that.sparsify), adc_value(that.adc_value)
 {
     for(auto &it : that.hist_map)
@@ -68,8 +68,8 @@ PRadADCChannel::PRadADCChannel(const PRadADCChannel &that)
 
 // move constructor
 PRadADCChannel::PRadADCChannel(PRadADCChannel &&that)
-: module(nullptr), tdc_group(nullptr), ch_id(that.ch_id), ch_name(std::move(that.ch_name)),
-  address(that.address), dead(that.dead), occupancy(that.occupancy),
+: PRadDAQChannel(that),
+  module(nullptr), tdc_group(nullptr), occupancy(that.occupancy),
   sparsify(that.sparsify), adc_value(that.adc_value),
   trg_hist(std::move(that.trg_hist)), hist_map(std::move(that.hist_map))
 {
@@ -83,6 +83,9 @@ PRadADCChannel::~PRadADCChannel()
     {
         delete ele.second, ele.second = nullptr;
     }
+
+    UnsetTDC();
+    UnsetModule();
 }
 
 // copy assignment operator
@@ -102,10 +105,7 @@ PRadADCChannel &PRadADCChannel::operator =(PRadADCChannel &&rhs)
     hist_map.clear();
     trg_hist.clear();
 
-    ch_id = rhs.ch_id;
-    ch_name = std::move(rhs.ch_name);
-    address = rhs.address;
-    dead = rhs.dead;
+    PRadDAQChannel::operator =(rhs);
     occupancy = rhs.occupancy;
     sparsify = rhs.sparsify;
     adc_value = rhs.adc_value;
@@ -121,6 +121,49 @@ PRadADCChannel &PRadADCChannel::operator =(PRadADCChannel &&rhs)
 // Public Member Functions                                                    //
 //============================================================================//
 
+// set a tdc channel
+void PRadADCChannel::SetTDC(PRadTDCChannel *t, bool force_set)
+{
+    if(t == tdc_group)
+        return;
+
+    if(!force_set)
+        UnsetTDC();
+
+    tdc_group = t;
+}
+
+// unset current tdc channel
+void PRadADCChannel::UnsetTDC()
+{
+    if(tdc_group) {
+//        tdc_group->RemoveChannel(ch_id);
+        tdc_group = nullptr;
+    }
+}
+
+// set a module to this channel
+void PRadADCChannel::SetModule(PRadHyCalModule *m, bool force_set)
+{
+    if(m == module)
+        return;
+
+    if(!force_set)
+        UnsetModule();
+
+    module = m;
+}
+
+// unset current module
+void PRadADCChannel::UnsetModule()
+{
+    if(module) {
+//        module->RemoveChannel();
+        module = nullptr;
+    }
+}
+
+// add a histogram
 bool PRadADCChannel::AddHist(const std::string &n, TH1 *hist)
 {
     if(hist == nullptr)
@@ -139,6 +182,7 @@ bool PRadADCChannel::AddHist(const std::string &n, TH1 *hist)
 
 }
 
+// map a histogram to trigger type
 bool PRadADCChannel::MapHist(const std::string &name, int trg)
 {
     if((size_t)trg >= trg_hist.size())
@@ -154,7 +198,9 @@ bool PRadADCChannel::MapHist(const std::string &name, int trg)
     return true;
 }
 
-TH1 *PRadADCChannel::GetHist(const std::string &n) const
+// get histogram
+TH1 *PRadADCChannel::GetHist(const std::string &n)
+const
 {
     auto it = hist_map.find(ConfigParser::str_lower(n));
     if(it == hist_map.end()) {
@@ -163,7 +209,9 @@ TH1 *PRadADCChannel::GetHist(const std::string &n) const
     return it->second;
 }
 
-std::vector<TH1*> PRadADCChannel::GetHistList() const
+// get the histogram list
+std::vector<TH1*> PRadADCChannel::GetHistList()
+const
 {
     std::vector<TH1*> hlist;
 
@@ -175,6 +223,7 @@ std::vector<TH1*> PRadADCChannel::GetHistList() const
     return hlist;
 }
 
+// set pedestal
 void PRadADCChannel::SetPedestal(const Pedestal &p)
 {
     pedestal = p;
@@ -182,6 +231,7 @@ void PRadADCChannel::SetPedestal(const Pedestal &p)
     sparsify = (unsigned short)(pedestal.mean + 5.*pedestal.sigma + 0.5); // round
 }
 
+// set pedestal
 void PRadADCChannel::SetPedestal(const double &m, const double &s)
 {
     SetPedestal(Pedestal(m, s));
@@ -200,13 +250,14 @@ double PRadADCChannel::Calibration(const unsigned short &adcVal) const
     return energy;
 }
 
-// erase current data
-void PRadADCChannel::Clear()
+// reset current data
+void PRadADCChannel::Reset()
 {
     occupancy = 0;
     ResetHists();
 }
 
+// reset histograms
 void PRadADCChannel::ResetHists()
 {
     for(auto &it : hist_map)
@@ -216,6 +267,7 @@ void PRadADCChannel::ResetHists()
     }
 }
 
+// erase histograms
 void PRadADCChannel::ClearHists()
 {
     for(auto &it : hist_map)

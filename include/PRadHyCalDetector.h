@@ -29,8 +29,8 @@ public:
     PRadHyCalDetector &operator =(PRadHyCalDetector &&rhs);
 
     // public member functions
-    void SetSystem(PRadHyCalSystem *sys);
-    void UnsetSystem(bool system_destroy = false);
+    void SetSystem(PRadHyCalSystem *sys, bool force_set = false);
+    void UnsetSystem(bool force_unset =false);
     bool AddModule(PRadHyCalModule *module);
     void RemoveModule(PRadHyCalModule *module);
     void SortModuleList();

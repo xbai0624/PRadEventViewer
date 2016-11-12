@@ -63,7 +63,7 @@ PRadGEMPlane::PRadGEMPlane(PRadGEMPlane &&that)
 PRadGEMPlane::~PRadGEMPlane()
 {
     UnsetDetector();
-    ResetConnections();
+    DisconnectAPVs();
 }
 
 // copy assignment
@@ -96,22 +96,26 @@ PRadGEMPlane &PRadGEMPlane::operator =(PRadGEMPlane &&rhs)
 //============================================================================//
 
 // set detector to the plane
-void PRadGEMPlane::SetDetector(PRadGEMDetector *det)
+void PRadGEMPlane::SetDetector(PRadGEMDetector *det, bool force_set)
 {
     if(det == detector)
         return;
 
-    UnsetDetector();
+    if(!force_set)
+        UnsetDetector();
+
     detector = det;
 }
 
 // disconnect the detector
-void PRadGEMPlane::UnsetDetector()
+void PRadGEMPlane::UnsetDetector(bool force_unset)
 {
-    if(detector == nullptr)
+    if(!detector)
         return;
 
-    detector->RemovePlane(type);
+    if(!force_unset)
+        detector->RemovePlane(type);
+
     detector = nullptr;
 }
 
@@ -132,7 +136,7 @@ void PRadGEMPlane::SetCapacity(int c)
         for(size_t i = c; i < apv_list.size(); ++i)
         {
             if(apv_list[i] != nullptr)
-                apv_list[i]->DisconnectPlane();
+                apv_list[i]->UnsetDetectorPlane(true);
         }
     }
 
@@ -172,16 +176,23 @@ void PRadGEMPlane::DisconnectAPV(const size_t &plane_index)
     if(plane_index >= apv_list.size())
         return;
 
-    apv_list[plane_index] = nullptr;
+    auto &apv = apv_list[plane_index];
+
+    if(apv_list[plane_index]) {
+        apv->UnsetDetectorPlane(true);
+        apv = nullptr;
+    }
 }
 
 // reset all APV connections
-void PRadGEMPlane::ResetConnections()
+void PRadGEMPlane::DisconnectAPVs()
 {
     for(auto &apv : apv_list)
     {
-        if(apv != nullptr)
-            apv->DisconnectPlane();
+        if(apv) {
+            apv->UnsetDetectorPlane(true);
+            apv = nullptr;
+        }
     }
 }
 

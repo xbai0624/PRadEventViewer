@@ -20,14 +20,12 @@ int main(int /*argc*/, char * /*argv*/ [])
     PRadHyCalSystem *sys = new PRadHyCalSystem("hycal.conf");
 
     PRadHyCalDetector *hycal1 = sys->GetDetector();
-    PRadHyCalDetector hycal(*hycal1);
+    PRadHyCalDetector hycal = move(*hycal1);
     delete hycal1;
-    /*
     for(auto module : hycal.GetModuleList())
     {
         cout << module->GetID() << ": " << *module << endl;
     }
-    */
     cout << hycal.GetModuleList().size() << endl;
     //hycal.SortModuleList();
     //hycal.OutputModuleList(cout);

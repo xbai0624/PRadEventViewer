@@ -102,22 +102,23 @@ PRadGEMFEC &PRadGEMFEC::operator =(PRadGEMFEC &&rhs)
 //============================================================================//
 
 // set the GEM System for FEC, and disconnect it from the previous GEM System
-void PRadGEMFEC::SetSystem(PRadGEMSystem *g)
+void PRadGEMFEC::SetSystem(PRadGEMSystem *g, bool force_set)
 {
     if(g == gem_srs)
         return;
 
-    UnsetSystem();
+    if(!force_set)
+        UnsetSystem();
+
     gem_srs = g;
 }
 
-void PRadGEMFEC::UnsetSystem(bool system_destroy)
+void PRadGEMFEC::UnsetSystem(bool force_unset)
 {
-    if(gem_srs == nullptr)
+    if(!gem_srs)
         return;
 
-    // if system is going to be destroyed, no need to remove FEC from the system
-    if(!system_destroy)
+    if(!force_unset)
         gem_srs->RemoveFEC(id);
 
     gem_srs = nullptr;
@@ -139,7 +140,7 @@ void PRadGEMFEC::SetCapacity(int slots)
         for(size_t i = slots; i < adc_list.size(); ++i)
         {
             if(adc_list[i] != nullptr)
-                adc_list[i]->DisconnectFEC();
+                adc_list[i]->UnsetFEC(true);
         }
     }
 
@@ -182,7 +183,11 @@ void PRadGEMFEC::RemoveAPV(const int &slot)
     if((size_t)slot >= adc_list.size())
         return;
 
-    adc_list[slot] = nullptr;
+    auto &apv = adc_list[slot];
+    if(apv) {
+        apv->UnsetFEC(true);
+        apv = nullptr;
+    }
 }
 
 // clear all the apvs in fec
@@ -190,6 +195,9 @@ void PRadGEMFEC::Clear()
 {
     for(auto &adc : adc_list)
     {
+        // prevent calling remove apv
+        if(adc)
+            adc->UnsetFEC(true);
         delete adc;
     }
 }

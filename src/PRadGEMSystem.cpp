@@ -122,6 +122,13 @@ PRadGEMSystem &PRadGEMSystem::operator =(const PRadGEMSystem &rhs)
 // move assignment operator
 PRadGEMSystem &PRadGEMSystem::operator =(PRadGEMSystem &&rhs)
 {
+    // release current resources
+    Clear();
+    delete gem_recon;
+
+    // move everything here
+    gem_recon = rhs.gem_recon;
+    rhs.gem_recon = nullptr;
     PedestalMode = rhs.PedestalMode;
     det_list = move(rhs.det_list);
     fec_list = move(rhs.fec_list);
@@ -152,9 +159,9 @@ void PRadGEMSystem::Clear()
     for(auto &fec : daq_slots)
     {
         // this prevent fec from calling RemoveFEC upon destruction
-        if(fec != nullptr)
+        if(fec)
             fec->UnsetSystem(true);
-        delete fec, fec = nullptr;
+        delete fec;
     }
 
     fec_list.clear();
@@ -163,9 +170,9 @@ void PRadGEMSystem::Clear()
     for(auto &det : det_slots)
     {
         // this prevent detector from calling removeDetector upon destruction
-        if(det != nullptr)
+        if(det)
             det->UnsetSystem(true);
-        delete det, det = nullptr;
+        delete det;
     }
 
     det_list.clear();
@@ -343,10 +350,14 @@ void PRadGEMSystem::RemoveDetector(int det_id)
     if((size_t)det_id >= det_slots.size())
         return;
 
-    det_slots[det_id] = nullptr;
-
-    // rebuild maps
-    RebuildDetectorMap();
+    auto &det = det_slots[det_id];
+    if(det) {
+        // force unset
+        det->UnsetSystem(true);
+        det = nullptr;
+        // rebuild maps
+        RebuildDetectorMap();
+    }
 }
 
 // remove FEC, and rebuild the DAQ map
@@ -355,10 +366,14 @@ void PRadGEMSystem::RemoveFEC(int fec_id)
     if((size_t)fec_id >= daq_slots.size())
         return;
 
-    daq_slots[fec_id] = nullptr;
-
-    // rebuild maps
-    RebuildDAQMap();
+    auto &fec = daq_slots[fec_id];
+    if(fec) {
+        // force unset
+        fec->UnsetSystem(true);
+        fec = nullptr;
+        // rebuild maps
+        RebuildDAQMap();
+    }
 }
 
 // rebuild detector related maps

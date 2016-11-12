@@ -5,15 +5,15 @@
 #include <vector>
 #include <iostream>
 #include <unordered_map>
+#include "PRadDAQChannel.h"
 #include "PRadCalibConst.h"
-#include "datastruct.h"
 #include "TH1.h"
 
 
 class PRadHyCalModule;
 class PRadTDCChannel;
 
-class PRadADCChannel
+class PRadADCChannel : public PRadDAQChannel
 {
 public:
     struct Pedestal
@@ -32,27 +32,32 @@ public:
 public:
     // constructor
     PRadADCChannel(const std::string &name, const ChannelAddress &daqAddr);
-    // copy constructor
+
+    // copy/move constructor
     PRadADCChannel(const PRadADCChannel &that);
-    // move constructor
     PRadADCChannel(PRadADCChannel &&that);
+
     // destructor
     virtual ~PRadADCChannel();
-    // copy assignment operator
+
+    // copy/move assignment operator
     PRadADCChannel &operator =(const PRadADCChannel &rhs);
-    // move assignment operator
     PRadADCChannel &operator =(PRadADCChannel &&rhs);
 
-    void AssignID(const unsigned short &id) {ch_id = id;};
-    void ConnectTDC(PRadTDCChannel *t) {tdc_group = t;};
-    void ConnectModule(PRadHyCalModule *t) {module = t;};
-    void SetDead(bool d) {dead = d;};
+    // public member functions
+    // set members
+    void SetTDC(PRadTDCChannel *t, bool force_set);
+    void UnsetTDC();
+    void SetModule(PRadHyCalModule *m, bool force_set);
+    void UnsetModule();
     void SetPedestal(const Pedestal &ped);
     void SetPedestal(const double &m, const double &s);
     void SetCalibConst(const PRadCalibConst &c) {cal_const = c;};
     void GainCorrection(const double &g, const int &ref) {cal_const.GainCorrection(g, ref);};
     void SetADC(const unsigned short &adcVal) {adc_value = adcVal;};
-    void Clear();
+    // reset data
+    void Reset();
+    // histograms manipulations
     void ResetHists();
     void ClearHists();
     bool AddHist(const std::string &name, TH1 *hist);
@@ -67,11 +72,11 @@ public:
     };
 
 
-    bool IsDead() const {return dead;};
+    // check if adc passed threshold
     bool Sparsified(const unsigned short &adcVal);
+    // get calibration result
     double Calibration(const unsigned short &adcVal) const;
 
-    unsigned short GetID() const {return ch_id;};
     int GetOccupancy() const {return occupancy;};
     double GetEnergy() const ;
     double GetEnergy(const unsigned short &adcVal) const;
@@ -80,24 +85,18 @@ public:
     double GetCalibrationEnergy() const {return cal_const.base_energy;};
     double GetReferenceGain(int ref) {return cal_const.GetRefGain(ref);};
     unsigned short GetADC() const {return adc_value;};
-    ChannelAddress GetAddress() const {return address;};
     Pedestal GetPedestal() const {return pedestal;};
     PRadCalibConst GetCalibConst() const {return cal_const;};
     TH1 *GetHist(const std::string &name = "PHYS") const;
     TH1 *GetHist(PRadTriggerType type) const {return trg_hist[(int)type];};
     std::vector<TH1*> GetHistList() const;
-    std::string GetName() const {return ch_name;};
     PRadTDCChannel *GetTDC() const {return tdc_group;};
 
 protected:
     PRadHyCalModule *module;
     PRadTDCChannel *tdc_group;
-    unsigned short ch_id;
-    std::string ch_name;
-    ChannelAddress address;
     Pedestal pedestal;
     PRadCalibConst cal_const;
-    bool dead;
     int occupancy;
     unsigned short sparsify;
     unsigned short adc_value;

@@ -71,9 +71,7 @@ PRadHyCalDetector &PRadHyCalDetector::operator =(const PRadHyCalDetector &rhs)
 // move assignment operator
 PRadHyCalDetector &PRadHyCalDetector::operator =(PRadHyCalDetector &&rhs)
 {
-    // disconnect HyCal system
-    UnsetSystem();
-    PRadDetector::operator=(rhs);
+    PRadDetector::operator =(rhs);
     module_list = std::move(rhs.module_list);
     id_map = std::move(rhs.id_map);
     name_map = std::move(rhs.name_map);
@@ -91,19 +89,26 @@ PRadHyCalDetector &PRadHyCalDetector::operator =(PRadHyCalDetector &&rhs)
 //============================================================================//
 
 // set a new system, disconnect from the previous one
-void PRadHyCalDetector::SetSystem(PRadHyCalSystem *sys)
+void PRadHyCalDetector::SetSystem(PRadHyCalSystem *sys, bool force_set)
 {
-    UnsetSystem();
+    if(sys == system)
+        return;
+
+    // force to set system without unset original system
+    // it will be useful for destruction
+    if(!force_set)
+        UnsetSystem();
+
     system = sys;
 }
 
-void PRadHyCalDetector::UnsetSystem(bool system_destroy)
+void PRadHyCalDetector::UnsetSystem(bool force_unset)
 {
-    if(system == nullptr)
+    // only do this if system exists
+    if(!system)
         return;
 
-    // if system is going to be destroyed, not need to call remove detector from it
-    if(!system_destroy)
+    if(!force_unset)
         system->RemoveDetector();
 
     system = nullptr;
@@ -171,7 +176,7 @@ void PRadHyCalDetector::ClearModuleList()
     for(auto module : module_list)
     {
         // prevent module calling RemoveModule upon destruction
-        module->UnsetDetector(true);
+        module->SetDetector(nullptr, true);
         delete module;
     }
 

@@ -30,6 +30,14 @@ int main(int /*argc*/, char * /*argv*/ [])
     // get GEM system
     PRadGEMSystem *gem_srs = handler->GetSRS();
 
+    /* some test on connections constructors and assignment operators
+    gem_srs->GetAPV(1, 5)->UnsetFEC();
+    gem_srs->GetAPV(1, 6)->UnsetDetectorPlane();
+
+    PRadGEMSystem gem = move(*gem_srs);
+    delete gem_srs;
+    gem_srs = &gem;
+    */
     /* save gem pedestal
     gem_srs->SetPedestalMode(true);
     handler->InitializeByData("prad_001287.evio.0");

@@ -37,8 +37,8 @@ public:
     PRadGEMDetector &operator =(PRadGEMDetector &&rhs);
 
     // public member functions
-    void SetSystem(PRadGEMSystem *sys);
-    void UnsetSystem(bool system_destroy = false);
+    void SetSystem(PRadGEMSystem *sys, bool false_set = false);
+    void UnsetSystem(bool false_unset = false);
     bool AddPlane(PRadGEMPlane *plane);
     bool AddPlane(const int &type, const std::string &name, const double &size,
                   const int &conn, const int &ori, const int &dir);

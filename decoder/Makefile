@@ -55,6 +55,7 @@ LIB_OBJ_DIR   = $(T_LIBS_DIR)/obj
 
 LIB_OBJECTS   = $(LIB_OBJ_DIR)/PRadDAQUnit.o \
                 $(LIB_OBJ_DIR)/PRadTDCGroup.o \
+				$(LIB_OBJ_DIR)/PRadDAQChannel.o \
 				$(LIB_OBJ_DIR)/PRadADCChannel.o \
 				$(LIB_OBJ_DIR)/PRadCalibConst.o \
                 $(LIB_OBJ_DIR)/PRadEvioParser.o \

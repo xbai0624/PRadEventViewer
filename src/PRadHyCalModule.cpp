@@ -93,22 +93,24 @@ PRadHyCalModule &PRadHyCalModule::operator =(PRadHyCalModule &&rhs)
 //============================================================================//
 
 // set detector to the plane
-void PRadHyCalModule::SetDetector(PRadHyCalDetector *det)
+void PRadHyCalModule::SetDetector(PRadHyCalDetector *det, bool force_set)
 {
     if(det == detector)
         return;
 
-    UnsetDetector();
+    if(!force_set)
+        UnsetDetector();
+
     detector = det;
 }
 
 // disconnect the detector
-void PRadHyCalModule::UnsetDetector(bool det_destroy)
+void PRadHyCalModule::UnsetDetector(bool force_unset)
 {
-    if(detector == nullptr)
+    if(!detector)
         return;
 
-    if(!det_destroy)
+    if(!force_unset)
         detector->RemoveModule(this);
 
     detector = nullptr;

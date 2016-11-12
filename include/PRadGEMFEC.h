@@ -33,8 +33,8 @@ public:
     PRadGEMFEC &operator =(PRadGEMFEC &&rhs);
 
     // public member functions
-    void SetSystem(PRadGEMSystem *g);
-    void UnsetSystem(bool system_destroy = false);
+    void SetSystem(PRadGEMSystem *g, bool force_set = false);
+    void UnsetSystem(bool force_unset = false);
     void SetCapacity(int slots);
     bool AddAPV(PRadGEMAPV *apv, const int &slot);
     void RemoveAPV(const int &slot);

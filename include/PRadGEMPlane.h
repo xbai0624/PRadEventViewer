@@ -52,7 +52,7 @@ public:
     // public member functions
     void ConnectAPV(PRadGEMAPV *apv, const int &index);
     void DisconnectAPV(const size_t &plane_index);
-    void ResetConnections();
+    void DisconnectAPVs();
     void AddPlaneHit(const int &plane_strip, const std::vector<float> &charges);
     void ClearPlaneHits();
     void CollectAPVHits();
@@ -61,8 +61,8 @@ public:
     float GetIntegratedCharge(const std::vector<float> &charges) const;
 
     // set parameter
-    void SetDetector(PRadGEMDetector *det);
-    void UnsetDetector();
+    void SetDetector(PRadGEMDetector *det, bool force_set = false);
+    void UnsetDetector(bool force_unset = false);
     void SetName(const std::string &n) {name = n;};
     void SetType(const PlaneType &t) {type = t;};
     void SetSize(const float &s) {size = s;};

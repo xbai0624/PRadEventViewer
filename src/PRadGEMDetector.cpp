@@ -70,8 +70,10 @@ PRadGEMDetector::~PRadGEMDetector()
 
     for(auto &plane : planes)
     {
-        if(plane != nullptr)
-            delete plane, plane = nullptr;
+        if(plane)
+            plane->UnsetDetector(true);
+
+        delete plane;
     }
 }
 
@@ -102,22 +104,23 @@ PRadGEMDetector &PRadGEMDetector::operator =(PRadGEMDetector &&rhs)
 //============================================================================//
 
 // set a new system, disconnect from the previous one
-void PRadGEMDetector::SetSystem(PRadGEMSystem *sys)
+void PRadGEMDetector::SetSystem(PRadGEMSystem *sys, bool force_set)
 {
     if(sys == gem_srs)
         return;
 
-    UnsetSystem();
+    if(!force_set)
+        UnsetSystem();
+
     gem_srs = sys;
 }
 
-void PRadGEMDetector::UnsetSystem(bool system_destroy)
+void PRadGEMDetector::UnsetSystem(bool force_unset)
 {
-    if(gem_srs == nullptr)
+    if(!gem_srs)
         return;
 
-    // if system is destroyed, not need to remove detector from it
-    if(!system_destroy)
+    if(!force_unset)
         gem_srs->RemoveDetector(det_id);
 
     gem_srs = nullptr;
@@ -175,8 +178,15 @@ bool PRadGEMDetector::AddPlane(PRadGEMPlane *plane)
 // remove plane
 void PRadGEMDetector::RemovePlane(const int &type)
 {
-    if((size_t)type < planes.size())
-        planes[type] = nullptr;
+    if((size_t)type >= planes.size())
+        return;
+
+    auto &plane = planes[type];
+
+    if(plane) {
+        plane->UnsetDetector(true);
+        plane = nullptr;
+    }
 }
 
 // Asure the connection to all the planes
