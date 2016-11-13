@@ -1381,11 +1381,11 @@ void PRadEventViewer::handleRootEvents()
 void PRadEventViewer::setupReconDisplay()
 {
     // load GEM configuration
-    handler->ReadGEMConfiguration("config/gem_map.conf");
-    handler->ReadGEMPedestalFile("config/gem_ped.dat");
+    handler->ReadGEMConfiguration("database/gem_map.txt");
+    handler->ReadGEMPedestalFile("database/gem_ped.dat");
 
     // add hycal clustering methods
-    coordSystem = new PRadCoordSystem("config/coordinates.dat");
+    coordSystem = new PRadCoordSystem("database/coordinates.dat");
     detMatch = new PRadDetMatch("config/det_match.conf");
 
     reconSetting = new ReconSettingPanel(this);

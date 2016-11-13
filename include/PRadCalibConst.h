@@ -14,6 +14,7 @@ public:
 
 public:
     PRadCalibConst(int ref_num = DEFAULT_REF_NUM);
+    PRadCalibConst(double f, double e, double nl, const std::vector<double> &g);
     PRadCalibConst(double f, double e, double nl, double *g, int num);
 
     virtual ~PRadCalibConst();

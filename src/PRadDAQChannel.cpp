@@ -6,7 +6,7 @@
 //============================================================================//
 
 #include "PRadDAQChannel.h"
-
+#include <iomanip>
 
 
 //============================================================================//
@@ -42,4 +42,24 @@ PRadDAQChannel::PRadDAQChannel(int id, std::string name, ChannelAddress addr, bo
 PRadDAQChannel::~PRadDAQChannel()
 {
     // place holder
+}
+
+
+
+//============================================================================//
+// Other Functions                                                            //
+//============================================================================//
+
+// show channel address
+std::ostream &operator <<(std::ostream &os, const ChannelAddress &addr)
+{
+    return os << std::setw(6) << addr.crate
+              << std::setw(6) << addr.slot
+              << std::setw(6) << addr.channel;
+}
+
+// show channel
+std::ostream &operator <<(std::ostream &os, const PRadDAQChannel &ch)
+{
+    return os << std::setw(8) << ch.GetName() << ch.GetAddress();
 }

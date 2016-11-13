@@ -1,5 +1,7 @@
 //============================================================================//
-// Calibration constant class                                                 //
+// Calibration constant class, store the calibration related parameters       //
+// base_factor, base_gains, base_energy directly from the calibration runs    //
+// Accept LMS gain from any runs to correct the calibration factor            //
 //                                                                            //
 // Chao Peng                                                                  //
 // 11/12/2016                                                                 //
@@ -9,10 +11,21 @@
 
 
 
+//============================================================================//
+// Constructors, Destructor                                                   //
+//============================================================================//
+
+// constructors
 PRadCalibConst::PRadCalibConst(int ref_num)
 : factor(0.), base_factor(0.), base_energy(0.), non_linear(0.)
 {
     base_gains.resize(ref_num, 0);
+}
+
+PRadCalibConst::PRadCalibConst(double f, double e, double nl, const std::vector<double> &g)
+: factor(f), base_factor(f), base_energy(e), base_gains(g), non_linear(nl)
+{
+    // place holder
 }
 
 PRadCalibConst::PRadCalibConst(double f, double e, double nl, double *g, int num)
@@ -22,6 +35,7 @@ PRadCalibConst::PRadCalibConst(double f, double e, double nl, double *g, int num
         base_gains.push_back(g[i]);
 }
 
+// destructor
 PRadCalibConst::~PRadCalibConst()
 {
     // place holder

@@ -78,6 +78,7 @@ public:
     TH1 *GetHist(const std::string &name = "PHYS") const;
     TH1 *GetHist(PRadTriggerType type) const {return trg_hist[(int)type];};
     std::vector<TH1*> GetHistList() const;
+    PRadHyCalModule *GetModule() const {return module;};
     PRadTDCChannel *GetTDC() const {return tdc_group;};
 
 protected:
@@ -91,4 +92,6 @@ protected:
     std::unordered_map<std::string, TH1*> hist_map;
 };
 
+std::ostream &operator <<(std::ostream &os, const PRadADCChannel::Pedestal &ped);
+std::ostream &operator <<(std::ostream &os, const PRadADCChannel &ch);
 #endif

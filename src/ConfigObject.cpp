@@ -202,18 +202,18 @@ ConfigValue ConfigObject::form(const std::string &input,
                                const std::string &cl)
 const
 {
-    ConfigValue res(input);
+    std::string result = input;
+    int pos1, pos2;
 
-    auto pairs = ConfigParser::find_pair(res._value, op, cl);
-
-    for(auto &pair : pairs)
+    while(ConfigParser::find_pair(result, op, cl, pos1, pos2))
     {
-        int beg_pos = pair.first + op.size();
-        int end_pos = pair.second - cl.size();
-        int size = end_pos - beg_pos + 1;
-        ConfigValue val = GetConfigValue(res._value.substr(beg_pos, size));
-        res._value.replace(pair.first, pair.second - pair.first + 1, val.c_str());
+        size_t beg = pos1 + op.size();
+        size_t end = pos2 - cl.size();
+        size_t size = end - beg + 1;
+
+        ConfigValue val = GetConfigValue(result.substr(beg, size));
+        result.replace(pos1, pos2 - pos1 + 1, val.c_str());
     }
 
-    return res;
+    return ConfigValue(std::move(result));
 }

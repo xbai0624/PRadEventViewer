@@ -524,10 +524,39 @@ bool ConfigParser::strcmp_case_insensitive(const string &str1, const string &str
     return true;
 }
 
+// find the first pair position in a string, it will return the most inner pair
+// if the first pair is a mult-layer structure
+bool ConfigParser::find_pair(const std::string &str,
+                             const string &open, const string &close,
+                             int &open_pos, int &close_pos)
+{
+    size_t first_close = str.find(close);
+
+    // did not find any close mark
+    if(first_close == string::npos)
+        return false;
+
+    vector<int> opens;
+    for(int i = 0; i < (int)first_close; ++i)
+    {
+        if(str.substr(i, open.size()) == open)
+            opens.push_back(i);
+    }
+
+    // did not find any open mark
+    if(opens.empty())
+        return false;
+
+    open_pos = opens.back();
+    close_pos = first_close;
+
+    return true;
+}
+
 // find pair position in a string
-vector<pair<int, int>> ConfigParser::find_pair(const string &str,
-                                               const string &op,
-                                               const string &cl)
+vector<pair<int, int>> ConfigParser::find_pairs(const string &str,
+                                                const string &op,
+                                                const string &cl)
 {
     vector<pair<int, int>> result;
 

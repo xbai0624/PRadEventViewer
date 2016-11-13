@@ -282,3 +282,15 @@ bool PRadADCChannel::Sparsified(const unsigned short &adcVal)
     ++occupancy;
     return true;
 }
+
+
+std::ostream &operator <<(std::ostream &os, const PRadADCChannel::Pedestal &ped)
+{
+    return os << std::setw(12) << ped.mean
+              << std::setw(12) << ped.sigma;
+}
+
+std::ostream &operator <<(std::ostream &os, const PRadADCChannel &ch)
+{
+    return os << (PRadDAQChannel)ch << ch.GetPedestal();
+}

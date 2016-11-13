@@ -47,62 +47,16 @@ void PRadHyCalSystem::Configure(const std::string &path)
 {
     ConfigObject::Configure(path);
 
-    ReadModuleList(GetConfig<std::string>("Module List"));
+    if(hycal) {
+        hycal->ReadModuleList(GetConfig<std::string>("Module List"));
+        hycal->ReadCalibrationFile(GetConfig<std::string>("Calibration File"));
+    }
+
     ReadChannelList(GetConfig<std::string>("DAQ Channel List"));
+    ReadPedestalFile(GetConfig<std::string>("DAQ Pedestal File"));
+    ReadRunInfoFile(GetConfig<std::string>("Run Info File"));
+
     BuildConnections();
-}
-
-// read module list
-void PRadHyCalSystem::ReadModuleList(const std::string &path)
-{
-    if(path.empty())
-        return;
-
-    if(hycal == nullptr) {
-        std::cerr << "PRad HyCal System Error: Has no detector, cannot read "
-                  << "module list."
-                  << std::endl;
-        return;
-    }
-
-    ConfigParser c_parser;
-    if(!c_parser.ReadFile(path)) {
-        std::cerr << "PRad HyCal System Error: Failed to read module list file "
-                  << "\"" << path << "\"."
-                  << std::endl;
-        return;
-    }
-
-    // clear all modules
-    hycal->ClearModuleList();
-
-    std::string name;
-    std::string type, sector;
-    PRadHyCalModule::Geometry geo;
-
-    // some info that is not read from list
-    while (c_parser.ParseLine())
-    {
-        if(!c_parser.CheckElements(9))
-            continue;
-
-        c_parser >> name >> type
-                 >> geo.size_x >> geo.size_y >> geo.x >> geo.y
-                 >> sector
-                 >> geo.row >> geo.column;
-
-        geo.type = PRadHyCalModule::get_module_type(type.c_str());
-        geo.sector = PRadHyCalModule::get_sector_id(sector.c_str());
-
-        PRadHyCalModule *module = new PRadHyCalModule(name, geo);
-
-        // failed to add module to detector
-        if(!hycal->AddModule(module))
-            delete module;
-    }
-
-    // sort the module by id
-    hycal->SortModuleList();
 }
 
 // read DAQ channel list
@@ -199,9 +153,54 @@ void PRadHyCalSystem::ReadChannelList(const std::string &path)
     }
 }
 
+// read pedestal file for the adc channels
+void PRadHyCalSystem::ReadPedestalFile(const std::string &path)
+{
+    if(path.empty())
+        return;
+
+    ConfigParser c_parser;
+    if(!c_parser.ReadFile(path)) {
+        std::cerr << "PRad HyCal System Error: Failed to read pedestal file "
+                  << "\"" << path << "\"."
+                  << std::endl;
+        return;
+    }
+
+    double mean, sigma;
+    ChannelAddress addr;
+    PRadADCChannel *tmp;
+
+    while(c_parser.ParseLine())
+    {
+        if(!c_parser.CheckElements(5))
+            continue;
+
+        c_parser >> addr.crate >> addr.slot >> addr.channel >> mean >> sigma;
+        tmp = GetADCChannel(addr);
+
+        if(tmp) {
+            tmp->SetPedestal(mean, sigma);
+        } else {
+            std::cout << "PRad HyCal System Warning: Cannot find ADC Channel "
+                      << addr << ", skipped its update for pedestal."
+                      << std::endl;
+        }
+    }
+
+};
+
 // build connections between ADC channels and HyCal modules
 void PRadHyCalSystem::BuildConnections()
 {
+    if(!hycal) {
+        std::cout << "PRad HyCal System Warning: HyCal detector does not exist "
+                  << "in the system, abort building connections between ADCs "
+                  << "and modules"
+                  << std::endl;
+        return;
+    }
+
     // connect based on name
     for(auto &module : hycal->GetModuleList())
     {
@@ -217,6 +216,80 @@ void PRadHyCalSystem::BuildConnections()
 
         adc->SetModule(module);
         module->SetChannel(adc);
+    }
+}
+
+// read module status file
+void PRadHyCalSystem::ReadRunInfoFile(const std::string &path)
+{
+    if(path.empty())
+        return;
+
+    ConfigParser c_parser;
+    if(!c_parser.ReadFile(path)) {
+        std::cerr << "PRad HyCal System Error: Failed to read status file "
+                  << "\"" << path << "\""
+                  << std::endl;
+        return;
+    }
+
+    std::string name;
+    std::vector<double> ref_gain;
+    unsigned int ref = 0;
+
+    // first line will be gains for 3 reference PMTs
+    if(c_parser.ParseLine()) {
+        c_parser >> name;
+
+        if(!ConfigParser::strcmp_case_insensitive(name, "REF_GAIN")) {
+            std::cerr << "PRad HyCal System Error: Expected Reference PMT info "
+                      << "(started by REF_GAIN) as the first input. Aborted status "
+                      << "file reading from "
+                      << "\"" << path << "\""
+                      << std::endl;
+            return;
+        }
+
+        // fill in reference PMT gains
+        while(c_parser.NbofElements() > 1)
+            ref_gain.push_back(c_parser.TakeFirst().Double());
+
+        // get suggested reference number
+        c_parser >> ref;
+        ref--;
+
+        if(ref >= ref_gain.size()) {
+            std::cerr << "PRad HyCal System Error: Unknown Reference PMT "
+                      << ref + 1
+                      << ", only has " << ref_gain.size()
+                      << " Ref. PMTs"
+                      << std::endl;
+            return;
+        }
+    }
+
+    double lms_mean, lms_sig, ped_mean, ped_sig;
+    unsigned int status;
+    // following lines will be information about modules
+    while(c_parser.ParseLine())
+    {
+        if(!c_parser.CheckElements(6))
+            continue;
+
+        c_parser >> name >> ped_mean >> ped_sig >> lms_mean >> lms_sig >> status;
+
+        PRadADCChannel *tmp = GetADCChannel(name);
+        if(tmp) {
+            tmp->SetPedestal(ped_mean, ped_sig);
+            tmp->SetDead(status&1);
+            PRadHyCalModule *module = tmp->GetModule();
+            if(module)
+                module->GainCorrection((lms_mean - ped_mean)/ref_gain[ref], ref);
+        } else {
+            std::cout << "PRad HyCal System Warning: Cannot find ADC Channel "
+                      << name << ", skipped status update and gain correction."
+                      << std::endl;
+        }
     }
 }
 
@@ -319,6 +392,31 @@ void PRadHyCalSystem::ClearTDCChannel()
     tdc_addr_map.clear();
 }
 
+PRadHyCalModule *PRadHyCalSystem::GetModule(const int &id)
+const
+{
+    if(hycal)
+        return hycal->GetModule(id);
+    return nullptr;
+}
+
+PRadHyCalModule *PRadHyCalSystem::GetModule(const std::string &name)
+const
+{
+    if(hycal)
+        return hycal->GetModule(name);
+    return nullptr;
+}
+
+std::vector<PRadHyCalModule*> PRadHyCalSystem::GetModuleList()
+const
+{
+    if(hycal)
+        return hycal->GetModuleList();
+
+    return std::vector<PRadHyCalModule*>();
+}
+
 PRadADCChannel *PRadHyCalSystem::GetADCChannel(const int &id)
 const
 {
@@ -370,16 +468,3 @@ const
         return it->second;
     return nullptr;
 }
-
-
-
-//============================================================================//
-// Public Member Functions                                                    //
-//============================================================================//
-
-// show channel address
-std::ostream &operator <<(std::ostream &os, const ChannelAddress &addr)
-{
-    return os << addr.crate << ", " << addr.slot << ", " << addr.channel;
-}
-

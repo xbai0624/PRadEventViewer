@@ -171,7 +171,8 @@ void PRadGEMSystem::Configure(const string &path)
     def_cth = getDefConfig<float>("Default Common Mode Threshold", 20, verbose);
     def_zth = getDefConfig<float>("Default Zero Suppression Threshold", 5, verbose);
 
-    gem_recon->Configure(GetConfig<std::string>("GEM Cluster Configuration"));
+    if(gem_recon)
+        gem_recon->Configure(GetConfig<std::string>("GEM Cluster Configuration"));
 
     try{
         ReadMapFile(GetConfig<std::string>("GEM Map"));

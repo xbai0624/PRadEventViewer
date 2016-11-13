@@ -42,8 +42,9 @@ public:
 
     // configuration
     void Configure(const std::string &path);
-    void ReadModuleList(const std::string &path);
     void ReadChannelList(const std::string &path);
+    void ReadPedestalFile(const std::string &path);
+    void ReadRunInfoFile(const std::string &path);
 
     // connections
     void BuildConnections();
@@ -52,8 +53,9 @@ public:
     void SetDetector(PRadHyCalDetector *h);
     void RemoveDetector();
     void DisconnectDetector(bool force_disconn = false);
-    PRadHyCalModule *GetModule(const int &id) const {return hycal->GetModule(id);};
-    PRadHyCalModule *GetModule(const std::string &n) const {return hycal->GetModule(n);};
+    PRadHyCalModule *GetModule(const int &id) const;
+    PRadHyCalModule *GetModule(const std::string &name) const;
+    std::vector<PRadHyCalModule*> GetModuleList() const;
     PRadHyCalDetector *GetDetector() const {return hycal;};
 
     // daq related
@@ -84,7 +86,5 @@ private:
     std::unordered_map<ChannelAddress, PRadTDCChannel*> tdc_addr_map;
     std::unordered_map<std::string, PRadTDCChannel*> tdc_name_map;
 };
-
-std::ostream &operator <<(std::ostream &os, const ChannelAddress &addr);
 
 #endif

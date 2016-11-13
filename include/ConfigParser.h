@@ -130,9 +130,12 @@ public:
     static std::string str_replace(const std::string &str, const std::string &ignore, const char &rc = ' ');
     static std::string str_lower(const std::string &str);
     static std::string str_upper(const std::string &str);
-    static std::vector<std::pair<int, int>> find_pair(const std::string &str,
-                                                      const std::string &open,
-                                                      const std::string &close);
+    static bool find_pair(const std::string &str,
+                          const std::string &open, const std::string &close,
+                          int &open_pos, int &close_pos);
+    static std::vector<std::pair<int, int>> find_pairs(const std::string &str,
+                                                       const std::string &open,
+                                                       const std::string &close);
     static bool strcmp_case_insensitive(const std::string &str1, const std::string &str2);
     static int find_integer(const std::string &str, const size_t &pos = 0);
     static std::vector<int> find_integers(const std::string &str);

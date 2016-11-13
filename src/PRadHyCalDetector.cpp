@@ -113,6 +113,88 @@ void PRadHyCalDetector::UnsetSystem(bool force_unset)
     system = nullptr;
 }
 
+// read module list
+void PRadHyCalDetector::ReadModuleList(const std::string &path)
+{
+    if(path.empty())
+        return;
+
+    ConfigParser c_parser;
+    if(!c_parser.ReadFile(path)) {
+        std::cerr << "PRad HyCal Detector Error: Failed to read module list file "
+                  << "\"" << path << "\"."
+                  << std::endl;
+        return;
+    }
+
+    // clear all modules
+    ClearModuleList();
+
+    std::string name;
+    std::string type, sector;
+    PRadHyCalModule::Geometry geo;
+
+    // some info that is not read from list
+    while (c_parser.ParseLine())
+    {
+        if(!c_parser.CheckElements(9))
+            continue;
+
+        c_parser >> name >> type
+                 >> geo.size_x >> geo.size_y >> geo.x >> geo.y
+                 >> sector
+                 >> geo.row >> geo.column;
+
+        geo.type = PRadHyCalModule::get_module_type(type.c_str());
+        geo.sector = PRadHyCalModule::get_sector_id(sector.c_str());
+
+        PRadHyCalModule *module = new PRadHyCalModule(name, geo);
+
+        // failed to add module to detector
+        if(!AddModule(module))
+            delete module;
+    }
+
+    // sort the module by id
+    SortModuleList();
+}
+
+// read calibration constants file
+void PRadHyCalDetector::ReadCalibrationFile(const std::string &path)
+{
+    if(path.empty())
+        return;
+
+    ConfigParser c_parser;
+    if(!c_parser.ReadFile(path)) {
+        std::cerr << "PRad HyCal Detector Error: Failed to read calibration file "
+                  << " \"" << path << "\""
+                  << std::endl;
+        return;
+    }
+
+    std::string name;
+    double factor, Ecal, ref[3], nl;
+
+    while(c_parser.ParseLine())
+    {
+        if(!c_parser.CheckElements(7))
+            continue;
+
+        c_parser >> name >> factor >> Ecal >> ref[0] >> ref[2] >> ref[3] >> nl;
+        PRadCalibConst cal_const(factor, Ecal, nl, ref, 3);
+
+        PRadHyCalModule *module = GetModule(name);
+        if(module) {
+            module->SetCalibConst(cal_const);
+        } else {
+            std::cout << "PRad HyCal Detector Warning: Cannot find HyCal module "
+                      << name << ", skipped its update for calibration constant."
+                      << std::endl;
+        }
+    }
+}
+
 // add a HyCal module to the detector
 bool PRadHyCalDetector::AddModule(PRadHyCalModule *module)
 {

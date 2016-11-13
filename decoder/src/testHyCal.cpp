@@ -18,6 +18,7 @@ int main(int /*argc*/, char * /*argv*/ [])
 {
     PRadBenchMark timer;
 
+
     PRadHyCalSystem *sys = new PRadHyCalSystem("config/hycal.conf");
     //sys->ClearADCChannel();
     //sys->ClearTDCChannel();
@@ -26,10 +27,9 @@ int main(int /*argc*/, char * /*argv*/ [])
     for(auto adc : sys->GetADCList())
     {
         cout << "ADC: "
-             << setw(6) << adc->GetName() << "  "
-             << adc->GetAddress();
+             << *adc;
         if(adc->GetTDC())
-            cout << setw(6) << adc->GetTDC()->GetName();
+            cout << *adc->GetTDC();
         cout << endl;
     }
     for(auto tdc : sys->GetTDCList())
@@ -50,9 +50,10 @@ int main(int /*argc*/, char * /*argv*/ [])
     delete hycal1;
     for(auto module : hycal.GetModuleList())
     {
-        cout << setw(4) << module->GetID() << ": " << *module << endl;
+        cout << setw(4) << module->GetID() << ": " << *module;
         if(module->GetChannel())
-            cout << setw(6) << " " << module->GetChannel()->GetAddress() << endl;
+            cout << module->GetChannel()->GetAddress();
+        cout << endl;
     }
     cout << hycal.GetModuleList().size() << endl;
     //hycal.SortModuleList();

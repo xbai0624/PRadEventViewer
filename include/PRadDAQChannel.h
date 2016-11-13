@@ -2,6 +2,7 @@
 #define PRAD_DAQ_CHANNEL_H
 
 #include <string>
+#include <iostream>
 #include "datastruct.h"
 
 class PRadDAQChannel
@@ -42,4 +43,6 @@ protected:
     bool ch_dead;
 };
 
+std::ostream &operator <<(std::ostream &os, const ChannelAddress &addr);
+std::ostream &operator <<(std::ostream &os, const PRadDAQChannel &ch);
 #endif
