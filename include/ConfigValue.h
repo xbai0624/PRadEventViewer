@@ -81,12 +81,14 @@ public:
     const std::string &String() const {return _value;};
     bool IsEmpty() const {return _value.empty();};
 
-    operator std::string() const
+    operator std::string()
+    const
     {
         return _value;
     };
 
-    bool operator ==(const std::string &rhs) const
+    bool operator ==(const std::string &rhs)
+    const
     {
         return _value == rhs;
     }

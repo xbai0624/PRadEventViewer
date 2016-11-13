@@ -6,7 +6,6 @@
 #include <iostream>
 #include <unordered_map>
 #include "PRadDAQChannel.h"
-#include "PRadCalibConst.h"
 #include "TH1.h"
 
 
@@ -52,8 +51,6 @@ public:
     void UnsetModule(bool force_unset = false);
     void SetPedestal(const Pedestal &ped);
     void SetPedestal(const double &m, const double &s);
-    void SetCalibConst(const PRadCalibConst &c) {cal_const = c;};
-    void GainCorrection(const double &g, const int &ref) {cal_const.GainCorrection(g, ref);};
     void SetADC(const unsigned short &adcVal) {adc_value = adcVal;};
     // reset data
     void Reset();
@@ -74,19 +71,10 @@ public:
 
     // check if adc passed threshold
     bool Sparsified(const unsigned short &adcVal);
-    // get calibration result
-    double Calibration(const unsigned short &adcVal) const;
-
     int GetOccupancy() const {return occupancy;};
-    double GetEnergy() const ;
-    double GetEnergy(const unsigned short &adcVal) const;
-    double GetCalibrationFactor() const {return cal_const.factor;};
-    double GetNonLinearConst() const {return cal_const.non_linear;};
-    double GetCalibrationEnergy() const {return cal_const.base_energy;};
-    double GetReferenceGain(int ref) {return cal_const.GetRefGain(ref);};
     unsigned short GetADC() const {return adc_value;};
+    double GetReducedADC() const {return (double)adc_value - pedestal.mean;};
     Pedestal GetPedestal() const {return pedestal;};
-    PRadCalibConst GetCalibConst() const {return cal_const;};
     TH1 *GetHist(const std::string &name = "PHYS") const;
     TH1 *GetHist(PRadTriggerType type) const {return trg_hist[(int)type];};
     std::vector<TH1*> GetHistList() const;
@@ -96,7 +84,6 @@ protected:
     PRadHyCalModule *module;
     PRadTDCChannel *tdc_group;
     Pedestal pedestal;
-    PRadCalibConst cal_const;
     int occupancy;
     unsigned short sparsify;
     unsigned short adc_value;

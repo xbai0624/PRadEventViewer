@@ -66,6 +66,16 @@ void PRadCalibConst::GainCorrection(double gain, int ref)
     }
 }
 
+// transfer adc value to energy
+double PRadCalibConst::Calibration(const double &adc_val)
+const
+{
+    if(adc_val < 0.)
+        return 0.;
+
+    return adc_val*factor;
+}
+
 ConfigParser &operator >>(ConfigParser &p, PRadCalibConst &c)
 {
     double f, e, gains[DEFAULT_REF_NUM], nl;

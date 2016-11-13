@@ -7,7 +7,6 @@
 
 #include "PRadHyCalDetector.h"
 #include "PRadHyCalSystem.h"
-#include "PRadHyCalCluster.h"
 #include <algorithm>
 #include <iomanip>
 

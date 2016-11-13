@@ -590,7 +590,9 @@ void PRadEventViewer::ListModules()
 {
     QVector<HyCalModule*> moduleList = HyCal->GetModuleList();
     std::ofstream outf("config/current_list.txt");
-    outf << "#" << std::setw(9) << "Name"
+
+    outf << "#"
+         << std::setw(9) << "Name"
          << std::setw(10) << "DAQ Crate"
          << std::setw(6) << "Slot"
          << std::setw(6) << "Chan"
@@ -604,7 +606,6 @@ void PRadEventViewer::ListModules()
          << std::setw(6) << "Slot"
          << std::setw(6) << "Chan"
          << std::endl;
-
 
     for(auto &module : moduleList)
     {

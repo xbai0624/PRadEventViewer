@@ -243,19 +243,6 @@ void PRadADCChannel::SetPedestal(const double &m, const double &s)
     SetPedestal(Pedestal(m, s));
 }
 
-// universe calibration code, can be implemented by derivative class
-double PRadADCChannel::Calibration(const unsigned short &adcVal) const
-{
-    double sub_adc = (double)adcVal - pedestal.mean;
-
-    if(sub_adc < 0.)
-        return 0.;
-
-    double energy = sub_adc*cal_const.factor;
-
-    return energy;
-}
-
 // reset current data
 void PRadADCChannel::Reset()
 {
@@ -294,14 +281,4 @@ bool PRadADCChannel::Sparsified(const unsigned short &adcVal)
 
     ++occupancy;
     return true;
-}
-
-double PRadADCChannel::GetEnergy(const unsigned short &adcVal) const
-{
-    return Calibration(adcVal);
-}
-
-double PRadADCChannel::GetEnergy() const
-{
-    return Calibration(adc_value);
 }

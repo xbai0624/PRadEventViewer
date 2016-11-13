@@ -10,7 +10,7 @@
 class PRadCalibConst
 {
 public:
-    friend class PRadADCChannel;
+    friend class PRadHyCalModule;
 
 public:
     PRadCalibConst(int ref_num = DEFAULT_REF_NUM);
@@ -29,6 +29,7 @@ public:
     double GetRefGain(int ref) const;
     double GetCalibEnergy() const {return base_energy;};
     double GetNonLinearFactor() const {return non_linear;};
+    double Calibration(const double &adc_value) const;
 
 private:
     double factor;

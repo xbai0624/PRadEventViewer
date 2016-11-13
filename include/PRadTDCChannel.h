@@ -39,7 +39,7 @@ public:
 
     PRadADCChannel* GetADCChannel(int id) const;
     TH1 *GetHist() const {return tdc_hist;};
-    std::vector<PRadADCChannel*> GetGroupList() const;
+    std::vector<PRadADCChannel*> GetChannelList() const;
     const std::vector<unsigned short> &GetTimeMeasure() const {return time_measure;};
 
 private:

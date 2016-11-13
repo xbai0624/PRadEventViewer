@@ -52,6 +52,7 @@ PRadHyCalModule::PRadHyCalModule(const std::string &n,
     geometry = Geometry(type, size_x, size_y, x, y);
     get_sector_info(id, geometry.sector, geometry.row, geometry.column);
 }
+
 // copy constructor
 PRadHyCalModule::PRadHyCalModule(const PRadHyCalModule &that)
 : detector(nullptr), daq_ch(nullptr), name(that.name), id(that.id),
@@ -156,6 +157,16 @@ std::string PRadHyCalModule::GetSectorName()
 const
 {
     return std::string(get_sector_name(geometry.sector));
+}
+
+double PRadHyCalModule::GetEnergy()
+const
+{
+    // did not connect to a adc_channel
+    if(!daq_ch)
+        return 0.;
+
+    return cal_const.Calibration(daq_ch->GetReducedADC());
 }
 
 //============================================================================//

@@ -3,6 +3,7 @@
 
 #include <string>
 #include <iostream>
+#include "PRadCalibConst.h"
 
 class PRadHyCalDetector;
 class PRadADCChannel;
@@ -85,6 +86,12 @@ public:
     void SetChannel(PRadADCChannel *ch, bool force_set = false);
     void UnsetChannel(bool force_unset = false);
     void SetGeometry(const Geometry &geo) {geometry = geo;};
+    void SetCalibConst(const PRadCalibConst &c) {cal_const = c;};
+    void GainCorrection(const double &g, const int &ref) {cal_const.GainCorrection(g, ref);};
+
+    // energy related
+    double Calibration(const unsigned short &adcVal) const;
+    double GetEnergy() const;
 
     // check type
     bool IsHyCalModule() const {return (geometry.type == PbGlass) || (geometry.type == PbWO4);};
@@ -105,6 +112,12 @@ public:
     int GetColumn() const {return geometry.column;};
     const Geometry &GetGeometry() const {return geometry;};
     const std::string &GetName() const {return name;};
+    double GetCalibrationFactor() const {return cal_const.factor;};
+    double GetNonLinearConst() const {return cal_const.non_linear;};
+    double GetCalibrationEnergy() const {return cal_const.base_energy;};
+    double GetReferenceGain(int ref) const {return cal_const.GetRefGain(ref);};
+    PRadADCChannel *GetChannel() const {return daq_ch;};
+    const PRadCalibConst &GetCalibConst() const {return cal_const;};
 
     // compare operator
     bool operator < (const PRadHyCalModule &rhs) const
@@ -124,6 +137,7 @@ public:
 private:
     PRadHyCalDetector *detector;
     PRadADCChannel *daq_ch;
+    PRadCalibConst cal_const;
     std::string name;
     int id;
     Geometry geometry;

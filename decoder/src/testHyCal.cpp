@@ -8,6 +8,7 @@
 #include "PRadHyCalSystem.h"
 #include "PRadBenchMark.h"
 #include <iostream>
+#include <iomanip>
 #include <string>
 #include <vector>
 
@@ -18,13 +19,30 @@ int main(int /*argc*/, char * /*argv*/ [])
     PRadBenchMark timer;
 
     PRadHyCalSystem *sys = new PRadHyCalSystem("hycal.conf");
-
+/*
+    for(auto tdc : sys->GetTDCList())
+    {
+        cout << "TDC: "
+             << setw(6) << tdc->GetName() << "   "
+             << tdc->GetAddress()
+             << endl;
+        for(auto adc : tdc->GetChannelList())
+        {
+            cout << "  ADC: "
+                 << setw(6) << adc->GetName() << "   "
+                 << adc->GetAddress()
+                 << endl;
+        }
+    }
+*/
     PRadHyCalDetector *hycal1 = sys->GetDetector();
     PRadHyCalDetector hycal = move(*hycal1);
     delete hycal1;
     for(auto module : hycal.GetModuleList())
     {
-        cout << module->GetID() << ": " << *module << endl;
+        cout << setw(4) << module->GetID() << ": " << *module << endl
+             << setw(6) << " " << module->GetChannel()->GetAddress()
+             << endl;
     }
     cout << hycal.GetModuleList().size() << endl;
     //hycal.SortModuleList();
