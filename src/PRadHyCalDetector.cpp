@@ -217,7 +217,7 @@ void PRadHyCalDetector::ClearModuleList()
     for(auto module : module_list)
     {
         // prevent module calling RemoveModule upon destruction
-        module->SetDetector(nullptr, true);
+        module->UnsetDetector(true);
         delete module;
     }
 

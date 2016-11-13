@@ -25,7 +25,7 @@ ConfigParser::ConfigParser(const string &s,
 : splitters(s), white_space(w), comment_marks(c), line_number(0),
   in_comment_pair(false)
 {
-    comment_pair = std::make_pair("/*", "*/");
+    comment_pair = make_pair("/*", "*/");
 }
 
 ConfigParser::~ConfigParser()
@@ -164,16 +164,28 @@ void ConfigParser::ParseLine(const string &line, const bool &count)
     }
 }
 
-bool ConfigParser::CheckElements(int num)
+bool ConfigParser::CheckElements(int num, int optional)
 {
-    if(elements.size() == (size_t)num)
-        return true;
+    if(optional > 0) {
+        if((elements.size() >= (size_t)num) &&
+           (elements.size() <= (size_t)(num + optional)))
+            return true;
+    } else {
+        if(elements.size() == (size_t)num)
+            return true;
+    }
 
-    std::cout << "Config Parser Warning: Wrong format at line " << line_number
-              << ", expecting " << num << " elements. "
-              << std::endl
-              << "\"" << current_line << "\""
-              << std::endl;
+
+    string num_str = to_string(num);
+    if(optional > 0)
+        num_str += " - " + to_string(num + optional);
+
+    cout << "Config Parser Warning: Wrong format at line "
+         << line_number
+         << ", expecting " << num_str << " elements. "
+         << endl
+         << "\"" << current_line << "\""
+         << endl;
     return false;
 }
 
@@ -186,10 +198,10 @@ ConfigValue ConfigParser::TakeFirst()
         return ConfigValue("0");
     }
 
-    string output = elements.front();
+    ConfigValue output(move(elements.front()));
     elements.pop();
 
-    return ConfigValue(output);
+    return output;
 }
 
 
@@ -577,112 +589,4 @@ vector<pair<int, int>> ConfigParser::find_pair(const string &str,
     }
 
     return result;
-}
-
-
-
-//============================================================================//
-// trivial operators                                                          //
-//============================================================================//
-
-ConfigParser &operator >> (ConfigParser &c, string &v)
-{
-    v = c.TakeFirst().String();
-    return c;
-}
-
-ConfigParser &operator >> (ConfigParser &c, bool &v)
-{
-    v = c.TakeFirst().Bool();
-    return c;
-}
-
-ConfigParser &operator >> (ConfigParser &c, char &v)
-{
-    v = c.TakeFirst().Char();
-    return c;
-}
-
-ConfigParser &operator >> (ConfigParser &c, unsigned char &v)
-{
-    v = c.TakeFirst().UChar();
-    return c;
-}
-
-ConfigParser &operator >> (ConfigParser &c, short &v)
-{
-    v = c.TakeFirst().Short();
-    return c;
-}
-
-ConfigParser &operator >> (ConfigParser &c, unsigned short &v)
-{
-    v = c.TakeFirst().UShort();
-    return c;
-}
-
-ConfigParser &operator >> (ConfigParser &c, int &v)
-{
-    v = c.TakeFirst().Int();
-    return c;
-}
-
-ConfigParser &operator >> (ConfigParser &c, unsigned int &v)
-{
-    v = c.TakeFirst().UInt();
-    return c;
-}
-
-ConfigParser &operator >> (ConfigParser &c, long &v)
-{
-    v = c.TakeFirst().Long();
-    return c;
-}
-
-ConfigParser &operator >> (ConfigParser &c, unsigned long &v)
-{
-    v = c.TakeFirst().ULong();
-    return c;
-}
-
-ConfigParser &operator >> (ConfigParser &c, long long &v)
-{
-    v = c.TakeFirst().LongLong();
-    return c;
-}
-
-ConfigParser &operator >> (ConfigParser &c, unsigned long long &v)
-{
-    v = c.TakeFirst().ULongLong();
-    return c;
-}
-
-ConfigParser &operator >> (ConfigParser &c, float &v)
-{
-    v = c.TakeFirst().Float();
-    return c;
-}
-
-ConfigParser &operator >> (ConfigParser &c, double &v)
-{
-    v = c.TakeFirst().Double();
-    return c;
-}
-
-ConfigParser &operator >> (ConfigParser &c, long double &v)
-{
-    v = c.TakeFirst().LongDouble();
-    return c;
-}
-
-ConfigParser &operator >> (ConfigParser &c, const char *&v)
-{
-    v = c.TakeFirst().c_str();
-    return c;
-}
-
-ConfigParser &operator >> (ConfigParser &c, ConfigValue &v)
-{
-    v = c.TakeFirst();
-    return c;
 }

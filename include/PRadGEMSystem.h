@@ -11,6 +11,7 @@
 #include "PRadGEMDetector.h"
 #include "PRadGEMFEC.h"
 #include "PRadGEMCluster.h"
+#include "ConfigObject.h"
 
 #ifdef MULTI_THREAD
 #include <thread>
@@ -21,7 +22,7 @@
 // enlarge this value if there are more FECs
 #define MAX_FEC_ID 128
 
-class PRadGEMSystem
+class PRadGEMSystem : public ConfigObject
 {
 public:
     // constructor
@@ -45,7 +46,8 @@ public:
     void DisconnectDetector(int det_id, bool force_disconn = false);
     void RemoveFEC(int fec_id);
     void DisconnectFEC(int fec_id, bool force_disconn = false);
-    void Configure(const std::string &path) throw(PRadException);
+    void Configure(const std::string &path);
+    void ReadMapFile(const std::string &path) throw(PRadException);
     void ReadPedestalFile(const std::string &path) throw(PRadException);
     void Clear();
     void ChooseEvent(const EventData &data);
@@ -85,8 +87,6 @@ private:
     void buildPlane(std::list<ConfigValue> &pln_args);
     void buildFEC(std::list<ConfigValue> &fec_args);
     void buildAPV(std::list<ConfigValue> &apv_args);
-    void configureClusterMethod(std::list<ConfigValue> &apv_args);
-    bool checkArgs(const std::string &type, size_t size, size_t expect);
 
 private:
     PRadGEMCluster *gem_recon;
@@ -98,6 +98,10 @@ private:
     std::vector<PRadGEMFEC*> daq_slots;
     std::vector<PRadGEMDetector*> det_slots;
     std::unordered_map<std::string, PRadGEMDetector*> det_name_map;
+
+    unsigned int def_ts;
+    float def_cth;
+    float def_zth;
 
 #ifdef MULTI_THREAD
     std::mutex locker;

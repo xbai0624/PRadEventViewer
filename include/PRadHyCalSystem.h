@@ -59,6 +59,8 @@ public:
     // daq related
     bool AddADCChannel(PRadADCChannel *adc);
     bool AddTDCChannel(PRadTDCChannel *tdc);
+    void ClearADCChannel();
+    void ClearTDCChannel();
     PRadADCChannel *GetADCChannel(const int &id) const;
     PRadADCChannel *GetADCChannel(const std::string &name) const;
     PRadADCChannel *GetADCChannel(const ChannelAddress &addr) const;

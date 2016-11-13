@@ -1,3 +1,5 @@
+# tdc      name     crate  slot  chan
+# adc      name     crate  slot  chan (opt)tdc
 TDC:         G4         1     0    64
 TDC:        G25         1     0    65
 TDC:         W6         1     0    66
@@ -1786,8 +1788,8 @@ ADC:       G752         4     4    60   G21
 ADC:       G751         4     4    61   G21
 ADC:       G726         4     4    62   G21
 ADC:       G725         4     4    63   G21
-ADC:       LMS1         6     4     1   N/A
-ADC:       LMS2         6     4     2   N/A
-ADC:       LMS3         6     4     3   N/A
+ADC:       LMS1         6     4     1
+ADC:       LMS2         6     4     2
+ADC:       LMS3         6     4     3
 ADC:      SCIN1         6     4     4    S1
 ADC:      SCIN2         6     4     8    S2

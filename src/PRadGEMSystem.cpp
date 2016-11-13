@@ -47,7 +47,8 @@ PRadGEMSystem::PRadGEMSystem(const string &config_file, int daq_cap, int det_cap
 // copy constructor, the complicated part is to copy the connections between
 // Planes and APVs
 PRadGEMSystem::PRadGEMSystem(const PRadGEMSystem &that)
-: gem_recon(new PRadGEMCluster(*that.gem_recon)), PedestalMode(that.PedestalMode)
+: gem_recon(new PRadGEMCluster(*that.gem_recon)), PedestalMode(that.PedestalMode),
+  def_ts(that.def_ts), def_cth(that.def_cth), def_zth(that.def_zth)
 {
     gem_recon = new PRadGEMCluster(*that.gem_recon);
 
@@ -91,7 +92,8 @@ PRadGEMSystem::PRadGEMSystem(const PRadGEMSystem &that)
 PRadGEMSystem::PRadGEMSystem(PRadGEMSystem &&that)
 : PedestalMode(that.PedestalMode), det_list(move(that.det_list)),
   fec_list(move(that.fec_list)), daq_slots(move(that.daq_slots)),
-  det_slots(move(that.det_slots)), det_name_map(move(that.det_name_map))
+  det_slots(move(that.det_slots)), det_name_map(move(that.det_name_map)),
+  def_ts(that.def_ts), def_cth(that.def_cth), def_zth(that.def_zth)
 {
     gem_recon = that.gem_recon;
     that.gem_recon = nullptr;
@@ -135,6 +137,9 @@ PRadGEMSystem &PRadGEMSystem::operator =(PRadGEMSystem &&rhs)
     daq_slots = move(rhs.daq_slots);
     det_slots = move(rhs.det_slots);
     det_name_map = move(rhs.det_name_map);
+    def_ts = rhs.def_ts;
+    def_cth = rhs.def_cth;
+    def_zth = rhs.def_zth;
 
     // reset the system for all components
     for(auto &fec : fec_list)
@@ -151,6 +156,31 @@ PRadGEMSystem &PRadGEMSystem::operator =(PRadGEMSystem &&rhs)
 //============================================================================//
 // Public Member Functions                                                    //
 //============================================================================//
+
+// configure this class
+void PRadGEMSystem::Configure(const string &path)
+{
+    bool verbose = false;
+
+    if(!path.empty()) {
+        ConfigObject::Configure(path);
+        verbose = true;
+    }
+
+    def_ts = getDefConfig<unsigned int>("Default Time Samples", 3, verbose);
+    def_cth = getDefConfig<float>("Default Common Mode Threshold", 20, verbose);
+    def_zth = getDefConfig<float>("Default Zero Suppression Threshold", 5, verbose);
+
+    gem_recon->Configure(GetConfig<std::string>("GEM Cluster Configuration"));
+
+    try{
+        ReadMapFile(GetConfig<std::string>("GEM Map"));
+        ReadPedestalFile(GetConfig<std::string>("GEM Pedestal"));
+    } catch(PRadException &e) {
+        std::cerr << e.FailureType() << ": "
+                  << e.FailureDesc() << std::endl;
+    }
+}
 
 // remove all the components
 void PRadGEMSystem::Clear()
@@ -179,25 +209,27 @@ void PRadGEMSystem::Clear()
     det_name_map.clear();
 }
 
-// Read the configuration file
-void PRadGEMSystem::Configure(const string &path) throw(PRadException)
+// Read the map file
+void PRadGEMSystem::ReadMapFile(const string &path) throw(PRadException)
 {
     if(path.empty())
         return;
-
-    // release memory before load new configuration
-    Clear();
 
     ConfigParser c_parser;
     c_parser.SetSplitters(",");
 
     if(!c_parser.ReadFile(path)) {
-        throw PRadException("GEM System", "cannot open configuration file " + path);
+        throw PRadException("GEM System", "cannot open GEM map file " + path);
     }
+
+    // release memory before load new configuration
+    Clear();
 
     // we accept 4 types of elements
     // detector, plane, fec, apv
-    vector<string> types = {"DET", "PLN", "FEC", "APV", "CLM"};
+    vector<string> types = {"DET", "PLN", "FEC", "APV"};
+    vector<int> expect_args = {3, 6, 2, 8};
+    vector<int> option_args = {0, 0, 0, 3};
     // this vector is to store all the following arguments
     vector<list<ConfigValue>> args[types.size()];
 
@@ -209,7 +241,8 @@ void PRadGEMSystem::Configure(const string &path) throw(PRadException)
         for(; i < types.size(); ++i)
         {
             if(ConfigParser::strcmp_case_insensitive(key, types.at(i))) {
-                args[i].push_back(c_parser.TakeAll<list>());
+                if(c_parser.CheckElements(expect_args.at(i), option_args.at(i)))
+                    args[i].push_back(c_parser.TakeAll<list>());
                 break;
             }
         }
@@ -237,10 +270,6 @@ void PRadGEMSystem::Configure(const string &path) throw(PRadException)
     for(auto &apv : args[3])
         buildAPV(apv);
 
-    // configure the cluster method
-    for(auto &clm : args[4])
-        configureClusterMethod(clm);
-
     // Rebuilding the maps just helps sort the lists, so they won't depend on
     // the orders in configuration map
     RebuildDAQMap();
@@ -250,6 +279,9 @@ void PRadGEMSystem::Configure(const string &path) throw(PRadException)
 // Load pedestal file and update all APVs' pedestal
 void PRadGEMSystem::ReadPedestalFile(const string &path) throw(PRadException)
 {
+    if(path.empty())
+        return;
+
     ConfigParser c_parser;
     c_parser.SetSplitters(",: \t");
 
@@ -760,36 +792,23 @@ const
 // Private Member Functions                                                   //
 //============================================================================//
 
-// a helper function to check if the number of arguments from configuration file
-// is correct
-bool PRadGEMSystem::checkArgs(const string &type, size_t size, size_t expect)
-{
-    if(size != expect) {
-        cout << "PRad GEM System Warning: Fail to load " << type
-             << ", expected " << expect << " arguments, "
-             << "received " << size << " arguments."
-             << endl;
-        return false;
-    }
-
-    return true;
-}
-
 // a helper operator to make arguments reading easier
 template<typename T>
 list<ConfigValue> &operator >>(list<ConfigValue> &lhs, T &t)
 {
-    t = lhs.front().Convert<T>();
-    lhs.pop_front();
+    if(lhs.empty()) {
+        t = ConfigValue("0").Convert<T>();
+    } else {
+        t = lhs.front().Convert<T>();
+        lhs.pop_front();
+    }
+
     return lhs;
 }
 
 // build the detectors according to the arguments
 void PRadGEMSystem::buildDetector(list<ConfigValue> &det_args)
 {
-    if(!checkArgs("DET", det_args.size(), 3))
-        return;
-
     string readout, type, name;
     det_args >> readout >> type >> name;
     PRadGEMDetector *new_det = new PRadGEMDetector(readout, type, name);
@@ -810,9 +829,6 @@ void PRadGEMSystem::buildDetector(list<ConfigValue> &det_args)
 // detectors to be built first and a proper detector map is generated
 void PRadGEMSystem::buildPlane(list<ConfigValue> &pln_args)
 {
-    if(!checkArgs("PLN", pln_args.size(), 6))
-        return;
-
     string det_name, plane_name;
     double size;
     int type, connector, orient, direct;
@@ -844,9 +860,6 @@ void PRadGEMSystem::buildPlane(list<ConfigValue> &pln_args)
 // build the FECs according to the arguments
 void PRadGEMSystem::buildFEC(list<ConfigValue> &fec_args)
 {
-    if(!checkArgs("FEC", fec_args.size(), 2))
-        return;
-
     int fec_id;
     string fec_ip;
 
@@ -867,16 +880,21 @@ void PRadGEMSystem::buildFEC(list<ConfigValue> &fec_args)
 // planes, it requires FEC and planes to be built first and proper maps are generated
 void PRadGEMSystem::buildAPV(list<ConfigValue> &apv_args)
 {
-    if(!checkArgs("APV", apv_args.size(), 11))
-        return;
-
     string det_name, plane, status;
-    int fec_id, adc_ch, orient, index, ts;
+    int fec_id, adc_ch, orient, index;
     unsigned short hl;
-    float cth, zth;
-
     apv_args >> fec_id >> adc_ch >> det_name >> plane >> orient >> index >> hl
-             >> status >> ts >> cth >> zth;
+             >> status;
+
+    // optional arguments
+    unsigned int ts = def_ts;
+    float cth = def_cth, zth = def_zth;
+    if(apv_args.size())
+        apv_args >> ts;
+    if(apv_args.size())
+        apv_args >> cth;
+    if(apv_args.size())
+        apv_args >> zth;
 
     PRadGEMFEC *fec = GetFEC(fec_id);
     if(fec == nullptr) {// did not find detector
@@ -914,17 +932,4 @@ void PRadGEMSystem::buildAPV(list<ConfigValue> &apv_args)
     }
 
     pln->ConnectAPV(new_apv, index);
-}
-
-// configure the clustering method according to the arguments
-void PRadGEMSystem::configureClusterMethod(list<ConfigValue> &clm_args)
-{
-    if(!checkArgs("CLM", clm_args.size(), 1))
-        return;
-
-    string path;
-
-    clm_args >> path;
-
-    gem_recon->Configure(path);
 }

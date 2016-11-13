@@ -40,9 +40,10 @@ ConfigObject::~ConfigObject()
 //============================================================================//
 
 // configure the cluster method
-void ConfigObject::Configure(const std::string & /*path*/)
+void ConfigObject::Configure(const std::string &path)
 {
-    // to be overloaded
+    // only read configuration file in
+    readConfigFile(path);
 }
 
 // clear all the loaded configuration values
@@ -135,15 +136,15 @@ void ConfigObject::SetConfigValue(const std::string &var_name, const ConfigValue
 //============================================================================//
 
 // read configuration file and build the configuration map
-void ConfigObject::readConfigFile(const std::string &path)
+bool ConfigObject::readConfigFile(const std::string &path)
 {
     ConfigParser c_parser(split_chars); // self-defined splitters
 
     if(!c_parser.ReadFile(path)) {
-        std::cerr << "PRad HyCal Cluster Error: Cannot open file "
+        std::cerr << "Cannot open configuration file "
                   << "\"" << path << "\""
                   << std::endl;
-        return;
+        return false;
     }
 
     // save the path
@@ -165,6 +166,7 @@ void ConfigObject::readConfigFile(const std::string &path)
         key = ConfigParser::str_lower(ConfigParser::str_remove(var_name, ignore_chars));
         config_map[key] = var_value;
     }
+    return true;
 }
 
 // get configuration value from the map

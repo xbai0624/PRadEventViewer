@@ -20,7 +20,8 @@
 PRadHyCalSystem::PRadHyCalSystem(const std::string &path)
 : hycal(new PRadHyCalDetector("HyCal", this))
 {
-    Configure(path);
+    if(!path.empty())
+        Configure(path);
 
     // reserve enough buckets for the adc maps
     adc_addr_map.reserve(ADC_BUCKETS);
@@ -31,6 +32,8 @@ PRadHyCalSystem::PRadHyCalSystem(const std::string &path)
 PRadHyCalSystem::~PRadHyCalSystem()
 {
     delete hycal;
+    ClearADCChannel();
+    ClearTDCChannel();
 }
 
 
@@ -42,10 +45,7 @@ PRadHyCalSystem::~PRadHyCalSystem()
 // configure HyCal System
 void PRadHyCalSystem::Configure(const std::string &path)
 {
-    if(path.empty())
-        return;
-
-    readConfigFile(path);
+    ConfigObject::Configure(path);
 
     ReadModuleList(GetConfig<std::string>("Module List"));
     ReadChannelList(GetConfig<std::string>("DAQ Channel List"));
@@ -55,6 +55,9 @@ void PRadHyCalSystem::Configure(const std::string &path)
 // read module list
 void PRadHyCalSystem::ReadModuleList(const std::string &path)
 {
+    if(path.empty())
+        return;
+
     if(hycal == nullptr) {
         std::cerr << "PRad HyCal System Error: Has no detector, cannot read "
                   << "module list."
@@ -69,6 +72,9 @@ void PRadHyCalSystem::ReadModuleList(const std::string &path)
                   << std::endl;
         return;
     }
+
+    // clear all modules
+    hycal->ClearModuleList();
 
     std::string name;
     std::string type, sector;
@@ -94,11 +100,17 @@ void PRadHyCalSystem::ReadModuleList(const std::string &path)
         if(!hycal->AddModule(module))
             delete module;
     }
+
+    // sort the module by id
+    hycal->SortModuleList();
 }
 
 // read DAQ channel list
 void PRadHyCalSystem::ReadChannelList(const std::string &path)
 {
+    if(path.empty())
+        return;
+
     ConfigParser c_parser;
     // set special splitter
     c_parser.SetSplitters(",: \t");
@@ -114,7 +126,8 @@ void PRadHyCalSystem::ReadChannelList(const std::string &path)
     std::vector<std::string> types = {"TDC", "ADC"};
     // tdc args: name crate slot channel
     // adc args: name crate slot channel tdc
-    std::vector<int> expect_args = {4, 5};
+    std::vector<int> expect_args = {4, 4};
+    std::vector<int> option_args = {0, 1};
 
     // this vector is to store all the following arguments
     std::vector<std::vector<ConfigValue>> ch_args[types.size()];
@@ -128,7 +141,7 @@ void PRadHyCalSystem::ReadChannelList(const std::string &path)
         {
             if(ConfigParser::strcmp_case_insensitive(type, types.at(i))) {
                 // only save elements from expected format
-                if(c_parser.CheckElements(expect_args.at(i)))
+                if(c_parser.CheckElements(expect_args.at(i), option_args.at(i)))
                     ch_args[i].push_back(c_parser.TakeAll<std::vector>());
                 break;
             }
@@ -162,6 +175,10 @@ void PRadHyCalSystem::ReadChannelList(const std::string &path)
             delete new_adc;
             continue;
         }
+
+        // no tdc group specified
+        if(args.size() < 5)
+            continue;
 
         // add this adc to tdc group
         std::string tdc_name(args[4]);
@@ -282,6 +299,24 @@ bool PRadHyCalSystem::AddTDCChannel(PRadTDCChannel *tdc)
     tdc_name_map[tdc->GetName()] = tdc;
     tdc_addr_map[tdc->GetAddress()] = tdc;
     return true;
+}
+
+void PRadHyCalSystem::ClearADCChannel()
+{
+    for(auto &adc : adc_list)
+        delete adc;
+    adc_list.clear();
+    adc_name_map.clear();
+    adc_addr_map.clear();
+}
+
+void PRadHyCalSystem::ClearTDCChannel()
+{
+    for(auto &tdc : tdc_list)
+        delete tdc;
+    tdc_list.clear();
+    tdc_name_map.clear();
+    tdc_addr_map.clear();
 }
 
 PRadADCChannel *PRadHyCalSystem::GetADCChannel(const int &id)

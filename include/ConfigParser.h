@@ -39,7 +39,7 @@ public:
     void ParseLine(const std::string &line, const bool &count = true);
 
     // get current parsing status
-    bool CheckElements(int num);
+    bool CheckElements(int num, int optional = 0);
     int NbofElements() const {return elements.size();};
     int LineNumber() const {return line_number;};
     const std::string &CurrentLine() const {return current_line;};
@@ -47,6 +47,13 @@ public:
     // take the lines/elements
     std::string TakeLine();
     ConfigValue TakeFirst();
+    template<typename T>
+    ConfigParser &operator >>(T &t)
+    {
+        t = (*this).TakeFirst().Convert<T>();
+        return *this;
+    }
+
     template<class BidirIt>
     int Take(BidirIt first, BidirIt last)
     {
@@ -131,23 +138,5 @@ public:
     static std::vector<int> find_integers(const std::string &str);
     static void find_integer_helper(const std::string &str, std::vector<int> &result);
 };
-
-ConfigParser &operator >> (ConfigParser &c, bool &v);
-ConfigParser &operator >> (ConfigParser &c, std::string &v);
-ConfigParser &operator >> (ConfigParser &c, char &v);
-ConfigParser &operator >> (ConfigParser &c, unsigned char &v);
-ConfigParser &operator >> (ConfigParser &c, short &v);
-ConfigParser &operator >> (ConfigParser &c, unsigned short &v);
-ConfigParser &operator >> (ConfigParser &c, int &v);
-ConfigParser &operator >> (ConfigParser &c, unsigned int &v);
-ConfigParser &operator >> (ConfigParser &c, long &v);
-ConfigParser &operator >> (ConfigParser &c, unsigned long &v);
-ConfigParser &operator >> (ConfigParser &c, long long &v);
-ConfigParser &operator >> (ConfigParser &c, unsigned long long &v);
-ConfigParser &operator >> (ConfigParser &c, float &v);
-ConfigParser &operator >> (ConfigParser &c, double &v);
-ConfigParser &operator >> (ConfigParser &c, long double &v);
-ConfigParser &operator >> (ConfigParser &c, const char *&v);
-ConfigParser &operator >> (ConfigParser &c, ConfigValue &v);
 
 #endif

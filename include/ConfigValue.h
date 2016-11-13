@@ -47,18 +47,19 @@ public:
 public:
     ConfigValue() {};
 
-    ConfigValue(const std::string &value);
-    ConfigValue(std::string &&value);
-    ConfigValue(const bool &value);
-    ConfigValue(const int &value);
-    ConfigValue(const long &value);
-    ConfigValue(const long long &value);
-    ConfigValue(const unsigned &value);
-    ConfigValue(const unsigned long &value);
-    ConfigValue(const unsigned long long &value);
-    ConfigValue(const float &value);
-    ConfigValue(const double &value);
-    ConfigValue(const long double &value);
+    explicit ConfigValue(const std::string &value);
+    explicit ConfigValue(std::string &&value);
+    explicit ConfigValue(const char *value);
+    explicit ConfigValue(const bool &value);
+    explicit ConfigValue(const int &value);
+    explicit ConfigValue(const long &value);
+    explicit ConfigValue(const long long &value);
+    explicit ConfigValue(const unsigned &value);
+    explicit ConfigValue(const unsigned long &value);
+    explicit ConfigValue(const unsigned long long &value);
+    explicit ConfigValue(const float &value);
+    explicit ConfigValue(const double &value);
+    explicit ConfigValue(const long double &value);
 
     ConfigValue &operator =(const std::string &str);
     ConfigValue &operator =(std::string &&str);
