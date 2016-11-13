@@ -46,10 +46,10 @@ public:
 
     // public member functions
     // set members
-    void SetTDC(PRadTDCChannel *t, bool force_set);
-    void UnsetTDC();
-    void SetModule(PRadHyCalModule *m, bool force_set);
-    void UnsetModule();
+    void SetTDC(PRadTDCChannel *t, bool force_set = false);
+    void UnsetTDC(bool force_unset = false);
+    void SetModule(PRadHyCalModule *m, bool force_set = false);
+    void UnsetModule(bool force_unset = false);
     void SetPedestal(const Pedestal &ped);
     void SetPedestal(const double &m, const double &s);
     void SetCalibConst(const PRadCalibConst &c) {cal_const = c;};

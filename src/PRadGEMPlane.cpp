@@ -84,8 +84,6 @@ PRadGEMPlane &PRadGEMPlane::operator =(PRadGEMPlane &&rhs)
 
     hit_list = std::move(rhs.hit_list);
     cluster_list = std::move(rhs.cluster_list);
-
-    apv_list.resize(rhs.apv_list.size(), nullptr);
     return *this;
 }
 
@@ -114,7 +112,7 @@ void PRadGEMPlane::UnsetDetector(bool force_unset)
         return;
 
     if(!force_unset)
-        detector->RemovePlane(type);
+        detector->DisconnectPlane(type, true);
 
     detector = nullptr;
 }
@@ -171,17 +169,20 @@ void PRadGEMPlane::ConnectAPV(PRadGEMAPV *apv, const int &index)
 }
 
 // disconnect an APV
-void PRadGEMPlane::DisconnectAPV(const size_t &plane_index)
+void PRadGEMPlane::DisconnectAPV(const size_t &plane_index, bool force_disconn)
 {
     if(plane_index >= apv_list.size())
         return;
 
     auto &apv = apv_list[plane_index];
 
-    if(apv_list[plane_index]) {
+    if(!apv)
+        return;
+
+    if(!force_disconn)
         apv->UnsetDetectorPlane(true);
-        apv = nullptr;
-    }
+
+    apv = nullptr;
 }
 
 // reset all APV connections

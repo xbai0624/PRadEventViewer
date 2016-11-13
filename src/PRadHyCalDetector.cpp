@@ -109,7 +109,7 @@ void PRadHyCalDetector::UnsetSystem(bool force_unset)
         return;
 
     if(!force_unset)
-        system->RemoveDetector();
+        system->DisconnectDetector();
 
     system = nullptr;
 }
@@ -149,14 +149,56 @@ bool PRadHyCalDetector::AddModule(PRadHyCalModule *module)
 }
 
 // remove module
+void PRadHyCalDetector::RemoveModule(int id)
+{
+    RemoveModule(GetModule(id));
+}
+
+void PRadHyCalDetector::RemoveModule(const std::string &name)
+{
+    RemoveModule(GetModule(name));
+}
+
 void PRadHyCalDetector::RemoveModule(PRadHyCalModule *module)
 {
-    if(module == nullptr)
+    if(!module)
         return;
 
     id_map.erase(module->GetID());
     name_map.erase(module->GetName());
 
+    module->UnsetDetector(true);
+    delete module;
+
+    // rebuild module list
+    module_list.clear();
+    for(auto &it : id_map)
+        module_list.push_back(it.second);
+}
+
+// disconnect module
+void PRadHyCalDetector::DisconnectModule(int id, bool force_disconn)
+{
+    DisconnectModule(GetModule(id), force_disconn);
+}
+
+void PRadHyCalDetector::DisconnectModule(const std::string &name, bool force_disconn)
+{
+    DisconnectModule(GetModule(name), force_disconn);
+}
+
+void PRadHyCalDetector::DisconnectModule(PRadHyCalModule *module, bool force_disconn)
+{
+    if(!module)
+        return;
+
+    id_map.erase(module->GetID());
+    name_map.erase(module->GetName());
+
+    if(!force_disconn)
+        module->UnsetDetector(true);
+
+    // rebuild module list
     module_list.clear();
     for(auto &it : id_map)
         module_list.push_back(it.second);

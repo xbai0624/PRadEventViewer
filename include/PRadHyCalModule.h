@@ -5,6 +5,7 @@
 #include <iostream>
 
 class PRadHyCalDetector;
+class PRadADCChannel;
 
 class PRadHyCalModule
 {
@@ -81,6 +82,8 @@ public:
     // set members
     void SetDetector(PRadHyCalDetector *det, bool force_set = false);
     void UnsetDetector(bool force_unset = false);
+    void SetChannel(PRadADCChannel *ch, bool force_set = false);
+    void UnsetChannel(bool force_unset = false);
     void SetGeometry(const Geometry &geo) {geometry = geo;};
 
     // check type
@@ -120,6 +123,7 @@ public:
 
 private:
     PRadHyCalDetector *detector;
+    PRadADCChannel *daq_ch;
     std::string name;
     int id;
     Geometry geometry;

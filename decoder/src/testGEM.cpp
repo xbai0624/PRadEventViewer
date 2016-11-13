@@ -32,12 +32,15 @@ int main(int /*argc*/, char * /*argv*/ [])
 
     /* some test on connections constructors and assignment operators
     gem_srs->GetAPV(1, 5)->UnsetFEC();
-    gem_srs->GetAPV(1, 6)->UnsetDetectorPlane();
+    gem_srs->GetFEC(1)->RemoveAPV(6);
 
-    PRadGEMSystem gem = move(*gem_srs);
+    PRadGEMSystem gem(*gem_srs);
+    PRadGEMSystem gem2(move(gem));
     delete gem_srs;
-    gem_srs = &gem;
+    PRadGEMSystem gem3 = move(gem2);
+    gem_srs = &gem3;
     */
+
     /* save gem pedestal
     gem_srs->SetPedestalMode(true);
     handler->InitializeByData("prad_001287.evio.0");

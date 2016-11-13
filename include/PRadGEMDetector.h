@@ -43,6 +43,7 @@ public:
     bool AddPlane(const int &type, const std::string &name, const double &size,
                   const int &conn, const int &ori, const int &dir);
     void RemovePlane(const int &type);
+    void DisconnectPlane(const int &type, bool false_disconn = false);
     void ConnectPlanes();
     void ReconstructHits(PRadGEMCluster *c);
     void ReconstructHits();

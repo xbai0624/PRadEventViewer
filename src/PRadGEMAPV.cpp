@@ -226,7 +226,7 @@ void PRadGEMAPV::UnsetFEC(bool force_unset)
         return;
 
     if(!force_unset)
-        fec->RemoveAPV(adc_ch);
+        fec->DisconnectAPV(adc_ch, true);
 
     fec = nullptr;
     fec_id = -1;
@@ -257,7 +257,7 @@ void PRadGEMAPV::UnsetDetectorPlane(bool force_unset)
         return;
 
     if(!force_unset)
-        plane->DisconnectAPV(plane_index);
+        plane->DisconnectAPV(plane_index, true);
 
     plane = nullptr;
     plane_index = -1;

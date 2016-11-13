@@ -15,6 +15,7 @@ public:
     void ReadModuleList(const std::string &path);
     void SetDetector(PRadHyCalDetector *h);
     void RemoveDetector();
+    void DisconnectDetector(bool force_disconn = false);
 
     PRadHyCalDetector *GetDetector() const {return hycal;};
 

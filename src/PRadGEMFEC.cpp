@@ -119,7 +119,7 @@ void PRadGEMFEC::UnsetSystem(bool force_unset)
         return;
 
     if(!force_unset)
-        gem_srs->RemoveFEC(id);
+        gem_srs->DisconnectFEC(id, true);
 
     gem_srs = nullptr;
 }
@@ -186,8 +186,24 @@ void PRadGEMFEC::RemoveAPV(const int &slot)
     auto &apv = adc_list[slot];
     if(apv) {
         apv->UnsetFEC(true);
-        apv = nullptr;
+        delete apv, apv = nullptr;
     }
+}
+
+// disconnect apv in the slot
+void PRadGEMFEC::DisconnectAPV(const int &slot, bool force_disconn)
+{
+    if((size_t)slot >= adc_list.size())
+        return;
+
+    auto &apv = adc_list[slot];
+    if(!apv)
+        return;
+
+    if(!force_disconn)
+        apv->UnsetFEC(true);
+
+    apv = nullptr;
 }
 
 // clear all the apvs in fec

@@ -103,7 +103,15 @@ void PRadHyCalSystem::RemoveDetector()
 {
     if(hycal) {
         hycal->UnsetSystem(true);
-        hycal = nullptr;
+        delete hycal, hycal = nullptr;
     }
 }
 
+void PRadHyCalSystem::DisconnectDetector(bool force_disconn)
+{
+    if(hycal) {
+        if(!force_disconn)
+            hycal->UnsetSystem(true);
+        hycal = nullptr;
+    }
+}

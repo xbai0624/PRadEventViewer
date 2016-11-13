@@ -344,6 +344,24 @@ bool PRadGEMSystem::Register(PRadGEMFEC *fec)
     return true;
 }
 
+// disconnect detector, and rebuild the detector map
+void PRadGEMSystem::DisconnectDetector(int det_id, bool force_disconn)
+{
+    if((size_t)det_id >= det_slots.size())
+        return;
+
+    auto &det = det_slots[det_id];
+    if(!det)
+        return;
+
+    if(!force_disconn)
+        det->UnsetSystem(true);
+
+    det = nullptr;
+    // rebuild maps
+    RebuildDetectorMap();
+}
+
 // remove detector, and rebuild the detector map
 void PRadGEMSystem::RemoveDetector(int det_id)
 {
@@ -351,29 +369,48 @@ void PRadGEMSystem::RemoveDetector(int det_id)
         return;
 
     auto &det = det_slots[det_id];
-    if(det) {
-        // force unset
-        det->UnsetSystem(true);
-        det = nullptr;
-        // rebuild maps
-        RebuildDetectorMap();
-    }
+    if(!det)
+        return;
+
+    det->UnsetSystem(true);
+    delete det, det = nullptr;
+
+    // rebuild maps
+    RebuildDetectorMap();
 }
 
-// remove FEC, and rebuild the DAQ map
+// disconnect FEC, and rebuild the DAQ map
+void PRadGEMSystem::DisconnectFEC(int fec_id, bool force_disconn)
+{
+    if((size_t)fec_id >= daq_slots.size())
+        return;
+
+    auto &fec = daq_slots[fec_id];
+    if(!fec)
+        return;
+
+    if(!force_disconn)
+        fec->UnsetSystem(true);
+
+    fec = nullptr;
+    // rebuild maps
+    RebuildDAQMap();
+}
+
 void PRadGEMSystem::RemoveFEC(int fec_id)
 {
     if((size_t)fec_id >= daq_slots.size())
         return;
 
     auto &fec = daq_slots[fec_id];
-    if(fec) {
-        // force unset
-        fec->UnsetSystem(true);
-        fec = nullptr;
-        // rebuild maps
-        RebuildDAQMap();
-    }
+    if(!fec)
+        return;
+
+    fec->UnsetSystem(true);
+    delete fec, fec = nullptr;
+
+    // rebuild maps
+    RebuildDAQMap();
 }
 
 // rebuild detector related maps

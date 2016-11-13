@@ -121,7 +121,7 @@ void PRadGEMDetector::UnsetSystem(bool force_unset)
         return;
 
     if(!force_unset)
-        gem_srs->RemoveDetector(det_id);
+        gem_srs->DisconnectDetector(det_id, true);
 
     gem_srs = nullptr;
 }
@@ -185,8 +185,25 @@ void PRadGEMDetector::RemovePlane(const int &type)
 
     if(plane) {
         plane->UnsetDetector(true);
-        plane = nullptr;
+        delete plane, plane = nullptr;
     }
+}
+
+// remove plane
+void PRadGEMDetector::DisconnectPlane(const int &type, bool force_disconn)
+{
+    if((size_t)type >= planes.size())
+        return;
+
+    auto &plane = planes[type];
+
+    if(!plane)
+        return;
+
+    if(!force_disconn)
+        plane->UnsetDetector(true);
+
+    plane = nullptr;
 }
 
 // Asure the connection to all the planes

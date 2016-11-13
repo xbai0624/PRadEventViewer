@@ -32,7 +32,12 @@ public:
     void SetSystem(PRadHyCalSystem *sys, bool force_set = false);
     void UnsetSystem(bool force_unset =false);
     bool AddModule(PRadHyCalModule *module);
+    void RemoveModule(int id);
+    void RemoveModule(const std::string &name);
     void RemoveModule(PRadHyCalModule *module);
+    void DisconnectModule(int id, bool force_disconn = false);
+    void DisconnectModule(const std::string &name, bool force_disconn = false);
+    void DisconnectModule(PRadHyCalModule *module, bool force_disconn = false);
     void SortModuleList();
     void ClearModuleList();
     void OutputModuleList(std::ostream &os);

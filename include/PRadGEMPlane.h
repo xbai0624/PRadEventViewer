@@ -51,7 +51,7 @@ public:
 
     // public member functions
     void ConnectAPV(PRadGEMAPV *apv, const int &index);
-    void DisconnectAPV(const size_t &plane_index);
+    void DisconnectAPV(const size_t &plane_index, bool force_disconn);
     void DisconnectAPVs();
     void AddPlaneHit(const int &plane_strip, const std::vector<float> &charges);
     void ClearPlaneHits();

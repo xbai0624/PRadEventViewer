@@ -6,6 +6,7 @@
 #include <unordered_map>
 #include "PRadDAQChannel.h"
 
+class PRadADCChannel;
 class TH1;
 
 class PRadTDCChannel : public PRadDAQChannel
@@ -25,19 +26,20 @@ public:
     PRadTDCChannel &operator =(const PRadTDCChannel &rhs);
     PRadTDCChannel &operator =(PRadTDCChannel &&rhs);
 
-    void AddChannel(PRadADCChannel *ch);
-    void RemoveChannel(int id);
+    void ConnectChannel(PRadADCChannel *ch);
+    void DisconnectChannel(int id, bool force_disconn = false);
+    void DisconnectChannels();
     void AddTimeMeasure(const unsigned short &count);
     void AddTimeMeasure(const std::vector<unsigned short> &counts);
     void SetTimeMeasure(const std::vector<unsigned short> &counts);
+    void FillHist(const unsigned short &time);
     void Reset();
     void ResetHists();
     void ClearTimeMeasure();
-    void FillHist(const unsigned short &time);
 
     PRadADCChannel* GetADCChannel(int id) const;
     TH1 *GetHist() const {return tdc_hist;};
-    const std::vector<PRadADCChannel*> &GetGroupList() const;
+    std::vector<PRadADCChannel*> GetGroupList() const;
     const std::vector<unsigned short> &GetTimeMeasure() const {return time_measure;};
 
 private:

@@ -7,6 +7,7 @@
 
 #include "PRadHyCalModule.h"
 #include "PRadHyCalDetector.h"
+#include "PRadADCChannel.h"
 #include <exception>
 #include <iomanip>
 #include <cstring>
@@ -26,13 +27,13 @@ static const char *__hycal_sector_list[] = {"Center", "Top", "Right", "Bottom", 
 PRadHyCalModule::PRadHyCalModule(const std::string &n,
                                  const Geometry &geo,
                                  PRadHyCalDetector *det)
-: detector(det), name(n), geometry(geo)
+: detector(det), daq_ch(nullptr), name(n), geometry(geo)
 {
     id = name_to_primex_id(n);
 }
 
 PRadHyCalModule::PRadHyCalModule(int pid, const Geometry &geo, PRadHyCalDetector *det)
-: detector(det), id(pid), geometry(geo)
+: detector(det), daq_ch(nullptr), id(pid), geometry(geo)
 {
     if(geo.type == PbGlass)
         name = "G";
@@ -45,7 +46,7 @@ PRadHyCalModule::PRadHyCalModule(int pid, const Geometry &geo, PRadHyCalDetector
 PRadHyCalModule::PRadHyCalModule(const std::string &n,
                                  int type, double size_x, double size_y, double x, double y,
                                  PRadHyCalDetector *det)
-: detector(det), name(n)
+: detector(det), daq_ch(nullptr), name(n)
 {
     id = name_to_primex_id(name);
     geometry = Geometry(type, size_x, size_y, x, y);
@@ -53,14 +54,16 @@ PRadHyCalModule::PRadHyCalModule(const std::string &n,
 }
 // copy constructor
 PRadHyCalModule::PRadHyCalModule(const PRadHyCalModule &that)
-: detector(nullptr), name(that.name), id(that.id), geometry(that.geometry)
+: detector(nullptr), daq_ch(nullptr), name(that.name), id(that.id),
+  geometry(that.geometry)
 {
     // place holder
 }
 
 // move constructor
 PRadHyCalModule::PRadHyCalModule(PRadHyCalModule &&that)
-: detector(nullptr), name(std::move(that.name)), id(that.id), geometry(that.geometry)
+: detector(nullptr), daq_ch(nullptr), name(std::move(that.name)), id(that.id),
+  geometry(that.geometry)
 {
     // place holder
 }
@@ -69,6 +72,7 @@ PRadHyCalModule::PRadHyCalModule(PRadHyCalModule &&that)
 PRadHyCalModule::~PRadHyCalModule()
 {
     UnsetDetector();
+    UnsetChannel();
 }
 
 // copy assignment operator
@@ -92,7 +96,7 @@ PRadHyCalModule &PRadHyCalModule::operator =(PRadHyCalModule &&rhs)
 // Public Member Functions                                                    //
 //============================================================================//
 
-// set detector to the plane
+// set detector
 void PRadHyCalModule::SetDetector(PRadHyCalDetector *det, bool force_set)
 {
     if(det == detector)
@@ -111,9 +115,33 @@ void PRadHyCalModule::UnsetDetector(bool force_unset)
         return;
 
     if(!force_unset)
-        detector->RemoveModule(this);
+        detector->DisconnectModule(this, true);
 
     detector = nullptr;
+}
+
+// set daq channel
+void PRadHyCalModule::SetChannel(PRadADCChannel *ch, bool force_set)
+{
+    if(ch == daq_ch)
+        return;
+
+    if(!force_set)
+        UnsetChannel();
+
+    daq_ch = ch;
+}
+
+// disconnect the daq channel
+void PRadHyCalModule::UnsetChannel(bool force_unset)
+{
+    if(!daq_ch)
+        return;
+
+    if(!force_unset)
+        daq_ch->UnsetModule(true);
+
+    daq_ch = nullptr;
 }
 
 // get module type name

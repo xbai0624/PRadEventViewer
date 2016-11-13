@@ -38,6 +38,7 @@ public:
     void SetCapacity(int slots);
     bool AddAPV(PRadGEMAPV *apv, const int &slot);
     void RemoveAPV(const int &slot);
+    void DisconnectAPV(const int &slot, bool force_disconn = false);
     void Clear();
 
     // get parameters

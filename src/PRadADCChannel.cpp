@@ -134,12 +134,15 @@ void PRadADCChannel::SetTDC(PRadTDCChannel *t, bool force_set)
 }
 
 // unset current tdc channel
-void PRadADCChannel::UnsetTDC()
+void PRadADCChannel::UnsetTDC(bool force_unset)
 {
-    if(tdc_group) {
-//        tdc_group->RemoveChannel(ch_id);
-        tdc_group = nullptr;
-    }
+    if(!tdc_group)
+        return;
+
+    if(!force_unset)
+        tdc_group->DisconnectChannel(ch_id, true);
+
+    tdc_group = nullptr;
 }
 
 // set a module to this channel
@@ -155,12 +158,15 @@ void PRadADCChannel::SetModule(PRadHyCalModule *m, bool force_set)
 }
 
 // unset current module
-void PRadADCChannel::UnsetModule()
+void PRadADCChannel::UnsetModule(bool force_unset)
 {
-    if(module) {
-//        module->RemoveChannel();
-        module = nullptr;
-    }
+    if(!module)
+        return;
+
+    if(!force_unset)
+        module->UnsetChannel(true);
+
+    module = nullptr;
 }
 
 // add a histogram

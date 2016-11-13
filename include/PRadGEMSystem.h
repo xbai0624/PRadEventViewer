@@ -42,7 +42,9 @@ public:
 
     // public member functions
     void RemoveDetector(int det_id);
+    void DisconnectDetector(int det_id, bool force_disconn = false);
     void RemoveFEC(int fec_id);
+    void DisconnectFEC(int fec_id, bool force_disconn = false);
     void Configure(const std::string &path) throw(PRadException);
     void ReadPedestalFile(const std::string &path) throw(PRadException);
     void Clear();
