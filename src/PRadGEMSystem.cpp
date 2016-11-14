@@ -47,7 +47,8 @@ PRadGEMSystem::PRadGEMSystem(const string &config_file, int daq_cap, int det_cap
 // copy constructor, the complicated part is to copy the connections between
 // Planes and APVs
 PRadGEMSystem::PRadGEMSystem(const PRadGEMSystem &that)
-: gem_recon(new PRadGEMCluster(*that.gem_recon)), PedestalMode(that.PedestalMode),
+: ConfigObject(that),
+  gem_recon(new PRadGEMCluster(*that.gem_recon)), PedestalMode(that.PedestalMode),
   def_ts(that.def_ts), def_cth(that.def_cth), def_zth(that.def_zth)
 {
     gem_recon = new PRadGEMCluster(*that.gem_recon);
@@ -90,7 +91,8 @@ PRadGEMSystem::PRadGEMSystem(const PRadGEMSystem &that)
 
 // move constructor
 PRadGEMSystem::PRadGEMSystem(PRadGEMSystem &&that)
-: PedestalMode(that.PedestalMode), det_list(move(that.det_list)),
+: ConfigObject(that),
+  PedestalMode(that.PedestalMode), det_list(move(that.det_list)),
   fec_list(move(that.fec_list)), daq_slots(move(that.daq_slots)),
   det_slots(move(that.det_slots)), det_name_map(move(that.det_name_map)),
   def_ts(that.def_ts), def_cth(that.def_cth), def_zth(that.def_zth)
@@ -124,6 +126,8 @@ PRadGEMSystem &PRadGEMSystem::operator =(const PRadGEMSystem &rhs)
 // move assignment operator
 PRadGEMSystem &PRadGEMSystem::operator =(PRadGEMSystem &&rhs)
 {
+    ConfigObject::operator =(rhs);
+
     // release current resources
     Clear();
     delete gem_recon;

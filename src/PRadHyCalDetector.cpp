@@ -174,15 +174,21 @@ void PRadHyCalDetector::ReadCalibrationFile(const std::string &path)
     }
 
     std::string name;
-    double factor, Ecal, ref[3], nl;
+    double factor, Ecal, nl;
 
     while(c_parser.ParseLine())
     {
-        if(!c_parser.CheckElements(7))
+        if(!c_parser.CheckElements(4, -1)) // more than 4 elements
             continue;
 
-        c_parser >> name >> factor >> Ecal >> ref[0] >> ref[2] >> ref[3] >> nl;
-        PRadCalibConst cal_const(factor, Ecal, nl, ref, 3);
+        c_parser >> name >> factor >> Ecal >> nl;
+        std::vector<double> gains;
+        while(c_parser.NbofElements())
+        {
+            gains.push_back(c_parser.TakeFirst<double>());
+        }
+
+        PRadCalibConst cal_const(factor, Ecal, nl, gains);
 
         PRadHyCalModule *module = GetModule(name);
         if(module) {
