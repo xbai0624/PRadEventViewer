@@ -581,11 +581,17 @@ void PRadGEMSystem::FillZeroSupData(vector<GEMZeroSupData> &data_pack,
     for(auto &data : data_pack)
         FillZeroSupData(data);
 
+#ifdef MULTI_THREAD
+        locker.lock();
+#endif
     // collect these zero-suppressed hits
     for(auto &fec : fec_list)
     {
         fec->APVControl(&PRadGEMAPV::CollectZeroSupHits, container);
     }
+#ifdef MULTI_THREAD
+        locker.unlock();
+#endif
 }
 
 // fill zero suppressed data
