@@ -54,6 +54,16 @@ public:
     void SetADC(const unsigned short &adcVal) {adc_value = adcVal;};
     // reset data
     void Reset();
+
+    // check if adc passed threshold
+    bool Sparsified(const unsigned short &adcVal);
+    int GetOccupancy() const {return occupancy;};
+    unsigned short GetADC() const {return adc_value;};
+    double GetReducedADC() const {return (double)adc_value - pedestal.mean;};
+    Pedestal GetPedestal() const {return pedestal;};
+    PRadHyCalModule *GetModule() const {return module;};
+    PRadTDCChannel *GetTDC() const {return tdc_group;};
+
     // histograms manipulations
     void ResetHists();
     void ClearHists();
@@ -67,19 +77,9 @@ public:
             trg_hist[trg]->Fill(t);
         }
     };
-
-
-    // check if adc passed threshold
-    bool Sparsified(const unsigned short &adcVal);
-    int GetOccupancy() const {return occupancy;};
-    unsigned short GetADC() const {return adc_value;};
-    double GetReducedADC() const {return (double)adc_value - pedestal.mean;};
-    Pedestal GetPedestal() const {return pedestal;};
-    TH1 *GetHist(const std::string &name = "PHYS") const;
+    TH1 *GetHist(const std::string &name = "Physics") const;
     TH1 *GetHist(PRadTriggerType type) const {return trg_hist[(int)type];};
     std::vector<TH1*> GetHistList() const;
-    PRadHyCalModule *GetModule() const {return module;};
-    PRadTDCChannel *GetTDC() const {return tdc_group;};
 
 protected:
     PRadHyCalModule *module;
@@ -88,6 +88,7 @@ protected:
     int occupancy;
     unsigned short sparsify;
     unsigned short adc_value;
+    // histograms
     std::vector<TH1*> trg_hist;
     std::unordered_map<std::string, TH1*> hist_map;
 };

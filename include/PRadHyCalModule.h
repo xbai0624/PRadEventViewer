@@ -137,10 +137,10 @@ public:
 private:
     PRadHyCalDetector *detector;
     PRadADCChannel *daq_ch;
-    PRadCalibConst cal_const;
     std::string name;
     int id;
     Geometry geometry;
+    PRadCalibConst cal_const;
 };
 
 std::ostream &operator <<(std::ostream &os, const PRadHyCalModule &m);

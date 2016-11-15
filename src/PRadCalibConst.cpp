@@ -84,10 +84,10 @@ void PRadCalibConst::GainCorrection(double gain, int ref)
 double PRadCalibConst::Calibration(const double &adc_val)
 const
 {
-    if(adc_val < 0.)
-        return 0.;
+    if(adc_val > 0.)
+        return adc_val*factor;
 
-    return adc_val*factor;
+    return 0.;
 }
 
 ConfigParser &operator >>(ConfigParser &p, PRadCalibConst &c)

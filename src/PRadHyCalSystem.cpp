@@ -7,6 +7,7 @@
 //============================================================================//
 
 #include "PRadHyCalSystem.h"
+#include "TH1D.h"
 #include <iostream>
 #include <iomanip>
 
@@ -26,14 +27,103 @@ PRadHyCalSystem::PRadHyCalSystem(const std::string &path)
     // reserve enough buckets for the adc maps
     adc_addr_map.reserve(ADC_BUCKETS);
     adc_name_map.reserve(ADC_BUCKETS);
+
+    // initialize energy histogram
+    energy_hist = new TH1D("HyCal Energy", "Total Energy (MeV)", 2000, 0, 2500);
+}
+
+// copy constructor
+// it does not only copy the members, but also copy the connections between the
+// members
+PRadHyCalSystem::PRadHyCalSystem(const PRadHyCalSystem &that)
+: ConfigObject(that), hycal(nullptr)
+{
+    // copy detector
+    if(that.hycal) {
+        hycal = new PRadHyCalDetector(*that.hycal);
+        hycal->SetSystem(this, true);
+    }
+
+    // copy histogram
+    energy_hist = new TH1D(*that.energy_hist);
+
+    // copy tdc
+    for(auto tdc : that.tdc_list)
+    {
+        AddTDCChannel(new PRadTDCChannel(*tdc));
+    }
+
+    // copy adc
+    for(auto adc : that.adc_list)
+    {
+        PRadADCChannel *new_adc = new PRadADCChannel(*adc);
+        AddADCChannel(new_adc);
+        // copy the connections between adc and tdc
+        if(!adc->GetTDC())
+            continue;
+        PRadTDCChannel *tdc = GetTDCChannel(adc->GetTDC()->GetName());
+        tdc->ConnectChannel(new_adc);
+    }
+
+    // build connections between adc channels and modules
+    BuildConnections();
+}
+
+// move constructor
+PRadHyCalSystem::PRadHyCalSystem(PRadHyCalSystem &&that)
+: ConfigObject(that),
+  adc_list(std::move(that.adc_list)), tdc_list(std::move(that.tdc_list)),
+  adc_addr_map(std::move(that.adc_addr_map)), adc_name_map(std::move(that.adc_name_map)),
+  tdc_addr_map(std::move(that.tdc_addr_map)), tdc_name_map(std::move(that.tdc_name_map))
+{
+    hycal = that.hycal;
+    that.hycal = nullptr;
+    hycal->SetSystem(this, true);
+    energy_hist = that.energy_hist;
+    that.energy_hist = nullptr;
 }
 
 // destructor
 PRadHyCalSystem::~PRadHyCalSystem()
 {
     delete hycal;
+    delete energy_hist;
     ClearADCChannel();
     ClearTDCChannel();
+}
+
+// copy assignment operator
+PRadHyCalSystem &PRadHyCalSystem::operator =(const PRadHyCalSystem &rhs)
+{
+    PRadHyCalSystem that(rhs); // copy constructor
+    *this = std::move(that); // move assignment operator
+    return *this;
+}
+
+// move assignment operator
+PRadHyCalSystem &PRadHyCalSystem::operator =(PRadHyCalSystem &&rhs)
+{
+    ConfigObject::operator =(rhs);
+
+    // release memories
+    delete hycal;
+    delete energy_hist;
+    ClearADCChannel();
+    ClearTDCChannel();
+
+    hycal = rhs.hycal;
+    rhs.hycal = nullptr;
+    hycal->SetSystem(this, true);
+    energy_hist = rhs.energy_hist;
+    rhs.energy_hist = nullptr;
+    adc_list = std::move(rhs.adc_list);
+    tdc_list = std::move(rhs.tdc_list);
+    adc_addr_map = std::move(rhs.adc_addr_map);
+    adc_name_map = std::move(rhs.adc_name_map);
+    tdc_addr_map = std::move(rhs.tdc_addr_map);
+    tdc_name_map = std::move(rhs.tdc_name_map);
+
+    return *this;
 }
 
 
@@ -468,3 +558,28 @@ const
         return it->second;
     return nullptr;
 }
+
+// histogram manipulation
+void PRadHyCalSystem::FillEnergyHist()
+{
+    if(!hycal)
+        return;
+
+    double total_E = 0;
+    for(auto module : hycal->GetModuleList())
+    {
+        total_E += module->GetEnergy();
+    }
+    energy_hist->Fill(total_E);
+}
+
+void PRadHyCalSystem::FillEnergyHist(const double &e)
+{
+    energy_hist->Fill(e);
+}
+
+void PRadHyCalSystem::ResetEnergyHist()
+{
+    energy_hist->Reset();
+}
+

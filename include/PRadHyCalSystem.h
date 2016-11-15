@@ -12,7 +12,7 @@
 // better formed
 #define ADC_BUCKETS 5000
 
-class TH1;
+class TH1D;
 
 // a simple hash function for DAQ configuration
 namespace std
@@ -37,8 +37,19 @@ namespace std
 class PRadHyCalSystem : public ConfigObject
 {
 public:
+    // constructor
     PRadHyCalSystem(const std::string &path);
+
+    // copy/move constructors
+    PRadHyCalSystem(const PRadHyCalSystem &that);
+    PRadHyCalSystem(PRadHyCalSystem &&that);
+
+    // destructor
     virtual ~PRadHyCalSystem();
+
+    // copy/move assignment operators
+    PRadHyCalSystem &operator =(const PRadHyCalSystem &rhs);
+    PRadHyCalSystem &operator =(PRadHyCalSystem &&rhs);
 
     // configuration
     void Configure(const std::string &path);
@@ -72,9 +83,17 @@ public:
     const std::vector<PRadADCChannel*> &GetADCList() const {return adc_list;};
     const std::vector<PRadTDCChannel*> &GetTDCList() const {return tdc_list;};
 
+    // histogram manipulation
+    void FillEnergyHist();
+    void FillEnergyHist(const double &e);
+    void ResetEnergyHist();
+    TH1 *GetEnergyHist() const {return energy_hist;};
+
 private:
     PRadHyCalDetector *hycal;
-    TH1 *energyHist;
+
+    // histogram
+    TH1D *energy_hist;
 
     // channel lists
     std::vector<PRadADCChannel*> adc_list;

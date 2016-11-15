@@ -7,6 +7,7 @@
 
 #include "PRadHyCalDetector.h"
 #include "PRadHyCalSystem.h"
+#include "TH1.h"
 #include <algorithm>
 #include <iomanip>
 

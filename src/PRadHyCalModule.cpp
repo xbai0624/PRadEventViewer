@@ -56,7 +56,7 @@ PRadHyCalModule::PRadHyCalModule(const std::string &n,
 // copy constructor
 PRadHyCalModule::PRadHyCalModule(const PRadHyCalModule &that)
 : detector(nullptr), daq_ch(nullptr), name(that.name), id(that.id),
-  geometry(that.geometry)
+  geometry(that.geometry), cal_const(that.cal_const)
 {
     // place holder
 }
@@ -64,7 +64,7 @@ PRadHyCalModule::PRadHyCalModule(const PRadHyCalModule &that)
 // move constructor
 PRadHyCalModule::PRadHyCalModule(PRadHyCalModule &&that)
 : detector(nullptr), daq_ch(nullptr), name(std::move(that.name)), id(that.id),
-  geometry(that.geometry)
+  geometry(that.geometry), cal_const(that.cal_const)
 {
     // place holder
 }
@@ -82,6 +82,7 @@ PRadHyCalModule &PRadHyCalModule::operator =(const PRadHyCalModule &rhs)
     name = rhs.name;
     id = rhs.id;
     geometry = rhs.geometry;
+    cal_const = rhs.cal_const;
     return *this;
 }
 
@@ -90,6 +91,7 @@ PRadHyCalModule &PRadHyCalModule::operator =(PRadHyCalModule &&rhs)
     name = std::move(rhs.name);
     id = rhs.id;
     geometry = rhs.geometry;
+    cal_const = std::move(rhs.cal_const);
     return *this;
 }
 

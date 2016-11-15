@@ -50,8 +50,8 @@ PRadADCChannel::PRadADCChannel(const std::string &name, const ChannelAddress &da
 // copy constructor
 PRadADCChannel::PRadADCChannel(const PRadADCChannel &that)
 : PRadDAQChannel(that),
-  module(nullptr), tdc_group(nullptr), occupancy(that.occupancy),
-  sparsify(that.sparsify), adc_value(that.adc_value)
+  module(nullptr), tdc_group(nullptr), pedestal(that.pedestal),
+  occupancy(that.occupancy), sparsify(that.sparsify), adc_value(that.adc_value)
 {
     for(auto &it : that.hist_map)
     {
@@ -69,8 +69,8 @@ PRadADCChannel::PRadADCChannel(const PRadADCChannel &that)
 // move constructor
 PRadADCChannel::PRadADCChannel(PRadADCChannel &&that)
 : PRadDAQChannel(that),
-  module(nullptr), tdc_group(nullptr), occupancy(that.occupancy),
-  sparsify(that.sparsify), adc_value(that.adc_value),
+  module(nullptr), tdc_group(nullptr), pedestal(that.pedestal),
+  occupancy(that.occupancy), sparsify(that.sparsify), adc_value(that.adc_value),
   trg_hist(std::move(that.trg_hist)), hist_map(std::move(that.hist_map))
 {
     // place holder
@@ -106,6 +106,7 @@ PRadADCChannel &PRadADCChannel::operator =(PRadADCChannel &&rhs)
     trg_hist.clear();
 
     PRadDAQChannel::operator =(rhs);
+    pedestal = rhs.pedestal;
     occupancy = rhs.occupancy;
     sparsify = rhs.sparsify;
     adc_value = rhs.adc_value;

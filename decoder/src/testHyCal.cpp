@@ -20,9 +20,11 @@ int main(int /*argc*/, char * /*argv*/ [])
 
 
     PRadHyCalSystem *sys = new PRadHyCalSystem("config/hycal.conf");
+    PRadHyCalSystem sys2 = move(*sys);
+    delete sys;
+    sys = &sys2;
     //sys->ClearADCChannel();
     //sys->ClearTDCChannel();
-/*
     cout << sys->GetTDCList().size() << endl;
     cout << sys->GetADCList().size() << endl;
     for(auto adc : sys->GetADCList())
@@ -45,12 +47,8 @@ int main(int /*argc*/, char * /*argv*/ [])
         }
         cout << endl;
     }
-*/
-
-    PRadHyCalDetector *hycal1 = sys->GetDetector();
-    PRadHyCalDetector hycal = move(*hycal1);
-    delete hycal1;
-    for(auto module : hycal.GetModuleList())
+    PRadHyCalDetector *hycal = sys->GetDetector();
+    for(auto module : hycal->GetModuleList())
     {
         cout << setw(4) << module->GetID() << ": " << *module;
         cout << setw(12) << module->GetNonLinearConst();
@@ -58,10 +56,9 @@ int main(int /*argc*/, char * /*argv*/ [])
             cout << module->GetChannel()->GetAddress();
         cout << endl;
     }
-    cout << hycal.GetModuleList().size() << endl;
+    cout << hycal->GetModuleList().size() << endl;
     //hycal.SortModuleList();
     //hycal.OutputModuleList(cout);
-
     cout << "TIMER: Finished, took " << timer.GetElapsedTime() << " ms" << endl;
 
     return 0;
