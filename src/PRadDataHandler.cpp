@@ -12,9 +12,6 @@
 #include "PRadDataHandler.h"
 #include "PRadEvioParser.h"
 #include "PRadDSTParser.h"
-#include "PRadHyCalCluster.h"
-#include "PRadSquareCluster.h"
-#include "PRadIslandCluster.h"
 #include "PRadGEMSystem.h"
 #include "PRadDAQUnit.h"
 #include "PRadTDCGroup.h"
@@ -36,7 +33,7 @@ PRadDataHandler::PRadDataHandler()
 : parser(new PRadEvioParser(this)),
   dst_parser(new PRadDSTParser(this)),
   gem_srs(new PRadGEMSystem()),
-  hycal_recon(nullptr), totalE(0), onlineMode(false),
+  totalE(0), onlineMode(false),
   replayMode(false), current_event(0)
 {
     // total energy histogram
@@ -50,9 +47,6 @@ PRadDataHandler::PRadDataHandler()
     onlineInfo.add_trigger("LMS Alpha Source", 3);
     onlineInfo.add_trigger("Tagger Master OR", 4);
     onlineInfo.add_trigger("Scintillator", 5);
-
-    AddHyCalClusterMethod(new PRadIslandCluster(), "Island");
-    AddHyCalClusterMethod(new PRadSquareCluster(), "Square");
 }
 
 PRadDataHandler::~PRadDataHandler()
@@ -69,12 +63,6 @@ PRadDataHandler::~PRadDataHandler()
     for(auto &tdc : tdcList)
     {
         delete tdc, tdc = nullptr;
-    }
-
-    for(auto &it : hycal_recon_map)
-    {
-        if(it.second)
-            delete it.second, it.second = nullptr;
     }
 
     delete parser;
@@ -131,24 +119,6 @@ void PRadDataHandler::ReadConfig(const string &path)
         if((func_name.find("Initialize File") != string::npos)) {
             const string var1 = c_parser.TakeFirst().String();
             ExecuteConfigCommand(&PRadDataHandler::InitializeByData, var1, -1, 2);
-        }
-        if((func_name.find("Island Cluster Configuration") != string::npos)) {
-            const string var1 = "Island";
-            const string var2 = c_parser.TakeFirst().String();
-            ExecuteConfigCommand(&PRadDataHandler::ConfigureHyCalClusterMethod,
-                                 var1,
-                                 var2);
-        }
-        if((func_name.find("Square Cluster Configuration") != string::npos)) {
-            const string var1 = "Square";
-            const string var2 = c_parser.TakeFirst().String();
-            ExecuteConfigCommand(&PRadDataHandler::ConfigureHyCalClusterMethod,
-                                 var1,
-                                 var2);
-        }
-        if((func_name.find("HyCal Clustering Method") != string::npos)) {
-            const string var1 = c_parser.TakeFirst().String();
-            ExecuteConfigCommand(&PRadDataHandler::SetHyCalClusterMethod, var1);
         }
     }
 }
@@ -239,10 +209,6 @@ void PRadDataHandler::BuildChannelMap()
     // DAQ configuration map
     for(auto &channel : channelList)
         map_daq[channel->GetDAQInfo()] = channel;
-
-    // update reconstruction
-    for(auto &recon : hycal_recon_map)
-        recon.second->UpdateModuleInfo();
 }
 
 // erase the data container
@@ -1256,10 +1222,6 @@ void PRadDataHandler::ReadGainFile(const string &path)
         else
             tmp->SetDead(false);
     }
-
-    // update reconstruction
-    for(auto &recon : hycal_recon_map)
-        recon.second->UpdateModuleInfo();
 }
 
 // Refill energy hist after correct gain factos
@@ -1426,131 +1388,6 @@ int PRadDataHandler::FindEventIndex(const int &ev)
     }
 
     return result;
-}
-
-void PRadDataHandler::AddHyCalClusterMethod(PRadHyCalCluster *r,
-                                            const string &name,
-                                            const string &c_path)
-{
-    r->SetHandler(this);
-    // automatically set the first method as the default one
-    if(hycal_recon_map.empty())
-        hycal_recon = r;
-
-    auto it = hycal_recon_map.find(name);
-    if(it != hycal_recon_map.end()) {
-        cout << "Data Handler Warning: Replace existing HyCal clustering method "
-             << name
-             << ", original method is deleted!"
-             << endl;
-
-        if(hycal_recon == it->second)
-            hycal_recon = r;
-
-        delete it->second, it->second = nullptr;
-    }
-
-    hycal_recon_map[name] = r;
-    r->Configure(c_path);
-}
-
-void PRadDataHandler::SetHyCalClusterMethod(const string &name)
-{
-    auto it = hycal_recon_map.find(name);
-    if(it != hycal_recon_map.end()) {
-        hycal_recon = it->second;
-    } else {
-        cerr << "Data Handler Error: Cannot find HyCal clustering method "
-             << name
-             << endl;
-    }
-}
-
-void PRadDataHandler::ConfigureHyCalClusterMethod(const string &name, const string &path)
-{
-    PRadHyCalCluster *method = GetHyCalClusterMethod(name);
-    if(method) {
-        method->Configure(path);
-    } else {
-        cerr << "Data Handler Error: Cannot find HyCal clustering method "
-             << name << ", stop configuration."
-             << endl;
-    }
-}
-
-PRadHyCalCluster *PRadDataHandler::GetHyCalClusterMethod(const string &name)
-{
-    PRadHyCalCluster *result = nullptr;
-
-    auto it = hycal_recon_map.find(name);
-    if(it != hycal_recon_map.end())
-        result = it->second;
-
-    return result;
-}
-
-std::string PRadDataHandler::GetHyCalClusterMethodName()
-{
-    if(hycal_recon == nullptr)
-        return "";
-
-    for(auto &it : hycal_recon_map)
-    {
-        if(it.second == hycal_recon)
-            return it.first;
-    }
-
-    return "";
-}
-
-vector<string> PRadDataHandler::GetHyCalClusterMethodsList()
-{
-    vector<string> result;
-
-    for(auto &it : hycal_recon_map)
-    {
-        if(it.second != nullptr)
-            result.push_back(it.first);
-    }
-
-    return result;
-}
-
-void PRadDataHandler::HyCalReconstruct(const int &event_index)
-{
-    return HyCalReconstruct(GetEvent(event_index));
-}
-
-void PRadDataHandler::HyCalReconstruct(EventData &event)
-{
-    if(hycal_recon)
-        return hycal_recon->Reconstruct(event);
-}
-
-HyCalHit *PRadDataHandler::GetHyCalCluster(int &size)
-{
-    if(hycal_recon) {
-        size = hycal_recon->GetNClusters();
-        return hycal_recon->GetCluster();
-    }
-
-    std::cerr << "PRad Data Handler Error: HyCal Clustering Method does not exist!"
-              << std::endl;
-    size = 0;
-    return nullptr;
-}
-
-// a slower version, it re-packs the hycalhits into a vector and return it
-vector<HyCalHit> PRadDataHandler::GetHyCalCluster()
-{
-    vector<HyCalHit> hits;
-
-    int Nhits;
-    HyCalHit *hitp = GetHyCalCluster(Nhits);
-    for(int i = 0; i < Nhits; ++i)
-        hits.push_back(hitp[i]);
-
-    return hits;
 }
 
 void PRadDataHandler::Replay(const string &r_path, const int &split, const string &w_path)

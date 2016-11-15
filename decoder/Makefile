@@ -87,16 +87,16 @@ LIB_OBJECTS   = $(LIB_OBJ_DIR)/PRadDAQUnit.o \
 
 
 # examples
-TARGET        = testIsland \
-                testEPICS \
-                testLMS \
+TARGET       =  testLMS \
                 testGEM \
                 testHyCal \
-                testSim \
-                testCombine \
-                testMatch \
                 getAvgGain \
                 replay
+#                testEPICS
+#                testIsland
+#                testCombine
+#                testMatch
+#                testSim
 
 EXE_LIBS      = -L$(T_LIBS_DIR) -lPRadDecoder
 

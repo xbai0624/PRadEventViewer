@@ -11,8 +11,7 @@
 #include <iomanip>
 #include "PRadHyCalCluster.h"
 
-PRadHyCalCluster::PRadHyCalCluster(PRadDataHandler *h)
-: fHandler(h), fNHyCalClusters(0)
+PRadHyCalCluster::PRadHyCalCluster()
 {
     // place holder
 }
@@ -22,22 +21,7 @@ PRadHyCalCluster::~PRadHyCalCluster()
     // place holder
 }
 
-void PRadHyCalCluster::Clear()
-{
-    fNHyCalClusters = 0;
-}
-
-void PRadHyCalCluster::SetHandler(PRadDataHandler *h)
-{
-    fHandler = h;
-}
-
-void PRadHyCalCluster::UpdateModuleInfo()
-{
-    // to be implemented by methods
-}
-
-void PRadHyCalCluster::Reconstruct(EventData & /*event*/)
+void PRadHyCalCluster::Reconstruct(PRadHyCalDetector *det)
 {
     // to be implemented by methods
 }

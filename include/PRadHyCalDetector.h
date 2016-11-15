@@ -43,9 +43,6 @@ public:
     void SortModuleList();
     void ClearModuleList();
     void OutputModuleList(std::ostream &os);
-    void ConnectDAQ();
-    void ReconstructHits();
-    void ClearHits();
 
     // get parameters
     PRadHyCalSystem *GetSystem() const {return system;};
