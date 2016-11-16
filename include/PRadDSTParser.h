@@ -7,6 +7,8 @@
 #include "PRadEventStruct.h"
 
 class PRadDataHandler;
+class PRadHyCalSystem;
+class PRadGEMSystem;
 
 //============================================================================//
 // DST FILE RELATED ENUMS                                                     //
@@ -66,16 +68,16 @@ public:
     void WriteEPICS(const EPICSData &data) throw(PRadException);
     void WriteEPICSMap() throw(PRadException);
     void WriteRunInfo() throw(PRadException);
-    void WriteHyCalInfo() throw(PRadException);
-    void WriteGEMInfo() throw(PRadException);
+    void WriteHyCalInfo(const PRadHyCalSystem *hycal) throw(PRadException);
+    void WriteGEMInfo(const PRadGEMSystem *gem) throw(PRadException);
 
 private:
     void readEvent(EventData &data) throw(PRadException);
     void readEPICS(EPICSData &data) throw(PRadException);
     void readEPICSMap() throw(PRadException);
     void readRunInfo() throw(PRadException);
-    void readHyCalInfo() throw(PRadException);
-    void readGEMInfo() throw(PRadException);
+    void readHyCalInfo(PRadHyCalSystem *hycal) throw(PRadException);
+    void readGEMInfo(PRadGEMSystem *gem) throw(PRadException);
 
 private:
     PRadDataHandler *handler;

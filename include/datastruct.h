@@ -203,19 +203,19 @@ struct JLabDSCData
 
 struct ADC1881MData
 {
-    ChannelAddress config;
+    ChannelAddress addr;
     unsigned short val;
 };
 
 struct TDCV767Data
 {
-    ChannelAddress config;
+    ChannelAddress addr;
     unsigned int val;
 };
 
 struct TDCV1190Data
 {
-    ChannelAddress config;
+    ChannelAddress addr;
     unsigned int val;
 };
 

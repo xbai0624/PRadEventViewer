@@ -559,11 +559,12 @@ void PRadGEMSystem::FillRawData(GEMRawData &raw, vector<GEM_Data> &container, co
 }
 
 // clear all APVs' raw data space
-void PRadGEMSystem::ClearAPVData()
+void PRadGEMSystem::Reset()
 {
     for(auto &fec : fec_list)
     {
         fec->APVControl(&PRadGEMAPV::ClearData);
+        fec->APVControl(&PRadGEMAPV::ResetPedHist);
     }
 }
 

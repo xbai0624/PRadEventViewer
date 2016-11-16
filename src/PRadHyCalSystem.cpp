@@ -8,10 +8,12 @@
 
 #include "PRadHyCalSystem.h"
 #include "PRadHyCalCluster.h"
+#include "TFile.h"
+#include "TF1.h"
 #include "TH1D.h"
 #include <iostream>
 #include <iomanip>
-
+#include <cstring>
 
 
 //============================================================================//
@@ -449,6 +451,15 @@ void PRadHyCalSystem::Reconstruct(const EventData &event)
     recon->Reconstruct(hycal);
 }
 
+void PRadHyCalSystem::Reset()
+{
+    for(auto &adc : adc_list)
+        adc->Reset();
+    for(auto &tdc : tdc_list)
+        tdc->Reset();
+    ResetEnergyHist();
+}
+
 // add detector, remove the original detector
 void PRadHyCalSystem::SetDetector(PRadHyCalDetector *h)
 {
@@ -752,3 +763,268 @@ const
 
     return result;
 }
+
+void PRadHyCalSystem::SaveHists(const std::string &path)
+{
+    TFile f(path.c_str(), "recreate");
+
+    energy_hist->Write();
+
+    // tdc hists
+    TDirectory *cur_dir = f.mkdir("TDC Histograms");
+    cur_dir->cd();
+
+    auto ch_id = [] (const PRadDAQChannel &ch)
+                 {
+                     int id = ch.GetName().at(0)*10000;
+
+                     size_t i = 1;
+                     for(; i < ch.GetName().size(); ++i)
+                     {
+                        if(isdigit(ch.GetName().at(i)))
+                            break;
+                     }
+                     if(i < ch.GetName().size())
+                         id += std::stoi(ch.GetName().substr(i));
+
+                     return id;
+                 };
+    auto ch_order = [ch_id] (const PRadDAQChannel *a, const PRadDAQChannel *b)
+                    {return ch_id(*a) < ch_id(*b);};
+
+    // copy the tdc list
+    auto tlist = tdc_list;
+    std::sort(tlist.begin(), tlist.end(), ch_order);
+
+    for(auto tdc : tlist)
+    {
+        tdc->GetHist()->Write();
+    }
+
+    // adc hists
+    f.cd();
+    cur_dir = f.mkdir("ADC Histograms");
+    cur_dir->cd();
+
+    // copy the adc list
+    auto ch_list = adc_list;
+    std::sort(ch_list.begin(), ch_list.end(), ch_order);
+
+    TDirectory *mod_dir[PRadHyCalModule::Max_ModuleType];
+    for(int i = 0; i < (int) PRadHyCalModule::Max_ModuleType; ++i)
+    {
+        mod_dir[i] = cur_dir->mkdir(PRadHyCalModule::get_module_type_name(i));
+    }
+    TDirectory *other_dir = cur_dir->mkdir("Others");
+
+    for(auto channel : ch_list)
+    {
+        TDirectory *ch_dir;
+
+        if(!channel->GetModule() || channel->GetModule()->GetType() < 0) {
+            ch_dir = other_dir->mkdir(channel->GetName().c_str());
+        } else {
+            int type = channel->GetModule()->GetType();
+            ch_dir = mod_dir[type]->mkdir(channel->GetName().c_str());
+        }
+        ch_dir->cd();
+
+        std::vector<TH1*> hists = channel->GetHistList();
+        for(auto hist : hists)
+        {
+            hist->Write();
+        }
+    }
+
+    f.Close();
+}
+
+std::vector<double> PRadHyCalSystem::FitHist(const std::string &channel,
+                                             const std::string &hist_name,
+                                             const std::string &fit_function,
+                                             const double &range_min,
+                                             const double &range_max,
+                                             const bool &verbose)
+const
+throw(PRadException)
+{
+    PRadADCChannel *ch = GetADCChannel(channel);
+    if(!ch) {
+        throw PRadException("Fit Histogram Failure", "Channel " + channel + " does not exist!");
+    }
+
+    TH1 *hist = ch->GetHist(hist_name);
+    if(hist == nullptr) {
+        throw PRadException("Fit Histogram Failure", "Histogram " + hist_name + " does not exist!");
+    }
+
+    int beg_bin = hist->GetXaxis()->FindBin(range_min);
+    int end_bin = hist->GetXaxis()->FindBin(range_max) - 1;
+
+    if(!hist->Integral(beg_bin, end_bin)) {
+        throw PRadException("Fit Histogram Failure", "Histogram does not have entries in specified range!");
+    }
+
+    TF1 *fit = new TF1("newfit", fit_function.c_str(), range_min, range_max);
+
+    hist->Fit(fit, "qR");
+
+    TF1 *myfit = (TF1*) hist->GetFunction("newfit");
+
+    // pack parameters, print out result if verbose is true
+    std::vector<double> result;
+
+    if(verbose)
+        std::cout << "Fit histogram " << hist->GetTitle()
+             //<< " with expression " << myfit->GetFormula()->GetExpFormula().Data()
+             << std::endl;
+
+    for(int i = 0; i < myfit->GetNpar(); ++i)
+    {
+        result.push_back(myfit->GetParameter(i));
+        if(verbose)
+            std::cout << "Parameter " << i << ", "
+                      << myfit->GetParameter(i)
+                      << std::endl;
+    }
+
+    delete fit;
+
+    return result;
+}
+
+void PRadHyCalSystem::FitPedestal()
+{
+    for(auto &channel : adc_list)
+    {
+        TH1 *ped_hist = channel->GetHist("PED");
+
+        if(ped_hist == nullptr || ped_hist->Integral() < 1000)
+            continue;
+
+        ped_hist->Fit("gaus", "qww");
+
+        TF1 *myfit = (TF1*) ped_hist->GetFunction("gaus");
+        double p0 = myfit->GetParameter(1);
+        double p1 = myfit->GetParameter(2);
+
+        channel->SetPedestal(p0, p1);
+    }
+}
+
+void PRadHyCalSystem::CorrectGainFactor(int ref)
+{
+// We had some reference PMT shifts, one happened at run 1228
+// If try to do the gain correction that the PMT shifts happened between, it
+// won't give the correct calibration constant
+#define PED_LED_REF 1000  // separation value for led signal and pedestal signal of reference PMT
+#define PED_LED_HYC 30 // separation value for led signal and pedestal signal of all HyCal Modules
+
+
+    std::string reference = "LMS" + std::to_string(ref);
+
+    // firstly, get the reference factor from LMS PMT
+    // LMS 2 seems to be the best one for fitting
+    PRadADCChannel *ref_ch = GetADCChannel(reference);
+    if(ref_ch == nullptr) {
+        std::cerr << "PRad HyCal System Error:"
+                  << " Cannot find the reference PMT channel " << reference
+                  << " for gain factor correction, abort gain correction."
+                  << std::endl;
+        return;
+    }
+
+    // reference pmt has both pedestal and alpha source signals in this histogram
+    TH1* ref_alpha = ref_ch->GetHist("PHYS");
+    TH1* ref_led = ref_ch->GetHist("LMS");
+    if(ref_alpha == nullptr || ref_led == nullptr) {
+        std::cerr << "PRad HyCal System Error: "
+                  << "Cannot find the histograms of reference PMT, "
+                  << "abort gain correction."
+                  << std::endl;
+        return;
+    }
+
+    int sep_bin = ref_alpha->GetXaxis()->FindBin(PED_LED_REF);
+    int end_bin = ref_alpha->GetNbinsX(); // 1 for overflow bin and 1 for underflow bin
+
+    if((ref_alpha->Integral(0, sep_bin) < 1000) ||
+       (ref_alpha->Integral(sep_bin, end_bin) < 1000)) {
+        std::cerr << "PRad HyCal System Error: "
+                  << "Not enough entries in pedestal histogram of reference PMT, "
+                  << "abort gain correction."
+                  << std::endl;
+        return;
+    }
+
+    // lamda expression, fit a gaussian and return the mean value
+    auto fit_gaussian = [] (TH1* hist,
+                            const int &range_min = 0,
+                            const int &range_max = 8191,
+                            const double &warn_ratio = 0.06)
+                        {
+                            int beg_bin = hist->GetXaxis()->FindBin(range_min);
+                            int end_bin = hist->GetXaxis()->FindBin(range_max) - 1;
+
+                            if(hist->Integral(beg_bin, end_bin) < 1000) {
+                                std::cout << "PRad HyCal System Warning: "
+                                          << "Not enough entries in histogram "
+                                          << hist->GetName()
+                                          << ". Abort fitting!"
+                                          << std::endl;
+                                return 0.;
+                            }
+
+                            TF1 *fit = new TF1("tmpfit", "gaus", range_min, range_max);
+
+                            hist->Fit(fit, "qR");
+                            TF1 *hist_fit = hist->GetFunction("tmpfit");
+                            double mean = hist_fit->GetParameter(1);
+                            double sigma = hist_fit->GetParameter(2);
+                            if(sigma/mean > warn_ratio) {
+                                std::cout << "PRad HyCal System Warning: "
+                                          << "Bad fit for " << hist->GetTitle()
+                                          << ". Mean: " << mean
+                                          << ", sigma: " << sigma
+                                          << std::endl;
+                            }
+                            delete fit;
+                            return mean;
+                        };
+
+    double ped_mean = fit_gaussian(ref_alpha, 0, PED_LED_REF, 0.02);
+    double alpha_mean = fit_gaussian(ref_alpha, PED_LED_REF + 1, 8191, 0.05);
+    double led_mean = fit_gaussian(ref_led);
+
+    if(ped_mean == 0. || alpha_mean == 0. || led_mean == 0.) {
+        std::cerr << "PRad HyCal System Error: Failed to get gain factor from "
+                  << reference << ", abort gain correction."
+                  << std::endl;
+        return;
+    }
+
+    double ref_factor = (led_mean - ped_mean)/(alpha_mean - ped_mean);
+
+    for(auto channel : adc_list)
+    {
+        PRadHyCalModule *module = channel->GetModule();
+        if(!module)
+            continue;
+
+        TH1 *hist = channel->GetHist("LMS");
+        if(!hist)
+            continue;
+
+        double ch_led = fit_gaussian(hist) - channel->GetPedestal().mean;
+
+        if(ch_led > PED_LED_HYC) {// meaningful led signal
+            module->GainCorrection(ch_led/ref_factor, ref);
+        } else {
+            std::cout << "PRad HyCal System Error: Gain factor of "
+                      << module->GetName()
+                      << " is not updated due to bad fit of LED signal."
+                      << std::endl;
+        }
+    }
+}
+

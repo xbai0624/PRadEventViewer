@@ -289,7 +289,7 @@ void PRadEvioParser::parseADC1881M(const uint32_t *data)
     unsigned int index = 1, wordCount;
     ADC1881MData adcData;
 
-    adcData.config.crate = (data[0]>>20)&0xF;
+    adcData.addr.crate = (data[0]>>20)&0xF;
 
     // parse the data for all boards
     for(unsigned char i = 0; i < boardNum; ++i)
@@ -299,19 +299,19 @@ void PRadEvioParser::parseADC1881M(const uint32_t *data)
         else if(data[index] == ADC1881M_DATAEND) // self defined, end of crate word
             break;
 
-        adcData.config.slot = (data[index]>>27)&0x1F;
+        adcData.addr.slot = (data[index]>>27)&0x1F;
         wordCount = (data[index]&0x7F) + index;
         while(++index < wordCount)
         {
-            if(((data[index]>>27)&0x1F) == (unsigned int)adcData.config.slot) {
-                adcData.config.channel = (data[index]>>17)&0x3F;
+            if(((data[index]>>27)&0x1F) == (unsigned int)adcData.addr.slot) {
+                adcData.addr.channel = (data[index]>>17)&0x3F;
                 adcData.val = data[index]&0x3FFF;
                 myHandler->FeedData(adcData); // feed data to handler
             } else { // show the error message
                 cerr << "*** MISMATCHED CRATE ADDRESS ***" << endl;
                 cerr << "GEOGRAPHICAL ADDRESS = "
                      << "0x" << hex << setw(8) << setfill('0') // formating
-                     << adcData.config.slot
+                     << adcData.addr.slot
                      << endl;
                 cerr << "BOARD ADDRESS = "
                      << "0x" << hex << setw(8) << setfill('0')
@@ -425,8 +425,8 @@ void PRadEvioParser::parseTDCV767(const uint32_t *data, const size_t &size, cons
     }
 
     TDCV767Data tdcData;
-    tdcData.config.crate = roc_id;
-    tdcData.config.slot = data[0]>>27;
+    tdcData.addr.crate = roc_id;
+    tdcData.addr.slot = data[0]>>27;
     for(size_t i = 1; i < size - 1; ++i)
     {
         if(data[i]&V767_INVALID_BIT) {
@@ -436,7 +436,7 @@ void PRadEvioParser::parseTDCV767(const uint32_t *data, const size_t &size, cons
                  << endl;
             continue;
         }
-        tdcData.config.channel = (data[i]>>24)&0x7f;
+        tdcData.addr.channel = (data[i]>>24)&0x7f;
         tdcData.val = data[i]&0xfffff;
         myHandler->FeedData(tdcData);
     }
@@ -446,7 +446,7 @@ void PRadEvioParser::parseTDCV767(const uint32_t *data, const size_t &size, cons
 void PRadEvioParser::parseTDCV1190(const uint32_t *data, const size_t &size, const int &roc_id)
 {
     TDCV1190Data tdcData;
-    tdcData.config.crate = roc_id;
+    tdcData.addr.crate = roc_id;
 
     for(size_t i = 0; i < size; ++i)
     {
@@ -454,13 +454,13 @@ void PRadEvioParser::parseTDCV1190(const uint32_t *data, const size_t &size, con
         {
         case V1190_GLOBAL_HEADER:
             if(roc_id == PRadTS) {
-                tdcData.config.slot = 0; // geo address not supported in this crate
+                tdcData.addr.slot = 0; // geo address not supported in this crate
             } else {
-                tdcData.config.slot = data[i]&0x1f;
+                tdcData.addr.slot = data[i]&0x1f;
             }
             break;
         case V1190_TDC_MEASURE:
-            tdcData.config.channel = (data[i]>>19)&0x7f;
+            tdcData.addr.channel = (data[i]>>19)&0x7f;
             tdcData.val = (data[i]&0x7ffff);
             myHandler->FeedData(tdcData);
             break;

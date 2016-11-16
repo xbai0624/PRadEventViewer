@@ -65,7 +65,7 @@ public:
     void SetUnivTimeSample(const size_t &thres);
     void SetPedestalMode(const bool &m);
     void FitPedestal();
-    void ClearAPVData();
+    void Reset();
     void SavePedestal(const std::string &path) const;
     void SaveHistograms(const std::string &path) const;
 

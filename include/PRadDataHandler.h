@@ -15,8 +15,7 @@
 
 class PRadEvioParser;
 class PRadDSTParser;
-class PRadDAQUnit;
-class PRadTDCGroup;
+class PRadHyCalSystem;
 class PRadGEMSystem;
 class PRadGEMAPV;
 class TH1D;
@@ -34,25 +33,6 @@ struct epics_ch
     {};
 };
 
-// a simple hash function for DAQ configuration
-namespace std
-{
-    template <>
-    struct hash<ChannelAddress>
-    {
-        size_t operator()(const ChannelAddress &cfg) const
-        {
-            // crate id is 1-6, slot is 1-26, channel is 0-63
-            // thus they can be filled in a 16 bit word
-            // [ 0 0 0 | 0 0 0 0 0 | 0 0 0 0 0 0 0 0 ]
-            // [ crate |    slot   |     channel     ]
-            // this simple hash ensures no collision at current setup
-            // which means fast access
-            return (cfg.crate << 13 | cfg.slot << 8 | cfg.channel);
-        }
-    };
-}
-
 class PRadDataHandler
 {
 public:
@@ -63,34 +43,15 @@ public:
     void SetOnlineMode(const bool &mode);
 
     // add channels
-    void AddChannel(PRadDAQUnit *channel);
-    void AddTDCGroup(PRadTDCGroup *group);
-    void RegisterChannel(PRadDAQUnit *channel);
     void RegisterEPICS(const std::string &name, const uint32_t &id, const float &value);
-    void BuildChannelMap();
 
-    // get channels/lists
-    PRadGEMSystem *GetSRS() {return gem_srs;};
-    PRadDAQUnit *GetChannel(const ChannelAddress &daqInfo);
-    PRadDAQUnit *GetChannel(const std::string &name);
-    PRadDAQUnit *GetChannel(const unsigned short &id);
-    PRadDAQUnit *GetChannelPrimex(const unsigned short &id);
-    PRadTDCGroup *GetTDCGroup(const std::string &name);
-    PRadTDCGroup *GetTDCGroup(const ChannelAddress &addr);
-    const std::unordered_map< std::string, PRadTDCGroup *> &GetTDCGroupSet() {return map_name_tdc;};
-    std::vector< PRadDAQUnit* > &GetChannelList() {return channelList;};
+    PRadHyCalSystem *GetHyCalSystem() {return hycal_sys;};
+    PRadGEMSystem *GetGEMSystem() {return gem_sys;};
 
     // read config files
     void ReadConfig(const std::string &path);
     template<typename... Args>
     void ExecuteConfigCommand(void (PRadDataHandler::*act)(Args...), Args&&... args);
-    void ReadTDCList(const std::string &path);
-    void ReadGEMConfiguration(const std::string &path);
-    void ReadChannelList(const std::string &path);
-    void ReadPedestalFile(const std::string &path);
-    void ReadGEMPedestalFile(const std::string &path);
-    void ReadCalibrationFile(const std::string &path);
-    void ReadGainFile(const std::string &path);
     void ReadEPICSChannels(const std::string &path);
 
     // file reading and writing
@@ -133,7 +94,6 @@ public:
     int GetRunNumber() {return runInfo.run_number;};
     double GetBeamCharge() {return runInfo.beam_charge;};
     double GetLiveTime() {return (1. - runInfo.dead_count/runInfo.ungated_count);};
-    TH1D *GetEnergyHist() {return energyHist;};
     TH2I *GetTagEHist() {return TagEHist;};
     TH2I *GetTagTHist() {return TagTHist;};
     EventData &GetEvent(const unsigned int &index);
@@ -153,16 +113,6 @@ public:
 
     // analysis tools
     void InitializeByData(const std::string &path = "", int run = -1, int ref = DEFAULT_REF_PMT);
-    void ResetChannelHists();
-    void SaveHistograms(const std::string &path);
-    std::vector<double> FitHistogram(const std::string &channel,
-                                     const std::string &hist_name,
-                                     const std::string &fit_func,
-                                     const double &range_min,
-                                     const double &range_max,
-                                     const bool &verbose = false) throw(PRadException);
-    void FitPedestal();
-    void CorrectGainFactor(const int &ref = DEFAULT_REF_PMT);
     void RefillEnergyHist();
     int FindEventIndex(const int &event_number);
 
@@ -175,7 +125,8 @@ public:
 private:
     PRadEvioParser *parser;
     PRadDSTParser *dst_parser;
-    PRadGEMSystem *gem_srs;
+    PRadHyCalSystem *hycal_sys;
+    PRadGEMSystem *gem_sys;
     RunInfo runInfo;
     OnlineInfo onlineInfo;
     double totalE;
@@ -184,16 +135,6 @@ private:
     int current_event;
     std::thread end_thread;
 
-    // maps
-    std::unordered_map< ChannelAddress, PRadDAQUnit* > map_daq;
-    std::unordered_map< std::string, PRadDAQUnit* > map_name;
-    std::unordered_map< std::string, PRadTDCGroup* > map_name_tdc;
-    std::unordered_map< ChannelAddress, PRadTDCGroup* > map_daq_tdc;
-
-    std::vector< PRadDAQUnit* > channelList;
-    std::vector< PRadDAQUnit* > freeList; // channels that should be freed by handler
-    std::vector< PRadTDCGroup* > tdcList;
-
     // data related
     std::unordered_map< std::string, uint32_t > epics_map;
     std::vector< float > epics_values;
@@ -201,7 +142,6 @@ private:
     std::deque< EPICSData > epicsData;
 
     EventData *newEvent;
-    TH1D *energyHist;
     TH2I *TagEHist;
     TH2I *TagTHist;
 };

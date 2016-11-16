@@ -71,6 +71,7 @@ public:
     void CreatePedHist();
     void ReleasePedHist();
     void FillPedHist();
+    void ResetPedHist();
     void FitPedestal();
     void FillRawData(const uint32_t *buf, const size_t &siz);
     void FillZeroSupData(const size_t &ch, const size_t &ts, const unsigned short &val);

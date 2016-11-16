@@ -283,6 +283,17 @@ void PRadGEMAPV::CreatePedHist()
     }
 }
 
+void PRadGEMAPV::ResetPedHist()
+{
+    for(size_t i = 0; i < TIME_SAMPLE_SIZE; ++i)
+    {
+        if(offset_hist[i])
+            offset_hist[i]->Reset();
+        if(noise_hist[i])
+            noise_hist[i]->Reset();
+    }
+}
+
 // release the memory for histograms
 void PRadGEMAPV::ReleasePedHist()
 {

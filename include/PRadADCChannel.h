@@ -60,6 +60,8 @@ public:
     int GetOccupancy() const {return occupancy;};
     unsigned short GetValue() const {return adc_value;};
     double GetReducedValue() const {return (double)adc_value - pedestal.mean;};
+    double GetEnergy() const;
+    double GetEnergy(const unsigned short &adcVal) const;
     Pedestal GetPedestal() const {return pedestal;};
     PRadHyCalModule *GetModule() const {return module;};
     PRadTDCChannel *GetTDC() const {return tdc_group;};

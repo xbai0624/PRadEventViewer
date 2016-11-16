@@ -9,7 +9,8 @@
 #include <iomanip>
 #include "PRadDSTParser.h"
 #include "PRadDataHandler.h"
-#include "PRadDAQUnit.h"
+#include "PRadHyCalSystem.h"
+#include "PRadCalibConst.h"
 #include "PRadGEMSystem.h"
 
 #define DST_FILE_VERSION 0x13  // 0xff
@@ -89,7 +90,8 @@ void PRadDSTParser::CloseInput()
     dst_in.close();
 }
 
-void PRadDSTParser::WriteEvent(const EventData &data) throw(PRadException)
+void PRadDSTParser::WriteEvent(const EventData &data)
+throw(PRadException)
 {
     if(!dst_out.is_open())
         throw PRadException("WRITE DST", "output file is not opened!");
@@ -134,7 +136,8 @@ void PRadDSTParser::WriteEvent(const EventData &data) throw(PRadException)
 
 }
 
-void PRadDSTParser::readEvent(EventData &data) throw(PRadException)
+void PRadDSTParser::readEvent(EventData &data)
+throw(PRadException)
 {
     if(!dst_in.is_open())
         throw PRadException("READ DST", "input file is not opened!");
@@ -189,7 +192,8 @@ void PRadDSTParser::readEvent(EventData &data) throw(PRadException)
     }
 }
 
-void PRadDSTParser::WriteEPICS(const EPICSData &data) throw(PRadException)
+void PRadDSTParser::WriteEPICS(const EPICSData &data)
+throw(PRadException)
 {
     if(!dst_out.is_open())
         throw PRadException("WRITE DST", "output file is not opened!");
@@ -207,7 +211,8 @@ void PRadDSTParser::WriteEPICS(const EPICSData &data) throw(PRadException)
         dst_out.write((char*) &value, sizeof(value));
 }
 
-void PRadDSTParser::readEPICS(EPICSData &data) throw(PRadException)
+void PRadDSTParser::readEPICS(EPICSData &data)
+throw(PRadException)
 {
     if(!dst_in.is_open())
         throw PRadException("READ DST", "input file is not opened!");
@@ -227,7 +232,8 @@ void PRadDSTParser::readEPICS(EPICSData &data) throw(PRadException)
     }
 }
 
-void PRadDSTParser::WriteRunInfo() throw(PRadException)
+void PRadDSTParser::WriteRunInfo()
+throw(PRadException)
 {
     if(!dst_out.is_open())
         throw PRadException("WRITE DST", "output file is not opened!");
@@ -240,7 +246,8 @@ void PRadDSTParser::WriteRunInfo() throw(PRadException)
     dst_out.write((char*) &runInfo, sizeof(runInfo));
 }
 
-void PRadDSTParser::readRunInfo() throw(PRadException)
+void PRadDSTParser::readRunInfo()
+throw(PRadException)
 {
     if(!dst_in.is_open())
         throw PRadException("READ DST", "input file is not opened!");
@@ -253,7 +260,8 @@ void PRadDSTParser::readRunInfo() throw(PRadException)
         handler->UpdateRunInfo(runInfo);
 }
 
-void PRadDSTParser::WriteEPICSMap() throw(PRadException)
+void PRadDSTParser::WriteEPICSMap()
+throw(PRadException)
 {
     if(!dst_out.is_open())
         throw PRadException("WRITE DST", "output file is not opened!");
@@ -278,7 +286,8 @@ void PRadDSTParser::WriteEPICSMap() throw(PRadException)
     }
 }
 
-void PRadDSTParser::readEPICSMap() throw(PRadException)
+void PRadDSTParser::readEPICSMap()
+throw(PRadException)
 {
     if(!dst_in.is_open())
         throw PRadException("READ DST", "input file is not opened!");
@@ -306,34 +315,41 @@ void PRadDSTParser::readEPICSMap() throw(PRadException)
     }
 }
 
-void PRadDSTParser::WriteHyCalInfo() throw(PRadException)
+void PRadDSTParser::WriteHyCalInfo(const PRadHyCalSystem *hycal)
+throw(PRadException)
 {
     if(!dst_out.is_open())
         throw PRadException("WRITE DST", "output file is not opened!");
+    if(!hycal)
+        throw PRadException("WRITE DST", "HyCal system does not exist!");
 
     // write header
     uint32_t event_info = (PRad_DST_EvHeader << 8) | PRad_DST_HyCal_Info;
     dst_out.write((char*) &event_info, sizeof(event_info));
 
-    uint32_t ch_size = handler->GetChannelList().size();
+    uint32_t ch_size = hycal->GetADCList().size();
     dst_out.write((char*) &ch_size, sizeof(ch_size));
 
-    for(auto channel : handler->GetChannelList())
+    for(auto channel : hycal->GetADCList())
     {
-        PRadDAQUnit::Pedestal ped = channel->GetPedestal();
+        PRadADCChannel::Pedestal ped = channel->GetPedestal();
         dst_out.write((char*) &ped, sizeof(ped));
 
-        PRadDAQUnit::CalibrationConstant cal = channel->GetCalibrationConstant();
-        uint32_t gain_size = cal.base_gain.size();
+        PRadHyCalModule *module = channel->GetModule();
+        PRadCalibConst cal;
+        if(module)
+            cal = module->GetCalibConst();
+        uint32_t gain_size = cal.base_gains.size();
         dst_out.write((char*) &cal.factor, sizeof(cal.factor));
         dst_out.write((char*) &cal.base_factor, sizeof(cal.base_factor));
         dst_out.write((char*) &gain_size, sizeof(gain_size));
-        for(auto &gain : cal.base_gain)
+        for(auto &gain : cal.base_gains)
             dst_out.write((char*) &gain, sizeof(gain));
     }
 }
 
-void PRadDSTParser::readHyCalInfo() throw(PRadException)
+void PRadDSTParser::readHyCalInfo(PRadHyCalSystem *hycal)
+throw(PRadException)
 {
     if(!dst_in.is_open())
         throw PRadException("READ DST", "input file is not opened!");
@@ -341,14 +357,12 @@ void PRadDSTParser::readHyCalInfo() throw(PRadException)
     uint32_t ch_size;
     dst_in.read((char*) &ch_size, sizeof(ch_size));
 
-    auto channelList = handler->GetChannelList();
-
     for(uint32_t i = 0; i < ch_size; ++i)
     {
-        PRadDAQUnit::Pedestal ped;
+        PRadADCChannel::Pedestal ped;
         dst_in.read((char*) &ped, sizeof(ped));
 
-        PRadDAQUnit::CalibrationConstant cal;
+        PRadCalibConst cal;
         dst_in.read((char*) &cal.factor, sizeof(cal.factor));
         dst_in.read((char*) &cal.base_factor, sizeof(cal.base_factor));
 
@@ -359,28 +373,35 @@ void PRadDSTParser::readHyCalInfo() throw(PRadException)
         for(uint32_t j = 0; j < gain_size; ++j)
         {
             dst_in.read((char*) &gain, sizeof(gain));
-            cal.base_gain.push_back(gain);
+            cal.base_gains.push_back(gain);
         }
 
-        if(i < channelList.size()) {
-            if(!(update_mode & NO_HYCAL_PED_UPDATE))
-                channelList.at(i)->UpdatePedestal(ped);
-            if(!(update_mode & NO_HYCAL_CAL_UPDATE))
-                channelList.at(i)->UpdateCalibrationConstant(cal);
-        }
+        if(!hycal)
+            continue;
+
+        PRadADCChannel *adc = hycal->GetADCChannel(i);
+        if(!adc)
+            continue;
+        if(!(update_mode & NO_HYCAL_PED_UPDATE))
+            adc->SetPedestal(ped);
+        if(adc->GetModule() && !(update_mode & NO_HYCAL_CAL_UPDATE))
+            adc->GetModule()->SetCalibConst(cal);
     }
 }
 
-void PRadDSTParser::WriteGEMInfo() throw(PRadException)
+void PRadDSTParser::WriteGEMInfo(const PRadGEMSystem *gem)
+throw(PRadException)
 {
     if(!dst_out.is_open())
         throw PRadException("WRITE DST", "output file is not opened!");
+    if(!gem)
+        throw PRadException("WRITE DST", "GEM system does not exist!");
 
     // write header
     uint32_t event_info = (PRad_DST_EvHeader << 8) | PRad_DST_GEM_Info;
     dst_out.write((char*) &event_info, sizeof(event_info));
 
-    vector<PRadGEMAPV *> apv_list = handler->GetSRS()->GetAPVList();
+    vector<PRadGEMAPV *> apv_list = gem->GetAPVList();
 
     uint32_t apv_size = apv_list.size();
     dst_out.write((char*) &apv_size, sizeof(apv_size));
@@ -399,7 +420,8 @@ void PRadDSTParser::WriteGEMInfo() throw(PRadException)
     }
 }
 
-void PRadDSTParser::readGEMInfo() throw(PRadException)
+void PRadDSTParser::readGEMInfo(PRadGEMSystem *gem)
+throw(PRadException)
 {
     if(!dst_in.is_open())
         throw PRadException("READ DST", "input file is not opened!");
@@ -412,7 +434,9 @@ void PRadDSTParser::readGEMInfo() throw(PRadException)
         GEMChannelAddress addr;
         dst_in.read((char*) &addr, sizeof(addr));
 
-        auto apv = handler->GetSRS()->GetAPV(addr);
+        PRadGEMAPV *apv = nullptr;
+        if(gem)
+            apv = gem->GetAPV(addr);
 
         dst_in.read((char*) &ped_size, sizeof(ped_size));
 
@@ -463,10 +487,10 @@ bool PRadDSTParser::Read()
                 readRunInfo();
                 break;
             case PRad_DST_HyCal_Info:
-                readHyCalInfo();
+                readHyCalInfo(handler->GetHyCalSystem());
                 break;
             case PRad_DST_GEM_Info:
-                readGEMInfo();
+                readGEMInfo(handler->GetGEMSystem());
                 break;
             default:
                 return false;

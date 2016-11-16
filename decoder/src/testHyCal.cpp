@@ -24,6 +24,7 @@ int main(int /*argc*/, char * /*argv*/ [])
     delete sys;
     sys = &sys2;
     cout << sys->GetClusterMethodName() << endl;
+    sys->SaveHists("test.root");
     //sys->ClearADCChannel();
     //sys->ClearTDCChannel();
     /*

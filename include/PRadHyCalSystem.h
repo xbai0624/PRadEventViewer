@@ -64,6 +64,7 @@ public:
     // events related
     void ChooseEvent(const EventData &data);
     void Reconstruct(const EventData &data);
+    void Reset();
 
     // detector related
     void SetDetector(PRadHyCalDetector *h);
@@ -102,6 +103,15 @@ public:
     void FillEnergyHist(const double &e);
     void ResetEnergyHist();
     TH1 *GetEnergyHist() const {return energy_hist;};
+    void SaveHists(const std::string &path);
+    std::vector<double> FitHist(const std::string &channel,
+                                const std::string &hist_name,
+                                const std::string &fit_function,
+                                const double &range_min,
+                                const double &range_max,
+                                const bool &verbose) const throw(PRadException);
+    void FitPedestal();
+    void CorrectGainFactor(int ref);
 
 
 private:

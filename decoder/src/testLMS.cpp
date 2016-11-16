@@ -9,7 +9,7 @@
 #include "PRadDSTParser.h"
 #include "PRadEvioParser.h"
 #include "PRadBenchMark.h"
-#include "PRadDAQUnit.h"
+#include "PRadHyCalSystem.h"
 #include "PRadGEMSystem.h"
 #include <iostream>
 #include <string>
@@ -59,9 +59,13 @@ int main(int /*argc*/, char * /*argv*/ [])
 
     dst_parser->CloseInput();
 
+    PRadHyCalSystem *hycal = handler->GetHyCalSystem();
+    if(!hycal)
+        return 0;
+
     // channel name, histogram name, fit function, min range, max range, verbose
-    auto pars1 = handler->FitHistogram("W1115", "PED", "gaus", 0, 8200, true);
-    auto pars2 = handler->FitHistogram("W1115", "LMS", "gaus", 0, 8200, true);
+    auto pars1 = hycal->FitHist("W1115", "PED", "gaus", 0, 8200, true);
+    auto pars2 = hycal->FitHist("W1115", "LMS", "gaus", 0, 8200, true);
 
     // for Gaussian, par0 is amplitude, par1 is mean, par2 is sigma
     cout << "Pedestal for W1115: mean " << pars1.at(1)

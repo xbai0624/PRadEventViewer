@@ -28,7 +28,7 @@ int main(int /*argc*/, char * /*argv*/ [])
 
     PRadBenchMark timer;
     // get GEM system
-    PRadGEMSystem *gem_srs = handler->GetSRS();
+    PRadGEMSystem *gem_srs = handler->GetGEMSystem();
 
     /* some test on connections constructors and assignment operators
     gem_srs->GetAPV(1, 5)->UnsetFEC();

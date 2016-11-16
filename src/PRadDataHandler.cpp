@@ -12,32 +12,21 @@
 #include "PRadDataHandler.h"
 #include "PRadEvioParser.h"
 #include "PRadDSTParser.h"
+#include "PRadHyCalSystem.h"
 #include "PRadGEMSystem.h"
-#include "PRadDAQUnit.h"
-#include "PRadTDCGroup.h"
-#include "ConfigParser.h"
 #include "PRadBenchMark.h"
-#include "TFile.h"
-#include "TList.h"
-#include "TF1.h"
-#include "TH1.h"
+#include "ConfigParser.h"
 #include "TH2.h"
 
 #define EPICS_UNDEFINED_VALUE -9999.9
-#define TAGGER_CHANID 30000 // Tagger tdc id will start from this number
-#define TAGGER_T_CHANID 1000 // Start from TAGGER_CHANID, more than 1000 will be t channel
 
 using namespace std;
 
 PRadDataHandler::PRadDataHandler()
-: parser(new PRadEvioParser(this)),
-  dst_parser(new PRadDSTParser(this)),
-  gem_srs(new PRadGEMSystem()),
-  totalE(0), onlineMode(false),
+: parser(new PRadEvioParser(this)), dst_parser(new PRadDSTParser(this)),
+  hycal_sys(nullptr), gem_sys(nullptr), totalE(0), onlineMode(false),
   replayMode(false), current_event(0)
 {
-    // total energy histogram
-    energyHist = new TH1D("HyCal Energy", "Total Energy (MeV)", 2500, 0, 2500);
     TagEHist = new TH2I("Tagger E", "Tagger E counter", 2000, 0, 20000, 384, 0, 383);
     TagTHist = new TH2I("Tagger T", "Tagger T counter", 2000, 0, 20000, 128, 0, 127);
 
@@ -51,23 +40,11 @@ PRadDataHandler::PRadDataHandler()
 
 PRadDataHandler::~PRadDataHandler()
 {
-    delete energyHist;
     delete TagEHist;
     delete TagTHist;
 
-    for(auto &ele : freeList)
-    {
-        delete ele, ele = nullptr;
-    }
-
-    for(auto &tdc : tdcList)
-    {
-        delete tdc, tdc = nullptr;
-    }
-
     delete parser;
     delete dst_parser;
-    delete gem_srs;
 }
 
 void PRadDataHandler::ReadConfig(const string &path)
@@ -84,33 +61,9 @@ void PRadDataHandler::ReadConfig(const string &path)
     while(c_parser.ParseLine())
     {
         string func_name = c_parser.TakeFirst();
-        if((func_name.find("TDC List") != string::npos)) {
-            const string var1 = c_parser.TakeFirst().String();
-            ExecuteConfigCommand(&PRadDataHandler::ReadTDCList, var1);
-        }
-        if((func_name.find("Channel List") != string::npos)) {
-            const string var1 = c_parser.TakeFirst().String();
-            ExecuteConfigCommand(&PRadDataHandler::ReadChannelList, var1);
-        }
         if((func_name.find("EPICS Channel") != string::npos)) {
             const string var1 = c_parser.TakeFirst().String();
             ExecuteConfigCommand(&PRadDataHandler::ReadEPICSChannels, var1);
-        }
-        if((func_name.find("HyCal Pedestal") != string::npos)) {
-            const string var1 = c_parser.TakeFirst().String();
-            ExecuteConfigCommand(&PRadDataHandler::ReadPedestalFile, var1);
-        }
-        if((func_name.find("HyCal Calibration") != string::npos)) {
-            const string var1 = c_parser.TakeFirst().String();
-            ExecuteConfigCommand(&PRadDataHandler::ReadCalibrationFile, var1);
-        }
-        if((func_name.find("GEM Configuration") != string::npos)) {
-            const string var1 = c_parser.TakeFirst().String();
-            ExecuteConfigCommand(&PRadDataHandler::ReadGEMConfiguration, var1);
-        }
-        if((func_name.find("GEM Pedestal") != string::npos)) {
-            const string var1 = c_parser.TakeFirst().String();
-            ExecuteConfigCommand(&PRadDataHandler::ReadGEMPedestalFile, var1);
         }
         if((func_name.find("Run Number") != string::npos)) {
             const int var1 = c_parser.TakeFirst().Int();
@@ -143,35 +96,6 @@ void PRadDataHandler::SetOnlineMode(const bool &mode)
     onlineMode = mode;
 }
 
-// add DAQ channels
-void PRadDataHandler::AddChannel(PRadDAQUnit *channel)
-{
-    RegisterChannel(channel);
-    freeList.push_back(channel);
-}
-
-// register DAQ channels, memory is managed by other process
-void PRadDataHandler::RegisterChannel(PRadDAQUnit *channel)
-{
-    channel->AssignID(channelList.size());
-    channelList.push_back(channel);
-
-    // connect channel to existing TDC group
-    string tdcName = channel->GetTDCName();
-
-    if(tdcName.empty() || tdcName == "N/A" || tdcName == "NONE")
-        return; // not belongs to any tdc group
-
-    PRadTDCGroup *tdcGroup = GetTDCGroup(tdcName);
-    if(tdcGroup == nullptr) { // cannot find the tdc group
-        cerr << "Cannot find TDC group: " << tdcName
-             << " make sure you added all the tdc groups"
-             << endl;
-        return;
-    }
-    tdcGroup->AddChannel(channel);
-}
-
 void PRadDataHandler::RegisterEPICS(const string &name, const uint32_t &id, const float &value)
 {
     if(id >= (uint32_t)epics_values.size())
@@ -181,34 +105,6 @@ void PRadDataHandler::RegisterEPICS(const string &name, const uint32_t &id, cons
 
     epics_map[name] = id;
     epics_values.at(id) = value;
-}
-
-void PRadDataHandler::AddTDCGroup(PRadTDCGroup *group)
-{
-    if(GetTDCGroup(group->GetName()) || GetTDCGroup(group->GetAddress())) {
-        cout << "WARNING: Atempt to add existing TDC group "
-             << group->GetName()
-             << "." << endl;
-        return;
-    }
-
-    group->AssignID(tdcList.size());
-    tdcList.push_back(group);
-
-    map_name_tdc[group->GetName()] = group;
-    map_daq_tdc[group->GetAddress()] = group;
-}
-
-void PRadDataHandler::BuildChannelMap()
-{
-    // build unordered maps separately improves its access speed
-    // name map
-    for(auto &channel : channelList)
-        map_name[channel->GetName()] = channel;
-
-    // DAQ configuration map
-    for(auto &channel : channelList)
-        map_daq[channel->GetDAQInfo()] = channel;
 }
 
 // erase the data container
@@ -222,31 +118,14 @@ void PRadDataHandler::Clear()
     parser->SetEventNumber(0);
     totalE = 0;
 
-    energyHist->Reset();
     TagEHist->Reset();
     TagTHist->Reset();
-    for(auto &channel : channelList)
-    {
-        channel->CleanBuffer();
-    }
 
-    for(auto &tdc : tdcList)
-    {
-        tdc->CleanBuffer();
-    }
-}
+    if(hycal_sys)
+        hycal_sys->Reset();
 
-void PRadDataHandler::ResetChannelHists()
-{
-    for(auto &channel : channelList)
-    {
-        channel->ResetHistograms();
-    }
-
-    for(auto &tdc : tdcList)
-    {
-        tdc->ResetHistograms();
-    }
+    if(gem_sys)
+        gem_sys->Reset();
 }
 
 void PRadDataHandler::UpdateTrgType(const unsigned char &trg)
@@ -383,18 +262,14 @@ void PRadDataHandler::FeedData(JLabDSCData &dscData)
 // feed ADC1881M data
 void PRadDataHandler::FeedData(ADC1881MData &adcData)
 {
-    // find the channel with this DAQ configuration
-    auto it = map_daq.find(adcData.config);
+    // get the channel
+    PRadADCChannel *channel = hycal_sys->GetADCChannel(adcData.addr);
 
-    // did not find any channel
-    if(it == map_daq.end())
+    if(!channel)
         return;
 
-    // get the channel
-    PRadDAQUnit *channel = it->second;
-
     if(newEvent->is_physics_event()) {
-        if(channel->Sparsification(adcData.val)) {
+        if(channel->Sparsified(adcData.val)) {
             newEvent->add_adc(ADC_Data(channel->GetID(), adcData.val)); // store this data word
         }
     } else if (newEvent->is_monitor_event()) {
@@ -405,42 +280,45 @@ void PRadDataHandler::FeedData(ADC1881MData &adcData)
 
 void PRadDataHandler::FeedData(TDCV767Data &tdcData)
 {
-    auto it = map_daq_tdc.find(tdcData.config);
-    if(it == map_daq_tdc.end())
-        return;
+    PRadTDCChannel *tdc = hycal_sys->GetTDCChannel(tdcData.addr);
 
-    PRadTDCGroup *tdc = it->second;
+    if(!tdc)
+        return;
 
     newEvent->tdc_data.push_back(TDC_Data(tdc->GetID(), tdcData.val));
 }
 
 void PRadDataHandler::FeedData(TDCV1190Data &tdcData)
 {
-    if(tdcData.config.crate == PRadTS) {
-        auto it = map_daq_tdc.find(tdcData.config);
-        if(it == map_daq_tdc.end()) {
-            return;
-        }
-
-        PRadTDCGroup *tdc = it->second;
-        newEvent->add_tdc(TDC_Data(tdc->GetID(), tdcData.val));
-    } else {
+    if(tdcData.addr.crate != PRadTS) {
         FeedTaggerHits(tdcData);
+        return;
     }
+
+    PRadTDCChannel *tdc = hycal_sys->GetTDCChannel(tdcData.addr);
+
+    if(!tdc)
+        return;
+
+    newEvent->add_tdc(TDC_Data(tdc->GetID(), tdcData.val));
 }
 
 void PRadDataHandler::FeedTaggerHits(TDCV1190Data &tdcData)
 {
-    if(tdcData.config.slot == 3 || tdcData.config.slot == 5 || tdcData.config.slot == 7)
+#define TAGGER_CHANID 30000 // Tagger tdc id will start from this number
+#define TAGGER_T_CHANID 1000 // Start from TAGGER_CHANID, more than 1000 will be t channel
+    // E channel
+    if(tdcData.addr.slot == 3 || tdcData.addr.slot == 5 || tdcData.addr.slot == 7)
     {
-        int e_ch = tdcData.config.channel + (tdcData.config.slot - 3)*64 + TAGGER_CHANID;
+        int e_ch = tdcData.addr.channel + (tdcData.addr.slot - 3)*64 + TAGGER_CHANID;
         // E Channel 30000 + channel
         newEvent->add_tdc(TDC_Data(e_ch, tdcData.val));
     }
-    if(tdcData.config.slot == 14)
+    // T Channel
+    if(tdcData.addr.slot == 14)
     {
-        int t_lr = tdcData.config.channel/64;
-        int t_ch = tdcData.config.channel%64;
+        int t_lr = tdcData.addr.channel/64;
+        int t_ch = tdcData.addr.channel%64;
         if(t_ch > 31)
             t_ch = 32 + (t_ch + 16)%32;
         else
@@ -453,13 +331,13 @@ void PRadDataHandler::FeedTaggerHits(TDCV1190Data &tdcData)
 // feed GEM data
 void PRadDataHandler::FeedData(GEMRawData &gemData)
 {
-    gem_srs->FillRawData(gemData, newEvent->gem_data, newEvent->is_monitor_event());
+    gem_sys->FillRawData(gemData, newEvent->gem_data, newEvent->is_monitor_event());
 }
 
 // feed GEM data which has been zero-suppressed
 void PRadDataHandler::FeedData(vector<GEMZeroSupData> &gemData)
 {
-    gem_srs->FillZeroSupData(gemData, newEvent->gem_data);
+    gem_sys->FillZeroSupData(gemData, newEvent->gem_data);
 }
 
 void PRadDataHandler::FillHistograms(EventData &data)
@@ -469,23 +347,25 @@ void PRadDataHandler::FillHistograms(EventData &data)
     // for all types of events
     for(auto &adc : data.adc_data)
     {
-        if(adc.channel_id >= channelList.size())
+        PRadADCChannel *channel = hycal_sys->GetADCChannel(adc.channel_id);
+        if(!channel)
             continue;
 
-        channelList[adc.channel_id]->FillHist(adc.value, data.trigger);
-        energy += channelList[adc.channel_id]->GetEnergy(adc.value);
+        channel->FillHist(adc.value, data.trigger);
+        energy += channel->GetEnergy(adc.value);
     }
 
     if(!data.is_physics_event())
         return;
 
     // for only physics events
-    energyHist->Fill(energy);
+    hycal_sys->FillEnergyHist(energy);
 
     for(auto &tdc : data.tdc_data)
     {
-        if(tdc.channel_id < tdcList.size()) {
-            tdcList[tdc.channel_id]->FillHist(tdc.value);
+        PRadTDCChannel *channel = hycal_sys->GetTDCChannel(tdc.channel_id);
+        if(channel) {
+            channel->FillHist(tdc.value);
         } else if(tdc.channel_id >= TAGGER_CHANID) {
             int id = tdc.channel_id - TAGGER_CHANID;
             if(id >= TAGGER_T_CHANID)
@@ -562,52 +442,13 @@ void PRadDataHandler::ChooseEvent(const int &idx)
             ChooseEvent(energyData.back());
         else
             ChooseEvent(energyData.at(idx));
-    } else if(!onlineMode) {
-        cout << "Data Handler: Data bank is empty, clear all the modules." << endl;
-
-        for(auto &channel : channelList)
-        {
-            channel->UpdateADC(0);
-        }
-
-        for(auto &tdc_ch : tdcList)
-        {
-            tdc_ch->ClearTimeMeasure();
-        }
     }
 }
 
 void PRadDataHandler::ChooseEvent(const EventData &event)
 {
-    totalE = 0;
-    // != avoids operator definition for non-standard map
-    for(auto &channel : channelList)
-    {
-        channel->UpdateADC(0);
-    }
-
-    for(auto &tdc_ch : tdcList)
-    {
-        tdc_ch->ClearTimeMeasure();
-    }
-
-    for(auto &adc : event.adc_data)
-    {
-        if(adc.channel_id >= channelList.size())
-            continue;
-
-        channelList[adc.channel_id]->UpdateADC(adc.value);
-        totalE += channelList[adc.channel_id]->GetEnergy();
-    }
-
-    for(auto &tdc : event.tdc_data)
-    {
-        if(tdc.channel_id >= tdcList.size())
-            continue;
-
-        tdcList[tdc.channel_id]->AddTimeMeasure(tdc.value);
-    }
-
+    hycal_sys->ChooseEvent(event);
+    gem_sys->ChooseEvent(event);
     current_event = event.event_number;
 }
 
@@ -616,63 +457,12 @@ double PRadDataHandler::GetEnergy(const EventData &event)
     double energy = 0.;
     for(auto &adc : event.adc_data)
     {
-        if(adc.channel_id >= channelList.size())
-            continue;
-        energy += channelList[adc.channel_id]->GetEnergy(adc.value);
+        PRadADCChannel *channel = hycal_sys->GetADCChannel(adc.channel_id);
+        if(channel)
+            energy += channel->GetEnergy(adc.value);
     }
 
     return energy;
-}
-
-// find channels
-PRadDAQUnit *PRadDataHandler::GetChannel(const ChannelAddress &daqInfo)
-{
-    auto it = map_daq.find(daqInfo);
-    if(it == map_daq.end())
-        return nullptr;
-    return it->second;
-}
-
-PRadDAQUnit *PRadDataHandler::GetChannel(const string &name)
-{
-    auto it = map_name.find(name);
-    if(it == map_name.end())
-        return nullptr;
-    return it->second;
-}
-
-PRadDAQUnit *PRadDataHandler::GetChannel(const unsigned short &id)
-{
-    if(id >= channelList.size())
-        return nullptr;
-    return channelList[id];
-}
-
-PRadDAQUnit *PRadDataHandler::GetChannelPrimex(const unsigned short &id)
-{
-    string channelName;
-    if(id <= 1000) {
-        channelName = "G" + to_string(id);
-    } else {
-        channelName = "W" + to_string(id - 1000);
-    }
-    return GetChannel(channelName);
-}
-
-PRadTDCGroup *PRadDataHandler::GetTDCGroup(const string &name)
-{
-    auto it = map_name_tdc.find(name);
-    if(it == map_name_tdc.end())
-        return nullptr; // return empty vector
-    return it->second;
-}
-
-PRadTDCGroup *PRadDataHandler::GetTDCGroup(const ChannelAddress &addr)
-{
-    auto it = map_daq_tdc.find(addr);
-    if(it == map_daq_tdc.end())
-        return nullptr;
-    return it->second;
 }
 
 int PRadDataHandler::GetCurrentEventNb()
@@ -739,47 +529,6 @@ void PRadDataHandler::SaveEPICSChannels(const string &path)
     out.close();
 }
 
-void PRadDataHandler::SaveHistograms(const string &path)
-{
-
-    TFile *f = new TFile(path.c_str(), "recreate");
-
-    energyHist->Write();
-
-    // tdc histograms
-    auto tList = tdcList;
-    sort(tList.begin(), tList.end(), [](PRadTDCGroup *a, PRadTDCGroup *b) {return (*a) < (*b);} );
-
-    TList thList;
-    thList.Add(TagEHist);
-    thList.Add(TagTHist);
-
-    for(auto tdc : tList)
-    {
-        thList.Add(tdc->GetHist());
-    }
-    thList.Write("TDC Hists", TObject::kSingleKey);
-
-
-    // adc histograms
-    auto chList = channelList;
-    sort(chList.begin(), chList.end(), [](PRadDAQUnit *a, PRadDAQUnit *b) {return (*a) < (*b);} );
-
-    for(auto channel : chList)
-    {
-        TList hlist;
-        vector<TH1*> hists = channel->GetHistList();
-        for(auto hist : hists)
-        {
-            hlist.Add(hist);
-        }
-        hlist.Write(channel->GetName().c_str(), TObject::kSingleKey);
-    }
-
-    f->Close();
-    delete f;
-}
-
 EventData &PRadDataHandler::GetEvent(const unsigned int &index)
 {
     if(index >= energyData.size()) {
@@ -796,259 +545,6 @@ EPICSData &PRadDataHandler::GetEPICSEvent(const unsigned int &index)
     } else {
         return epicsData.at(index);
     }
-}
-
-vector<double> PRadDataHandler::FitHistogram(const string &channel,
-                                             const string &hist_name,
-                                             const string &fit_function,
-                                             const double &range_min,
-                                             const double &range_max,
-                                             const bool &verbose)
-throw(PRadException)
-{
-    // If the user didn't dismiss the dialog, do something with the fields
-    PRadDAQUnit *ch = GetChannel(channel);
-    if(ch == nullptr) {
-        throw PRadException("Fit Histogram Failure", "Channel " + channel + " does not exist!");
-    }
-
-    TH1 *hist = ch->GetHist(hist_name);
-    if(hist == nullptr) {
-        throw PRadException("Fit Histogram Failure", "Histogram " + hist_name + " does not exist!");
-    }
-
-    int beg_bin = hist->GetXaxis()->FindBin(range_min);
-    int end_bin = hist->GetXaxis()->FindBin(range_max) - 1;
-
-    if(!hist->Integral(beg_bin, end_bin)) {
-        throw PRadException("Fit Histogram Failure", "Histogram does not have entries in specified range!");
-    }
-
-    TF1 *fit = new TF1("newfit", fit_function.c_str(), range_min, range_max);
-
-    hist->Fit(fit, "qR");
-
-    TF1 *myfit = (TF1*) hist->GetFunction("newfit");
-
-    // pack parameters, print out result if verbose is true
-    vector<double> result;
-
-    if(verbose)
-        cout << "Fit histogram " << hist->GetTitle()
-             //<< " with expression " << myfit->GetFormula()->GetExpFormula().Data()
-             << endl;
-
-    for(int i = 0; i < myfit->GetNpar(); ++i)
-    {
-        result.push_back(myfit->GetParameter(i));
-        if(verbose)
-            cout << "Parameter " << i << ", " << myfit->GetParameter(i) << endl;
-    }
-
-    delete fit;
-
-    return result;
-}
-
-void PRadDataHandler::FitPedestal()
-{
-    for(auto &channel : channelList)
-    {
-        TH1 *pedHist = channel->GetHist("PED");
-
-        if(pedHist == nullptr || pedHist->Integral() < 1000)
-            continue;
-
-        pedHist->Fit("gaus", "qww");
-
-        TF1 *myfit = (TF1*) pedHist->GetFunction("gaus");
-        double p0 = myfit->GetParameter(1);
-        double p1 = myfit->GetParameter(2);
-
-        channel->UpdatePedestal(p0, p1);
-    }
-}
-
-void PRadDataHandler::CorrectGainFactor(const int &ref)
-{
-#define PED_LED_REF 1000  // separation value for led signal and pedestal signal of reference PMT
-#define PED_LED_HYC 30 // separation value for led signal and pedestal signal of all HyCal Modules
-#define ALPHA_CORR 1228 // least run number that needs alpha correction
-
-
-    if(ref < 0 || ref > 2) {
-        cerr << "Unknown Reference PMT " << ref
-             << ", please choose Ref. PMT 1 - 3" << endl;
-        return;
-    }
-
-    string reference = "LMS" + to_string(ref);
-
-    // we had adjusted the timing window since run 1229, and the adjustment result in larger ADC
-    // value from alpha source , the correction is to bring the alpha source value to the same 
-    // level as before
-    const double correction[3] = {-597.3, -335.4, -219.4};
-
-    // firstly, get the reference factor from LMS PMT
-    // LMS 2 seems to be the best one for fitting
-    PRadDAQUnit *ref_ch = GetChannel(reference);
-    if(ref_ch == nullptr) {
-        cerr << "Cannot find the reference PMT channel " << reference
-             << " for gain factor correction, abort gain correction." << endl;
-        return;
-    }
-
-    // reference pmt has both pedestal and alpha source signals in this histogram
-    TH1* ref_alpha = ref_ch->GetHist("PHYS");
-    TH1* ref_led = ref_ch->GetHist("LMS");
-    if(ref_alpha == nullptr || ref_led == nullptr) {
-        cerr << "Cannot find the histograms of reference PMT, abort gain correction."  << endl;
-        return;
-    }
-
-    int sep_bin = ref_alpha->GetXaxis()->FindBin(PED_LED_REF);
-    int end_bin = ref_alpha->GetNbinsX(); // 1 for overflow bin and 1 for underflow bin
-
-    if(ref_alpha->Integral(0, sep_bin) < 1000 || ref_alpha->Integral(sep_bin, end_bin) < 1000) {
-        cerr << "Not enough entries in pedestal histogram of reference PMT, abort gain correction." << endl;
-        return;
-    }
-
-    auto fit_gaussian = [] (TH1* hist,
-                            const int &range_min = 0,
-                            const int &range_max = 8191,
-                            const double &warn_ratio = 0.06)
-                        {
-                            int beg_bin = hist->GetXaxis()->FindBin(range_min);
-                            int end_bin = hist->GetXaxis()->FindBin(range_max) - 1;
-
-                            if(hist->Integral(beg_bin, end_bin) < 1000) {
-                                cout << "WARNING: Not enough entries in histogram " << hist->GetName()
-                                     << ". Abort fitting!" << endl;
-                                return 0.;
-                            }
-
-                            TF1 *fit = new TF1("tmpfit", "gaus", range_min, range_max);
-
-                            hist->Fit(fit, "qR");
-                            TF1 *hist_fit = hist->GetFunction("tmpfit");
-                            double mean = hist_fit->GetParameter(1);
-                            double sigma = hist_fit->GetParameter(2);
-                            if(sigma/mean > warn_ratio) {
-                                cout << "WARNING: Bad fitting for "
-                                     << hist->GetTitle()
-                                     << ". Mean: " << mean
-                                     << ", sigma: " << sigma
-                                     << endl;
-                            }
-
-                            delete fit;
-
-                            return mean;
-                        };
-
-    double ped_mean = fit_gaussian(ref_alpha, 0, PED_LED_REF, 0.02);
-    double alpha_mean = fit_gaussian(ref_alpha, PED_LED_REF + 1, 8191, 0.05);
-    double led_mean = fit_gaussian(ref_led);
-
-    if(ped_mean == 0. || alpha_mean == 0. || led_mean == 0.) {
-        cerr << "Failed to get gain factor from reference PMT, abort gain correction." << endl;
-        return;
-    }
-
-    double ref_factor = led_mean - ped_mean;
-
-    if(runInfo.run_number >= ALPHA_CORR)
-        ref_factor /= alpha_mean - ped_mean + correction[ref];
-    else
-        ref_factor /= alpha_mean - ped_mean;
-
-    for(auto channel : channelList)
-    {
-        if(!channel->IsHyCalModule())
-            continue;
-
-        TH1 *hist = channel->GetHist("LMS");
-        if(hist != nullptr) {
-            double ch_led = fit_gaussian(hist) - channel->GetPedestal().mean;
-            if(ch_led > PED_LED_HYC) {// meaningful led signal
-                channel->GainCorrection(ch_led/ref_factor, ref);
-            } else {
-                cout << "WARNING: Gain factor of " << channel->GetName()
-                     << " is not updated due to bad fitting of LED signal."
-                     << endl;
-            }
-        }
-    }
-}
-
-void PRadDataHandler::ReadGEMConfiguration(const string &path)
-{
-    gem_srs->Configure(path);
-}
-
-void PRadDataHandler::ReadTDCList(const string &path)
-{
-    ConfigParser c_parser;
-
-    if(!c_parser.ReadFile(path)) {
-        cout << "WARNING: Fail to open tdc group list file "
-             << "\"" << path << "\""
-             << ", no tdc groups created from this file."
-             << endl;
-    }
-
-    while (c_parser.ParseLine())
-    {
-       if(c_parser.NbofElements() == 4) {
-            string name;
-            unsigned short crate, slot, channel;
-            c_parser >> name >> crate >> slot >> channel;
-
-            AddTDCGroup(new PRadTDCGroup(name, ChannelAddress(crate, slot, channel)));
-        } else {
-            cout << "Unrecognized input format in tdc group list file, skipped one line!"
-                 << endl;
-        }
-    }
-
-}
-
-void PRadDataHandler::ReadChannelList(const string &path)
-{
-    ConfigParser c_parser;
-
-    if(!c_parser.ReadFile(path)) {
-        cerr << "WARNING: Fail to open channel list file "
-                  << "\"" << path << "\""
-                  << ", no channel created from this file."
-                  << endl;
-        return;
-    }
-
-    string moduleName, tdcGroup;
-    unsigned int crate, slot, channel, type;
-    double size_x, size_y, x, y;
-    // some info that is not read from list
-    while (c_parser.ParseLine())
-    {
-        if(c_parser.NbofElements() >= 10) {
-            c_parser >> moduleName >> crate >> slot >> channel >> tdcGroup
-                     >> type >> size_x >> size_y >> x >> y;
-
-            PRadDAQUnit *new_ch = new PRadDAQUnit(moduleName,
-                                                  ChannelAddress(crate, slot, channel),
-                                                  tdcGroup,
-                                                  PRadDAQUnit::Geometry(PRadDAQUnit::ChannelType(type), size_x, size_y, x, y));
-            AddChannel(new_ch);
-        } else {
-            cout << "Unrecognized input format in channel list file, skipped one line!"
-                 << endl;
-        }
-    }
-
-
-    BuildChannelMap();
 }
 
 void PRadDataHandler::ReadEPICSChannels(const string &path)
@@ -1086,164 +582,17 @@ void PRadDataHandler::ReadEPICSChannels(const string &path)
 
 };
 
-void PRadDataHandler::ReadPedestalFile(const string &path)
-{
-    ConfigParser c_parser;
-
-    if(!c_parser.ReadFile(path)) {
-        cout << "WARNING: Fail to open pedestal file "
-             << "\"" << path << "\""
-             << ", no pedestal data are read!"
-             << endl;
-        return;
-    }
-
-    double val, sigma;
-    unsigned int crate, slot, channel;
-    PRadDAQUnit *tmp;
-
-    while(c_parser.ParseLine())
-    {
-        if(c_parser.NbofElements() == 5) {
-            c_parser >> crate >> slot >> channel >> val >> sigma;
-
-            if((tmp = GetChannel(ChannelAddress(crate, slot, channel))) != nullptr)
-                tmp->UpdatePedestal(val, sigma);
-        } else {
-            cout << "Unrecognized input format in pedestal data file, skipped one line!"
-                 << endl;
-        }
-    }
-
-};
-
-void PRadDataHandler::ReadGEMPedestalFile(const string &path)
-{
-    gem_srs->ReadPedestalFile(path);
-}
-
-void PRadDataHandler::ReadCalibrationFile(const string &path)
-{
-    ConfigParser c_parser;
-
-    if(!c_parser.ReadFile(path)) {
-        cout << "WARNING: Failed to calibration factor file "
-             << " \"" << path << "\""
-             << " , no calibration factors updated!"
-             << endl;
-        return;
-    }
-
-    string name;
-    double calFactor, Ecal, ref1, ref2, ref3, nl;
-    PRadDAQUnit *tmp;
-
-    while(c_parser.ParseLine())
-    {
-        if(c_parser.NbofElements() >= 7) {
-            c_parser >> name >> calFactor >> Ecal >> ref1 >> ref2 >> ref3 >> nl;
-            vector<double> ref_gain = {ref1, ref2, ref3};
-
-            PRadDAQUnit::CalibrationConstant calConst(calFactor, Ecal, ref_gain, nl);
-
-            if((tmp = GetChannel(name)) != nullptr)
-                tmp->UpdateCalibrationConstant(calConst);
-        } else {
-            cout << "Unrecognized input format in calibration factor file, skipped one line!"
-                 << endl;
-        }
-
-    }
-
-}
-
-void PRadDataHandler::ReadGainFile(const string &path)
-{
-    ConfigParser c_parser;
-
-    if(!c_parser.ReadFile(path)) {
-        cout << "WARNING: Failed to gain factor file "
-             << " \"" << path << "\""
-             << " , no gain factors updated!"
-             << endl;
-        return;
-    }
-
-    string name;
-    double ref_gain[3];
-    int ref;
-
-    // first line will be gains for 3 reference PMTs
-    if(c_parser.ParseLine()) {
-        c_parser >> name;
-
-        if(!ConfigParser::strcmp_case_insensitive(name, "REF_GAIN")) {
-            cerr << "ERROR: Expected Reference PMT information at the first line"
-                 << " in gain factor file " << path << ", abort reading."
-                 << endl;
-            return;
-        }
-
-        c_parser >> ref_gain[0] >> ref_gain[1] >> ref_gain[2] >> ref;
-
-        ref--;
-        if(ref < 0 || ref > 2) {
-            cerr << "Unknown Reference PMT " << ref
-                 << ", please choose Ref. PMT 1 - 3" << endl;
-            return;
-        }
-    }
-
-    double lms_mean, lms_sig, ped_mean, ped_sig;
-    int status;
-    // following lines will be information about modules
-    while(c_parser.ParseLine())
-    {
-        if(c_parser.NbofElements() != 6) {
-            cout << "Unrecognized input format in gain factor file, skipped one line!"
-                 << endl;
-            continue;
-        }
-        c_parser >> name >> ped_mean >> ped_sig >> lms_mean >> lms_sig >> status;
-
-        PRadDAQUnit *tmp = GetChannel(name);
-        // did not find this channel
-        if(tmp == nullptr) {
-            cout << "Cannot find channel " << name
-                 << ", information update aborted."
-                 << endl;
-            continue;
-        }
-
-        tmp->UpdatePedestal(ped_mean, ped_sig);
-        tmp->GainCorrection((lms_mean - ped_mean)/ref_gain[ref], ref);
-        if(status & 1)
-            tmp->SetDead(true);
-        else
-            tmp->SetDead(false);
-    }
-}
-
 // Refill energy hist after correct gain factos
 void PRadDataHandler::RefillEnergyHist()
 {
-    energyHist->Reset();
+    hycal_sys->ResetEnergyHist();
 
     for(auto &event : energyData)
     {
         if(!event.is_physics_event())
             continue;
 
-        double ene = 0.;
-        for(auto &adc : event.adc_data)
-        {
-            if(adc.channel_id >= channelList.size())
-                continue;
-
-            if(channelList[adc.channel_id]->IsHyCalModule())
-                ene += channelList[adc.channel_id]->GetEnergy(adc.value);
-        }
-        energyHist->Fill(ene);
+        hycal_sys->FillEnergyHist(GetEnergy(event));
     }
 }
 
@@ -1281,24 +630,24 @@ void PRadDataHandler::InitializeByData(const string &path, int run, int ref)
         else
             SetRunNumber(run);
 
-        gem_srs->SetPedestalMode(true);
+        gem_sys->SetPedestalMode(true);
 
         parser->ReadEvioFile(path.c_str(), 20000);
     }
 
     cout << "Data Handler: Fitting Pedestal for HyCal." << endl;
-    FitPedestal();
+    hycal_sys->FitPedestal();
 
     cout << "Data Handler: Correct HyCal Gain Factor, Run Number: " << runInfo.run_number << "." << endl;
-    CorrectGainFactor(ref);
+    hycal_sys->CorrectGainFactor(ref);
 
     cout << "Data Handler: Fitting Pedestal for GEM." << endl;
-    gem_srs->FitPedestal();
-//    gem_srs->SavePedestal("gem_ped_" + to_string(runInfo.run_number) + ".dat");
-//    gem_srs->SaveHistograms("gem_ped_" + to_string(runInfo.run_number) + ".root");
+    gem_sys->FitPedestal();
+//    gem_sys->SavePedestal("gem_ped_" + to_string(runInfo.run_number) + ".dat");
+//    gem_sys->SaveHistograms("gem_ped_" + to_string(runInfo.run_number) + ".root");
 
     cout << "Data Handler: Releasing Memeory." << endl;
-    gem_srs->SetPedestalMode(false);
+    gem_sys->SetPedestalMode(false);
 
     // save run number
     int run_number = runInfo.run_number;
@@ -1402,8 +751,8 @@ void PRadDataHandler::Replay(const string &r_path, const int &split, const strin
     cout << "Replay started!" << endl;
     PRadBenchMark timer;
 
-    dst_parser->WriteHyCalInfo();
-    dst_parser->WriteGEMInfo();
+    dst_parser->WriteHyCalInfo(hycal_sys);
+    dst_parser->WriteGEMInfo(gem_sys);
     dst_parser->WriteEPICSMap();
 
     replayMode = true;
@@ -1465,8 +814,8 @@ void PRadDataHandler::WriteToDST(const string &path)
              << "\"" << path << "\""
              << endl;
 
-        dst_parser->WriteHyCalInfo();
-        dst_parser->WriteGEMInfo();
+        dst_parser->WriteHyCalInfo(hycal_sys);
+        dst_parser->WriteGEMInfo(gem_sys);
         dst_parser->WriteEPICSMap();
 
         for(auto &epics : epicsData)
@@ -1492,4 +841,3 @@ void PRadDataHandler::WriteToDST(const string &path)
 
     dst_parser->CloseOutput();
 }
-

@@ -25,9 +25,9 @@ PRadADCChannel::PRadADCChannel(const std::string &name, const ChannelAddress &da
     trg_hist.resize(MAX_Trigger, nullptr);
     std::vector<std::string> hn= {"Physics", "Pedestal", "LMS"};
 
-    AddHist(hn[0], new TH1I((ch_name + hn[0]).c_str(), hn[0].c_str(), 2048, 0, 8191));
-    AddHist(hn[1], new TH1I((ch_name + hn[1]).c_str(), hn[1].c_str(), 1024, 0, 1023));
-    AddHist(hn[2], new TH1I((ch_name + hn[2]).c_str(), hn[2].c_str(), 2048, 0, 8191));
+    AddHist(hn[0], new TH1I((ch_name+"_"+hn[0]).c_str(), hn[0].c_str(), 2048, 0, 8191));
+    AddHist(hn[1], new TH1I((ch_name+"_"+hn[1]).c_str(), hn[1].c_str(), 1024, 0, 1023));
+    AddHist(hn[2], new TH1I((ch_name+"_"+hn[2]).c_str(), hn[2].c_str(), 2048, 0, 8191));
 
     // default hist-trigger mapping
     //    MapHist("PED", TI_Error);
@@ -248,6 +248,7 @@ void PRadADCChannel::SetPedestal(const double &m, const double &s)
 void PRadADCChannel::Reset()
 {
     occupancy = 0;
+    adc_value = 0;
     ResetHists();
 }
 
@@ -284,6 +285,23 @@ bool PRadADCChannel::Sparsified(const unsigned short &adcVal)
     return true;
 }
 
+double PRadADCChannel::GetEnergy()
+const
+{
+    if(!module)
+        return 0;
+
+    return module->GetCalibConst().Calibration((double)adc_value - pedestal.mean);
+}
+
+double PRadADCChannel::GetEnergy(const unsigned short &adcVal)
+const
+{
+    if(!module)
+        return 0;
+
+    return module->GetCalibConst().Calibration((double)adcVal - pedestal.mean);
+}
 
 std::ostream &operator <<(std::ostream &os, const PRadADCChannel::Pedestal &ped)
 {
