@@ -7,6 +7,7 @@
 
 class PRadHyCalDetector;
 class PRadADCChannel;
+class PRadTDCChannel;
 
 class PRadHyCalModule
 {
@@ -40,20 +41,26 @@ public:
         int type;
         double size_x;
         double size_y;
+        double size_z;
         double x;
         double y;
+        double z;
         int sector;
         int row;
         int column;
+        unsigned int flag;
 
         Geometry()
-        : type(Undef_ModuleType), size_x(0), size_y(0), x(0), y(0),
-          sector(Undef_HyCalSector), row(0), column(0)
+        : type(Undef_ModuleType),
+          size_x(0), size_y(0), size_z(0), x(0), y(0), z(0),
+          sector(Undef_HyCalSector), row(0), column(0), flag(0)
         {};
 
-        Geometry(int t, double sx, double sy, double pos_x, double pos_y)
-        : type(ModuleType(t)), size_x(sx), size_y(sy), x(pos_x), y(pos_y),
-          sector(Undef_HyCalSector), row(0), column(0)
+        Geometry(int t, double sx, double sy, double sz,
+                double pos_x, double pos_y, double pos_z)
+        : type(ModuleType(t)),
+          size_x(sx), size_y(sy), size_z(sz), x(pos_x), y(pos_y), z(pos_z),
+          sector(Undef_HyCalSector), row(0), column(0), flag(0)
         {};
     };
 
@@ -64,9 +71,6 @@ public:
                     PRadHyCalDetector *det = nullptr);
     PRadHyCalModule(const std::string &name,
                     const Geometry &geo = Geometry(),
-                    PRadHyCalDetector *det = nullptr);
-    PRadHyCalModule(const std::string &n,
-                    int type, double size_x, double size_y, double x, double y,
                     PRadHyCalDetector *det = nullptr);
 
     // copy/move constructors
@@ -100,24 +104,30 @@ public:
 
     // get members
     unsigned short GetID() const {return id;};
-    int GetType() const {return geometry.type;};
+    const std::string &GetName() const {return name;};
+    const Geometry &GetGeometry() const {return geometry;};
+    const PRadCalibConst &GetCalibConst() const {return cal_const;};
+    PRadADCChannel *GetChannel() const {return daq_ch;};
+
+    // get specific information
     std::string GetTypeName() const;
+    int GetType() const {return geometry.type;};
     double GetX() const {return geometry.x;};
     double GetY() const {return geometry.y;};
+    double GetZ() const {return geometry.z;};
     double GetSizeX() const {return geometry.size_x;};
     double GetSizeY() const {return geometry.size_y;};
+    double GetSizeZ() const {return geometry.size_z;};
     int GetSectorID() const {return geometry.sector;};
     std::string GetSectorName() const;
     int GetRow() const {return geometry.row;};
     int GetColumn() const {return geometry.column;};
-    const Geometry &GetGeometry() const {return geometry;};
-    const std::string &GetName() const {return name;};
+    unsigned int GetGeometryFlag() const {return geometry.flag;};
     double GetCalibrationFactor() const {return cal_const.factor;};
     double GetNonLinearConst() const {return cal_const.non_linear;};
     double GetCalibrationEnergy() const {return cal_const.base_energy;};
     double GetReferenceGain(int ref) const {return cal_const.GetRefGain(ref);};
-    PRadADCChannel *GetChannel() const {return daq_ch;};
-    const PRadCalibConst &GetCalibConst() const {return cal_const;};
+    PRadTDCChannel *GetTDC() const;
 
     // compare operator
     bool operator < (const PRadHyCalModule &rhs) const
@@ -128,12 +138,12 @@ public:
 public:
     // static functions
     static int name_to_primex_id(const std::string &name);
-    static void get_sector_info(int pid, int &sec, int &row, int &col);
+    static void hycal_info(int pid, int &sec, int &row, int &col, unsigned int &flag);
     static int get_module_type(const char *name);
     static int get_sector_id(const char *name);
     static const char *get_module_type_name(int type);
     static const char *get_sector_name(int sec);
-
+    static double distance(const PRadHyCalModule &m1, const PRadHyCalModule &m2);
 private:
     PRadHyCalDetector *detector;
     PRadADCChannel *daq_ch;

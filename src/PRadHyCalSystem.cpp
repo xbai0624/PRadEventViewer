@@ -7,6 +7,7 @@
 //============================================================================//
 
 #include "PRadHyCalSystem.h"
+#include "PRadHyCalCluster.h"
 #include "TH1D.h"
 #include <iostream>
 #include <iomanip>
@@ -19,7 +20,7 @@
 
 // constructor
 PRadHyCalSystem::PRadHyCalSystem(const std::string &path)
-: hycal(new PRadHyCalDetector("HyCal", this))
+: hycal(new PRadHyCalDetector("HyCal", this)), recon(nullptr)
 {
     if(!path.empty())
         Configure(path);
@@ -30,6 +31,9 @@ PRadHyCalSystem::PRadHyCalSystem(const std::string &path)
 
     // initialize energy histogram
     energy_hist = new TH1D("HyCal Energy", "Total Energy (MeV)", 2000, 0, 2500);
+
+    // hycal clustering methods
+    AddClusterMethod("Square", new PRadSquareCluster());
 }
 
 // copy constructor
@@ -46,6 +50,13 @@ PRadHyCalSystem::PRadHyCalSystem(const PRadHyCalSystem &that)
 
     // copy histogram
     energy_hist = new TH1D(*that.energy_hist);
+
+    // copy reconstruction method
+    for(auto &it : that.recon_map)
+    {
+        recon_map[it.first] = it.second->Clone();
+    }
+    SetClusterMethod(that.GetClusterMethodName());
 
     // copy tdc
     for(auto tdc : that.tdc_list)
@@ -74,11 +85,16 @@ PRadHyCalSystem::PRadHyCalSystem(PRadHyCalSystem &&that)
 : ConfigObject(that),
   adc_list(std::move(that.adc_list)), tdc_list(std::move(that.tdc_list)),
   adc_addr_map(std::move(that.adc_addr_map)), adc_name_map(std::move(that.adc_name_map)),
-  tdc_addr_map(std::move(that.tdc_addr_map)), tdc_name_map(std::move(that.tdc_name_map))
+  tdc_addr_map(std::move(that.tdc_addr_map)), tdc_name_map(std::move(that.tdc_name_map)),
+  recon_map(std::move(that.recon_map))
 {
     hycal = that.hycal;
     that.hycal = nullptr;
     hycal->SetSystem(this, true);
+
+    recon = that.recon;
+    that.recon = nullptr;
+
     energy_hist = that.energy_hist;
     that.energy_hist = nullptr;
 }
@@ -90,6 +106,7 @@ PRadHyCalSystem::~PRadHyCalSystem()
     delete energy_hist;
     ClearADCChannel();
     ClearTDCChannel();
+    ClearClusterMethods();
 }
 
 // copy assignment operator
@@ -110,18 +127,23 @@ PRadHyCalSystem &PRadHyCalSystem::operator =(PRadHyCalSystem &&rhs)
     delete energy_hist;
     ClearADCChannel();
     ClearTDCChannel();
+    ClearClusterMethods();
 
     hycal = rhs.hycal;
     rhs.hycal = nullptr;
     hycal->SetSystem(this, true);
+    recon = rhs.recon;
+    rhs.recon = nullptr;
     energy_hist = rhs.energy_hist;
     rhs.energy_hist = nullptr;
+
     adc_list = std::move(rhs.adc_list);
     tdc_list = std::move(rhs.tdc_list);
     adc_addr_map = std::move(rhs.adc_addr_map);
     adc_name_map = std::move(rhs.adc_name_map);
     tdc_addr_map = std::move(rhs.tdc_addr_map);
     tdc_name_map = std::move(rhs.tdc_name_map);
+    recon_map = std::move(rhs.recon_map);
 
     return *this;
 }
@@ -383,6 +405,50 @@ void PRadHyCalSystem::ReadRunInfoFile(const std::string &path)
     }
 }
 
+// update the event info to DAQ system
+void PRadHyCalSystem::ChooseEvent(const EventData &event)
+{
+    // clear all the channels
+    for(auto &ch : adc_list)
+    {
+        ch->SetValue(0);
+    }
+
+    for(auto &ch : tdc_list)
+    {
+        ch->ClearTimeMeasure();
+    }
+
+    for(auto &adc : event.adc_data)
+    {
+        if(adc.channel_id >= adc_list.size())
+            continue;
+
+        adc_list[adc.channel_id]->SetValue(adc.value);
+    }
+
+    for(auto &tdc : event.tdc_data)
+    {
+        if(tdc.channel_id >= tdc_list.size())
+            continue;
+
+        tdc_list[tdc.channel_id]->AddTimeMeasure(tdc.value);
+    }
+}
+
+// reconstruct the event to clusters
+void PRadHyCalSystem::Reconstruct(const EventData &event)
+{
+    // cannot reconstruct without necessary objects
+    if(!hycal || !recon)
+        return;
+
+    // updat the information first
+    ChooseEvent(event);
+
+    recon->Reconstruct(hycal);
+}
+
 // add detector, remove the original detector
 void PRadHyCalSystem::SetDetector(PRadHyCalDetector *h)
 {
@@ -583,3 +649,106 @@ void PRadHyCalSystem::ResetEnergyHist()
     energy_hist->Reset();
 }
 
+bool PRadHyCalSystem::AddClusterMethod(const std::string &name, PRadHyCalCluster *c)
+{
+    // automatically set the first method as the default one
+    if(recon_map.empty())
+        recon = c;
+
+    auto it = recon_map.find(name);
+    // exists, skip
+    if(it != recon_map.end()) {
+        std::cerr << "PRad HyCal System Error: Clustering method " << name
+                  << " exits in the system, abort adding duplicated method."
+                  << std::endl;
+        return false;
+    }
+
+    recon_map[name] = c;
+    return true;
+}
+
+void PRadHyCalSystem::RemoveClusterMethod(const std::string &name)
+{
+    auto it = recon_map.find(name);
+
+    if(it != recon_map.end()) {
+        if(it->second == recon)
+            recon = nullptr;
+        delete it->second;
+        recon_map.erase(it);
+    } else {
+        std::cout << "PRad HyCal System Warning: Cannot find clustering method "
+                  << name << ", skip removing method."
+                  << std::endl;
+    }
+
+}
+
+void PRadHyCalSystem::ClearClusterMethods()
+{
+    for(auto &it : recon_map)
+    {
+        delete it.second;
+    }
+
+    recon_map.clear();
+    recon = nullptr;
+}
+
+void PRadHyCalSystem::SetClusterMethod(const std::string &name)
+{
+    auto it = recon_map.find(name);
+    if(it != recon_map.end()) {
+        recon = it->second;
+    } else {
+        std::cout << "PRad HyCal System Warning: Cannot find clustering method "
+                  << name << ", skip setting method."
+                  << std::endl;
+    }
+}
+
+
+PRadHyCalCluster *PRadHyCalSystem::GetClusterMethod(const std::string &name)
+const
+{
+    if(name.empty())
+        return recon;
+
+    PRadHyCalCluster *result = nullptr;
+
+    auto it = recon_map.find(name);
+    if(it != recon_map.end())
+        result = it->second;
+
+    return result;
+}
+
+std::string PRadHyCalSystem::GetClusterMethodName()
+const
+{
+    if(recon == nullptr)
+        return "";
+
+    for(auto &it : recon_map)
+    {
+        if(it.second == recon)
+            return it.first;
+    }
+
+    return "";
+}
+
+std::vector<std::string> PRadHyCalSystem::GetClusterMethodNames()
+const
+{
+    std::vector<std::string> result;
+
+    for(auto &it : recon_map)
+    {
+        if(it.second != nullptr)
+            result.push_back(it.first);
+    }
+
+    return result;
+}

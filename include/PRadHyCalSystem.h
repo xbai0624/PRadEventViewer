@@ -3,7 +3,10 @@
 
 #include <string>
 #include <ostream>
+#include "PRadEventStruct.h"
 #include "PRadHyCalDetector.h"
+#include "PRadHyCalCluster.h"
+#include "PRadSquareCluster.h"
 #include "PRadTDCChannel.h"
 #include "PRadADCChannel.h"
 #include "ConfigObject.h"
@@ -11,9 +14,6 @@
 // adc searching speed is important, thus reserve buckets to have unordered_map
 // better formed
 #define ADC_BUCKETS 5000
-
-class TH1D;
-
 // a simple hash function for DAQ configuration
 namespace std
 {
@@ -33,6 +33,7 @@ namespace std
     };
 }
 
+class TH1D;
 
 class PRadHyCalSystem : public ConfigObject
 {
@@ -60,6 +61,10 @@ public:
     // connections
     void BuildConnections();
 
+    // events related
+    void ChooseEvent(const EventData &data);
+    void Reconstruct(const EventData &data);
+
     // detector related
     void SetDetector(PRadHyCalDetector *h);
     void RemoveDetector();
@@ -83,16 +88,25 @@ public:
     const std::vector<PRadADCChannel*> &GetADCList() const {return adc_list;};
     const std::vector<PRadTDCChannel*> &GetTDCList() const {return tdc_list;};
 
-    // histogram manipulation
+    // clustering method related
+    bool AddClusterMethod(const std::string &name, PRadHyCalCluster *c);
+    void RemoveClusterMethod(const std::string &name);
+    void ClearClusterMethods();
+    void SetClusterMethod(const std::string &name);
+    PRadHyCalCluster *GetClusterMethod(const std::string &name) const;
+    std::string GetClusterMethodName() const;
+    std::vector<std::string> GetClusterMethodNames() const;
+
+    // histogram related
     void FillEnergyHist();
     void FillEnergyHist(const double &e);
     void ResetEnergyHist();
     TH1 *GetEnergyHist() const {return energy_hist;};
 
+
 private:
     PRadHyCalDetector *hycal;
-
-    // histogram
+    PRadHyCalCluster *recon;
     TH1D *energy_hist;
 
     // channel lists
@@ -104,6 +118,9 @@ private:
     std::unordered_map<std::string, PRadADCChannel*> adc_name_map;
     std::unordered_map<ChannelAddress, PRadTDCChannel*> tdc_addr_map;
     std::unordered_map<std::string, PRadTDCChannel*> tdc_name_map;
+
+    // clustering method map
+    std::unordered_map<std::string, PRadHyCalCluster*> recon_map;
 };
 
 #endif

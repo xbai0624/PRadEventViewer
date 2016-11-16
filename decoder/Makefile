@@ -72,7 +72,6 @@ LIB_OBJECTS   = $(LIB_OBJ_DIR)/PRadDAQUnit.o \
                 $(LIB_OBJ_DIR)/PRadHyCalDetector.o \
                 $(LIB_OBJ_DIR)/PRadHyCalModule.o \
                 $(LIB_OBJ_DIR)/PRadHyCalCluster.o \
-                $(LIB_OBJ_DIR)/PRadIslandCluster.o \
                 $(LIB_OBJ_DIR)/PRadSquareCluster.o \
                 $(LIB_OBJ_DIR)/island.o \
                 $(LIB_OBJ_DIR)/PRadGEMSystem.o \

@@ -138,13 +138,13 @@ void PRadHyCalDetector::ReadModuleList(const std::string &path)
     // some info that is not read from list
     while (c_parser.ParseLine())
     {
-        if(!c_parser.CheckElements(9))
+        if(!c_parser.CheckElements(11))
             continue;
 
         c_parser >> name >> type
-                 >> geo.size_x >> geo.size_y >> geo.x >> geo.y
-                 >> sector
-                 >> geo.row >> geo.column;
+                 >> geo.size_x >> geo.size_y >> geo.size_z
+                 >> geo.x >> geo.y >> geo.z
+                 >> sector >> geo.row >> geo.column;
 
         geo.type = PRadHyCalModule::get_module_type(type.c_str());
         geo.sector = PRadHyCalModule::get_sector_id(sector.c_str());
@@ -339,4 +339,15 @@ const
     if(it == name_map.end())
         return nullptr;
     return it->second;
+}
+
+double PRadHyCalDetector::GetEnergy()
+const
+{
+    double energy = 0.;
+    for(auto &module : module_list)
+    {
+        energy += module->GetEnergy();
+    }
+    return energy;
 }

@@ -299,7 +299,8 @@ const
 }
 
 // get reconstructed clusters as an array
-GEMHit *PRadGEMDetector::GetCluster(int &n)
+const GEMHit *PRadGEMDetector::GetCluster(int &n)
+const
 {
     n = (int)gem_clusters.size();
     // vector to array

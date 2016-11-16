@@ -8,11 +8,17 @@
 #include "PRadException.h"
 #include "PRadHyCalModule.h"
 #include "PRadDetector.h"
+#include "PRadEventStruct.h"
 
 class PRadHyCalSystem;
 
 class PRadHyCalDetector : public PRadDetector
 {
+public:
+    friend class PRadHyCalCluster;
+    friend class PRadSquareCluster;
+    friend class PRadIslandCluster;
+
 public:
     // constructor
     PRadHyCalDetector(const std::string &name = "HyCal", PRadHyCalSystem *sys = nullptr);
@@ -48,13 +54,16 @@ public:
     PRadHyCalSystem *GetSystem() const {return system;};
     PRadHyCalModule *GetModule(const int &primex_id) const;
     PRadHyCalModule *GetModule(const std::string &module_name) const;
-    std::vector<PRadHyCalModule*> GetModuleList() const {return module_list;};
+    double GetEnergy() const;
+    const std::vector<PRadHyCalModule*> &GetModuleList() const {return module_list;};
+    const std::vector<HyCalHit> &GetCluster() const {return hycal_clusters;};
 
 private:
     PRadHyCalSystem *system;
     std::vector<PRadHyCalModule*> module_list;
     std::unordered_map<int, PRadHyCalModule*> id_map;
     std::unordered_map<std::string, PRadHyCalModule*> name_map;
+    std::vector<HyCalHit> hycal_clusters;
 };
 
 #endif

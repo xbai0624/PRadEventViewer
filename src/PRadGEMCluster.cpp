@@ -266,7 +266,7 @@ void PRadGEMCluster::FormClusters(PRadGEMDetector *det)
     auto y_cluster = y_plane->GetPlaneClusters();
 
     // get contianer and fill the hits
-    auto &container = det->GetCluster();
+    auto &container = det->gem_clusters;
 
     // empty first
     container.clear();

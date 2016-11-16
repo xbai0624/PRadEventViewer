@@ -8,10 +8,10 @@
 #include "PRadHyCalModule.h"
 #include "PRadHyCalDetector.h"
 #include "PRadADCChannel.h"
+#include "PRadEventStruct.h"
 #include <exception>
 #include <iomanip>
 #include <cstring>
-
 
 // enum name lists
 static const char *__module_type_list[] = {"PbGlass", "PbWO4"};
@@ -41,16 +41,6 @@ PRadHyCalModule::PRadHyCalModule(int pid, const Geometry &geo, PRadHyCalDetector
         name = "W";
 
     name += std::to_string(id);
-}
-
-PRadHyCalModule::PRadHyCalModule(const std::string &n,
-                                 int type, double size_x, double size_y, double x, double y,
-                                 PRadHyCalDetector *det)
-: detector(det), daq_ch(nullptr), name(n)
-{
-    id = name_to_primex_id(name);
-    geometry = Geometry(type, size_x, size_y, x, y);
-    get_sector_info(id, geometry.sector, geometry.row, geometry.column);
 }
 
 // copy constructor
@@ -161,6 +151,14 @@ const
     return std::string(get_sector_name(geometry.sector));
 }
 
+PRadTDCChannel *PRadHyCalModule::GetTDC()
+const
+{
+    if(daq_ch)
+        return daq_ch->GetTDC();
+    return nullptr;
+}
+
 double PRadHyCalModule::GetEnergy()
 const
 {
@@ -168,7 +166,7 @@ const
     if(!daq_ch)
         return 0.;
 
-    return cal_const.Calibration(daq_ch->GetReducedADC());
+    return cal_const.Calibration(daq_ch->GetReducedValue());
 }
 
 //============================================================================//
@@ -197,43 +195,70 @@ int PRadHyCalModule::name_to_primex_id(const std::string &name)
 }
 
 // get sector position information from primex id
-void PRadHyCalModule::get_sector_info(int pid, int &sector, int &row, int &col)
+void PRadHyCalModule::hycal_info(int pid, int &sector, int &row, int &col, unsigned int &flag)
 {
     // calculate geometry information
-    if(pid > 1000) { // crystal module
+    flag = 0;
+
+    if(pid > 1000) {
+        // crystal module
         pid -= 1001;
         sector = (int)Center;
         row = pid/34 + 1;
         col = pid%34 + 1;
-    } else { // lead glass module
+
+        // set flag
+        SET_BIT(flag, kPWO);
+        if(row <= 19 && row >= 16 && col <= 19 && row >= 16)
+            SET_BIT(flag, kInnerBound);
+        if(row == 1 || row == 34 || col == 1 || col == 34)
+            SET_BIT(flag, kTransition);
+
+    } else {
+        // lead glass module
         pid -= 1;
         int g_row = pid/30 + 1;
         int g_col = pid%30 + 1;
+
+        // set flag
+        SET_BIT(flag, kLG);
+        if(g_row == 1 || g_row == 30 || g_col == 1 || g_col == 30)
+            SET_BIT(flag, kOuterBound);
+
         // there are 4 sectors for lead glass
         // top sector
         if(g_col <= 24 && g_row <= 6) {
             sector = (int)Top;
             row = g_row;
             col = g_col;
+            if(row == 6 && col >= 6)
+                SET_BIT(flag, kTransition);
         }
         // right sector
         if(g_col > 24 && g_row <= 24) {
             sector = (int)Right;
             row = g_row;
             col = g_col - 24;
+            if(col == 1 && row >= 6)
+                SET_BIT(flag, kTransition);
         }
         // bottom sector
         if(g_col > 6 && g_row > 24) {
             sector = (int)Bottom;
             row = g_row - 24;
             col = g_col - 6;
+            if(row == 1 && col < 20)
+                SET_BIT(flag, kTransition);
         }
         // left sector
         if(g_col <= 6 && g_row > 6) {
             sector = (int)Left;
             row = g_row - 6;
             col = g_col;
+            if(col == 6 && row < 20)
+                SET_BIT(flag, kTransition);
         }
+
     }
 }
 
@@ -283,6 +308,13 @@ const char *PRadHyCalModule::get_sector_name(int sec)
         return __hycal_sector_list[sec];
 }
 
+double PRadHyCalModule::distance(const PRadHyCalModule &m1, const PRadHyCalModule &m2)
+{
+    double x_dis = m1.geometry.x - m2.geometry.x;
+    double y_dis = m1.geometry.y - m2.geometry.y;
+    return sqrt(x_dis*x_dis + y_dis*y_dis);
+}
+
 
 
 //============================================================================//
@@ -299,8 +331,10 @@ std::ostream &operator <<(std::ostream &os, const PRadHyCalModule &m)
     // geometry
        << std::setw(8) << m.GetSizeX()
        << std::setw(8) << m.GetSizeY()
+       << std::setw(8) << m.GetSizeZ()
        << std::setw(12) << m.GetX()
        << std::setw(12) << m.GetY()
+       << std::setw(12) << m.GetZ()
     // sector info
        << std::setw(10) << m.GetSectorName()
        << std::setw(4) << m.GetRow()

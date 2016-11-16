@@ -403,22 +403,28 @@ struct HyCalHit
         clear_time();
     }
 
-    HyCalHit(const float &cx, const float &cy, const float &cE)
+    HyCalHit(int det, short id, unsigned int f, const std::vector<unsigned short> &t)
+    : flag(f), det_id(det), type(0), status(0), nblocks(0), cid(id),
+      E(0), x(0), y(0), z(0), chi2(0), sigma_E(0)
+    {
+        set_time(t);
+    }
+
+    HyCalHit(float cx, float cy, float cE)
     : flag(0), det_id(0), type(0), status(0), nblocks(0), cid(0), E(cE), x(cx),
       y(cy), chi2(0), sigma_E(0)
     {
         clear_time();
     }
 
-    HyCalHit(const float &cx, const float &cy, const float &cE, const std::vector<unsigned short> &t)
+    HyCalHit(float cx, float cy, float cE, const std::vector<unsigned short> &t)
     : flag(0), det_id(0), type(0), status(0), nblocks(0), cid(0), E(cE), x(cx), y(cy),
       chi2(0), sigma_E(0)
     {
         set_time(t);
     }
 
-    HyCalHit(const short &t, const short &s, const short &n,
-             const float &cx, const float &cy, const float &cE, const float &ch)
+    HyCalHit(short t, short s, short n, float cx, float cy, float cE, float ch)
     : flag(0), det_id(0), type(t), status(s), nblocks(n), cid(0), E(cE), x(cx), y(cy),
       chi2(ch), sigma_E(0)
     {

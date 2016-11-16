@@ -51,15 +51,15 @@ public:
     void UnsetModule(bool force_unset = false);
     void SetPedestal(const Pedestal &ped);
     void SetPedestal(const double &m, const double &s);
-    void SetADC(const unsigned short &adcVal) {adc_value = adcVal;};
+    void SetValue(const unsigned short &adc) {adc_value = adc;};
     // reset data
     void Reset();
 
     // check if adc passed threshold
     bool Sparsified(const unsigned short &adcVal);
     int GetOccupancy() const {return occupancy;};
-    unsigned short GetADC() const {return adc_value;};
-    double GetReducedADC() const {return (double)adc_value - pedestal.mean;};
+    unsigned short GetValue() const {return adc_value;};
+    double GetReducedValue() const {return (double)adc_value - pedestal.mean;};
     Pedestal GetPedestal() const {return pedestal;};
     PRadHyCalModule *GetModule() const {return module;};
     PRadTDCChannel *GetTDC() const {return tdc_group;};

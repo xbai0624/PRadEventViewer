@@ -10,13 +10,13 @@
 #include <iostream>
 #include <iomanip>
 #include "PRadSquareCluster.h"
+#include "PRadHyCalDetector.h"
+#include "PRadADCChannel.h"
+#include "PRadTDCChannel.h"
 
-using namespace std;
-
-PRadSquareCluster::PRadSquareCluster(PRadDataHandler *h)
-: PRadHyCalCluster(h)
+PRadSquareCluster::PRadSquareCluster(const std::string &path)
 {
-    // place holder
+    Configure();
 }
 
 PRadSquareCluster::~PRadSquareCluster()
@@ -24,239 +24,120 @@ PRadSquareCluster::~PRadSquareCluster()
     // place holder
 }
 
-void PRadSquareCluster::Configure(const string &c_path)
+PRadHyCalCluster *PRadSquareCluster::Clone()
 {
+    return new PRadSquareCluster(*this);
+}
+
+void PRadSquareCluster::Configure(const std::string &path)
+{
+    PRadHyCalCluster::Configure(path);
+
     // if no configuration file specified, load the default value quietly
-    bool verbose = false;
+    bool verbose = (!path.empty());
 
-    if(!c_path.empty()) {
-        readConfigFile(c_path);
-        verbose = true;
-    }
-
-    fMoliereCrystal = getDefConfig<double>("MOLIERE_CRYSTAL", 20.5, verbose);
-    fMoliereLeadGlass = getDefConfig<double>("MOLIERE_LEADGLASS", 38.2, verbose);
-    fMoliereRatio = fMoliereLeadGlass/fMoliereCrystal;
-
-    fBaseR = getDefConfig<double>("CLUSTER_SEP_DISTANCE", 60.0, verbose);
-    fMinClusterCenterE = getDefConfig<double>("MIN_CLUSTER_CENTER_E", 10.0, verbose);
-    fMinClusterE = getDefConfig<double>("MIN_CLUSTER_TOTAL_E", 50.0, verbose);
-
-    // default value is 3.6, suggested by the study with GEM by Weizhi
-    fLogWeightThres = getDefConfig<double>("WEIGHT_FREE_PAR", 3.6, verbose);
+    square_size = getDefConfig<unsigned int>("Square Size", 2, verbose);
 }
 
-void PRadSquareCluster::Clear()
+void PRadSquareCluster::Reconstruct(PRadHyCalDetector *det)
 {
-    fNHyCalClusters = 0;
-    fClusterCenterID.clear();
-}
-
-void PRadSquareCluster::Reconstruct(EventData &event)
-{
-    Clear(); // clear all the saved buffer before analyzing the next event
-
-    // do no reconstruction for non-physics event
-    // otherwise there will be some mess from LMS events
-    if(!event.is_physics_event())
+    if(det == nullptr)
         return;
 
-    fHandler->ChooseEvent(event);
+    // clear the cluster container
+    det->hycal_clusters.clear();
 
-    // Start reconstruction
-    auto fModuleList = fHandler->GetChannelList();
+    auto centers = findCenters(det);
 
-    while(fNHyCalClusters < MAX_HCLUSTERS)
+    for(auto &center : centers)
     {
-        unsigned short theMaxModuleID = getMaxEChannel();
-        if (theMaxModuleID == 0xffff)
-            break;//this happens if no module has large enough energy
+        HyCalHit hit = formCluster(center, det);
 
-        double clusterEnergy = 0.;
-        PRadDAQUnit::ChannelType thisType = fModuleList.at(theMaxModuleID)->GetType();
-        vector<unsigned short> collection = findCluster(theMaxModuleID, clusterEnergy);
+        // if the cluster is good
+        if(CheckCluster(hit))
+            det->hycal_clusters.emplace_back(std::move(hit));
+    }
+}
 
-        if ((clusterEnergy <= fMinClusterE) ||
-            (thisType == PRadDAQUnit::LeadTungstate && collection.size() <= 3) ||
-            (thisType == PRadDAQUnit::LeadGlass && collection.size() <= 1))
+std::vector<PRadHyCalModule*> PRadSquareCluster::findCenters(const PRadHyCalDetector *det)
+{
+    // searching possible cluster centers
+    std::vector<PRadHyCalModule*> center_modules;
+    for(auto &module : det->GetModuleList())
+    {
+        // did not pass the requirement on least energy for cluster center
+        if(module->GetEnergy() < min_center_energy)
             continue;
 
-        vector<unsigned short> clusterTime = GetTimeForCluster(fModuleList.at(theMaxModuleID));
-//        double weightX = 0., weightY = 0., totalWeight = 0.;
-        double weightX_log = 0, weightY_log = 0., totalWeight_log = 0.;
+        bool overlap = false;
+        float dist_x = (2.*(float)square_size + 0.5)*module->GetX();
+        float dist_y = (2.*(float)square_size + 0.5)*module->GetY();
 
-        for (size_t j = 0; j < collection.size(); ++j)
+        for(auto &center : center_modules)
         {
-            unsigned short thisID = collection.at(j);
-            PRadDAQUnit* thisModule = fModuleList.at(thisID);
-            if (!thisModule->IsHyCalModule())
-                continue;
-
-            double thisX = thisModule->GetX();
-            double thisY = thisModule->GetY();
-
-            double weight = thisModule->GetEnergy()/clusterEnergy;
-            double weight_log = fLogWeightThres + log(weight);
-/*
-            weightX += weight*thisX;
-            weightY += weight*thisY;
-            totalWeight += weight;
-*/
-            if (weight_log > 0.) {
-                weightX_log += weight_log*thisX;
-                weightY_log += weight_log*thisY;
-                totalWeight_log += weight_log;
+            // overlap with other modules, discarded this center
+            // TODO, probably better to do splitting other than discarding
+            if((fabs(center->GetX() - module->GetX()) < dist_x) ||
+               (fabs(center->GetY() - module->GetY()) < dist_y)) {
+                overlap = true;
+                break; // no need to continue the check
             }
         }
 
-//        fHyCalCluster[fNHyCalClusters].x = weightX/totalWeight;
-//        fHyCalCluster[fNHyCalClusters].y = weightY/totalWeight;
-        fHyCalCluster[fNHyCalClusters].det_id = PRadDetector::HyCal;
-        fHyCalCluster[fNHyCalClusters].x = weightX_log/totalWeight_log;
-        fHyCalCluster[fNHyCalClusters].y = weightY_log/totalWeight_log;
-        fHyCalCluster[fNHyCalClusters].E = clusterEnergy;
-        fHyCalCluster[fNHyCalClusters].cid = fModuleList[theMaxModuleID]->GetPrimexID();
-        fHyCalCluster[fNHyCalClusters].set_time(clusterTime);
-
-        ++fNHyCalClusters;
+        if(!overlap)
+            center_modules.push_back(module);
     }
+
+    return center_modules;
 }
 
-unsigned short PRadSquareCluster::getMaxEChannel()
+HyCalHit PRadSquareCluster::formCluster(PRadHyCalModule *center, const PRadHyCalDetector *det)
 {
-    double theMaxValue = 0;
-    bool foundNewCenter = false;
-    unsigned short theMaxChannelID = 0xffff;
-    auto fModuleList = fHandler->GetChannelList();
+    // initialize the hit
+    HyCalHit hit(det->GetDetID(),                       // det id
+                 center->GetID(),                       // center id
+                 center->GetGeometryFlag(),             // module flag
+                 center->GetTDC()->GetTimeMeasure());   // timing
 
-    for (unsigned int i = 0; i < fModuleList.size(); ++i)
+    std::vector<PRadHyCalModule *> group;
+
+    float dist_x = ((float)square_size + 0.5)*center->GetX();
+    float dist_y = ((float)square_size + 0.5)*center->GetY();
+
+    // search the modules and group them
+    for(auto &module : det->GetModuleList())
     {
-        // if have not found the module with maxmimum energy then find it
-        // otherwise check if the next maximum is too close to the existing center
-        PRadDAQUnit* thisModule = fModuleList.at(i);
-        if (!thisModule->IsHyCalModule())
+        // not within the cluster
+        if((fabs(center->GetX() - module->GetX()) > dist_x) ||
+           (fabs(center->GetY() - module->GetY()) > dist_y))
             continue;
 
-        if (thisModule->GetEnergy() < fMinClusterCenterE)
-            continue;
-
-        double theClusterRadius = fBaseR;
-        if (thisModule->GetType() == PRadDAQUnit::LeadGlass)
-            theClusterRadius = fMoliereRatio*fBaseR;
-
-        double distance = 1e4;
-        bool merged = false;
-        for (unsigned int j = 0; j < fClusterCenterID.size(); ++j)
-        {
-            PRadDAQUnit* lastCenterModule = fModuleList.at( fClusterCenterID.at(j) );
-            distance = Distance( thisModule, lastCenterModule ) ;
-            if (distance < 2*theClusterRadius) {
-                merged = true;
-                continue;
-            }
-        }
-
-        if (merged)
-            continue;
-
-        if (thisModule->GetEnergy() > theMaxValue) {
-            foundNewCenter = true;
-            theMaxValue = thisModule->GetEnergy();
-            theMaxChannelID = i;
-        }
+        hit.E += module->GetEnergy();                   // accumulate energy
+        group.push_back(module);
     }
 
-    if (foundNewCenter)
-    fClusterCenterID.push_back(theMaxChannelID);
+    // count modules
+    hit.nblocks = group.size();
 
-    return theMaxChannelID;
-}
+    float weight_x = 0, weight_y = 0, weight_total = 0;
 
-vector<unsigned short> PRadSquareCluster::findCluster(unsigned short centerID, double &clusterEnergy)
-{
-    auto fModuleList = fHandler->GetChannelList();
-    double clusterRadius = 0.;
-    double centerX = fModuleList.at(centerID)->GetX();
-    double centerY = fModuleList.at(centerID)->GetY();
-    vector<unsigned short> collection;
-
-    for (unsigned int i = 0; i < fModuleList.size(); ++i)
+    // reconstruct position
+    for(auto &module : group)
     {
-        PRadDAQUnit* thisModule = fModuleList.at(i);
-        if (!thisModule->IsHyCalModule())
-            continue;
-        if (thisModule->GetType() == 1) {
-            clusterRadius = fBaseR;
-        } else {
-            clusterRadius = fBaseR*fMoliereRatio;
-        }
-
-        if ( thisModule->GetEnergy() > 0. &&
-             Distance( thisModule->GetX(), thisModule->GetY(), centerX, centerY ) <= clusterRadius )
-        {
-            clusterEnergy += thisModule->GetEnergy();
-            collection.push_back(i);
-        }
+        float weight = GetWeight(module->GetEnergy(), hit.E);
+        weight_x += module->GetX()*weight;
+        weight_y += module->GetY()*weight;
+        weight_total += weight;
     }
 
-    return collection;
-}
+    hit.x = weight_x/weight_total;
+    hit.y = weight_y/weight_total;
 
-double PRadSquareCluster::Distance(PRadDAQUnit *u1, PRadDAQUnit *u2)
-{
-    double x_dis = u1->GetX() - u2->GetX();
-    double y_dis = u1->GetY() - u2->GetY();
-    return sqrt( x_dis*x_dis + y_dis*y_dis);
-}
+    // z position will need a depth correction, defined in PRadHyCalCluster
+    hit.z = center->GetZ() + GetShowerDepth(center->GetType(), hit.E);
+    // correct the non-linear response to the energy, defined in PRadHyCalCluster
+    NonLinearCorr(center, hit.E);
 
-double PRadSquareCluster::Distance(const double &x1, const double &y1, const double &x2, const double &y2)
-{
-    return sqrt( (x1-x2)*(x1-x2) + (y1-y2)*(y1-y2) );
-}
-
-double PRadSquareCluster::Distance(const double &x1, const double &y1, const double &x2, const double &y2, const double &z1, const double &z2)
-{
-    return sqrt( (x1-x2)*(x1-x2) + (y1-y2)*(y1-y2) + (z1-z2)*(z1-z2) );
-}
-
-double PRadSquareCluster::Distance(const vector<double> &p1, const vector<double> &p2)
-{
-    if(p1.size() != p2.size()) {
-        cerr << "Dimension is different, failed to calculate distance between two points!" << endl;
-        return 0.;
-    }
-
-    double quadratic_sum = 0.;
-    for(size_t i = 0; i < p1.size(); ++i)
-    {
-        double quadratic = p1.at(i) - p2.at(i);
-        quadratic *= quadratic;
-        quadratic_sum += quadratic;
-    }
-
-    return sqrt(quadratic_sum);
-}
-
-vector<unsigned short> &PRadSquareCluster::GetTimeForCluster(PRadDAQUnit *module)
-{
-    PRadTDCGroup* thisGroup = module->GetTDCGroup();
-    return thisGroup->GetTimeMeasure();
-}
-
-PRadDAQUnit *PRadSquareCluster::LocateModule(const double &x, const double &y)
-{
-    auto fModuleList = fHandler->GetChannelList();
-
-    for(auto &module : fModuleList)
-    {
-        PRadDAQUnit::Geometry thisGeometry = module->GetGeometry();
-        if ( fabs(x - thisGeometry.x) < thisGeometry.size_x/2. &&
-             fabs(y - thisGeometry.y) < thisGeometry.size_y/2. )
-        {
-            return module;
-        }
-    }
-
-    return nullptr;
+    return hit;
 }
 

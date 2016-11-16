@@ -19,6 +19,9 @@ class PRadGEMAPV;
 class PRadGEMDetector : public PRadDetector
 {
 public:
+    friend class PRadGEMCluster;
+
+public:
     // constructor
     PRadGEMDetector(const std::string &readoutBoard,
                     const std::string &detectorType,
@@ -58,8 +61,7 @@ public:
     std::vector<PRadGEMPlane*> GetPlaneList() const;
     std::vector<PRadGEMAPV*> GetAPVList(const int &type) const;
     int GetNClusters() const {return (int)gem_clusters.size();};
-    GEMHit *GetCluster(int &n);
-    std::vector<GEMHit> &GetCluster() {return gem_clusters;};
+    const GEMHit *GetCluster(int &n) const;
     const std::vector<GEMHit> &GetCluster() const {return gem_clusters;};
 
 private:
