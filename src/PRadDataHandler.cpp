@@ -262,6 +262,9 @@ void PRadDataHandler::FeedData(JLabDSCData &dscData)
 // feed ADC1881M data
 void PRadDataHandler::FeedData(ADC1881MData &adcData)
 {
+    if(!hycal_sys)
+        return;
+
     // get the channel
     PRadADCChannel *channel = hycal_sys->GetADCChannel(adcData.addr);
 
@@ -280,6 +283,9 @@ void PRadDataHandler::FeedData(ADC1881MData &adcData)
 
 void PRadDataHandler::FeedData(TDCV767Data &tdcData)
 {
+    if(!hycal_sys)
+        return;
+
     PRadTDCChannel *tdc = hycal_sys->GetTDCChannel(tdcData.addr);
 
     if(!tdc)
@@ -290,6 +296,9 @@ void PRadDataHandler::FeedData(TDCV767Data &tdcData)
 
 void PRadDataHandler::FeedData(TDCV1190Data &tdcData)
 {
+    if(!hycal_sys)
+        return;
+
     if(tdcData.addr.crate != PRadTS) {
         FeedTaggerHits(tdcData);
         return;
@@ -331,17 +340,23 @@ void PRadDataHandler::FeedTaggerHits(TDCV1190Data &tdcData)
 // feed GEM data
 void PRadDataHandler::FeedData(GEMRawData &gemData)
 {
-    gem_sys->FillRawData(gemData, newEvent->gem_data, newEvent->is_monitor_event());
+    if(gem_sys)
+        gem_sys->FillRawData(gemData, newEvent->gem_data, newEvent->is_monitor_event());
 }
 
 // feed GEM data which has been zero-suppressed
 void PRadDataHandler::FeedData(vector<GEMZeroSupData> &gemData)
 {
-    gem_sys->FillZeroSupData(gemData, newEvent->gem_data);
+    if(gem_sys)
+        gem_sys->FillZeroSupData(gemData, newEvent->gem_data);
 }
 
+//TODO move to hycal system
 void PRadDataHandler::FillHistograms(EventData &data)
 {
+    if(!hycal_sys)
+        return;
+
     double energy = 0.;
 
     // for all types of events
@@ -447,13 +462,18 @@ void PRadDataHandler::ChooseEvent(const int &idx)
 
 void PRadDataHandler::ChooseEvent(const EventData &event)
 {
-    hycal_sys->ChooseEvent(event);
-    gem_sys->ChooseEvent(event);
+    if(hycal_sys)
+        hycal_sys->ChooseEvent(event);
+    if(gem_sys)
+        gem_sys->ChooseEvent(event);
     current_event = event.event_number;
 }
 
 double PRadDataHandler::GetEnergy(const EventData &event)
 {
+    if(!hycal_sys)
+        return 0.;
+
     double energy = 0.;
     for(auto &adc : event.adc_data)
     {
@@ -582,9 +602,13 @@ void PRadDataHandler::ReadEPICSChannels(const string &path)
 
 };
 
+// TODO move to hycal system
 // Refill energy hist after correct gain factos
 void PRadDataHandler::RefillEnergyHist()
 {
+    if(!hycal_sys)
+        return;
+
     hycal_sys->ResetEnergyHist();
 
     for(auto &event : energyData)
@@ -618,6 +642,12 @@ void PRadDataHandler::ReadFromSplitEvio(const string &path, const int &split, co
 void PRadDataHandler::InitializeByData(const string &path, int run, int ref)
 {
     PRadBenchMark timer;
+
+    if(!hycal_sys || !gem_sys) {
+        cout << "Data Handler: HyCal System or GEM System missing, abort initialization."
+             << endl;
+        return;
+    }
 
     cout << "Data Handler: Initializing from Data File "
          << "\"" << path << "\"."

@@ -45,8 +45,10 @@ public:
     // add channels
     void RegisterEPICS(const std::string &name, const uint32_t &id, const float &value);
 
-    PRadHyCalSystem *GetHyCalSystem() {return hycal_sys;};
-    PRadGEMSystem *GetGEMSystem() {return gem_sys;};
+    void SetHyCalSystem(PRadHyCalSystem *hycal) {hycal_sys = hycal;};
+    void SetGEMSystem(PRadGEMSystem *gem) {gem_sys = gem;};
+    PRadHyCalSystem *GetHyCalSystem() const {return hycal_sys;};
+    PRadGEMSystem *GetGEMSystem() const {return gem_sys;};
 
     // read config files
     void ReadConfig(const std::string &path);

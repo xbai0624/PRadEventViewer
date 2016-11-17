@@ -21,14 +21,14 @@ int main(int /*argc*/, char * /*argv*/ [])
 {
 
     PRadDataHandler *handler = new PRadDataHandler();
+    PRadGEMSystem *gem_srs = new PRadGEMSystem("config/gem.conf");
+    handler->SetGEMSystem(gem_srs);
     PRadDSTParser *dst_parser = new PRadDSTParser(handler);
 
     // read configuration files
     handler->ReadConfig("config.txt");
 
     PRadBenchMark timer;
-    // get GEM system
-    PRadGEMSystem *gem_srs = handler->GetGEMSystem();
 
     /* some test on connections constructors and assignment operators
     gem_srs->GetAPV(1, 5)->UnsetFEC();
