@@ -838,6 +838,9 @@ void PRadEventViewer::changeCurrentEvent(int evt)
 
 void PRadEventViewer::handleEventChange(int evt)
 {
+    if(evt < 1)
+        return;
+
     try {
         auto &event = handler->GetEvent(evt - 1); // fetch data from handler
         handler->ChooseEvent(event);
