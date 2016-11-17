@@ -39,7 +39,7 @@ class PRadHyCalSystem : public ConfigObject
 {
 public:
     // constructor
-    PRadHyCalSystem(const std::string &path);
+    PRadHyCalSystem(const std::string &path = "");
 
     // copy/move constructors
     PRadHyCalSystem(const PRadHyCalSystem &that);
@@ -63,6 +63,7 @@ public:
 
     // events related
     void ChooseEvent(const EventData &data);
+    void Reconstruct();
     void Reconstruct(const EventData &data);
     void Reset();
 

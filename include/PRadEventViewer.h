@@ -15,9 +15,9 @@ class HyCalModule;
 class Spectrum;
 class SpectrumSettingPanel;
 class PRadHistCanvas;
-class PRadDataHandler;
 class PRadLogBox;
-class PRadHyCalCluster;
+class PRadDataHandler;
+class PRadHyCalSystem;
 class PRadGEMSystem;
 class PRadCoordSystem;
 class PRadDetMatch;
@@ -89,7 +89,6 @@ public:
     virtual ~PRadEventViewer();
     template<typename... Args>
     void ModuleAction(void (HyCalModule::*act)(Args...), Args&&... args);
-    void ListModules();
     ViewMode GetViewMode() {return viewMode;};
     AnnoType GetAnnoType() {return annoType;};
     QColor GetColor(const double &val);
@@ -137,9 +136,6 @@ private:
     void generateHyCalModules();
     void generateScalerBoxes();
     void setTDCGroupBox();
-    void readModuleList();
-    void readTDCList();
-    void readSpecialChannels();
     void eraseData();
     void createMainMenu();
     void createControlPanel();
@@ -167,6 +163,8 @@ private:
                              QFileDialog::FileMode fmode = QFileDialog::ExistingFiles);
 
     PRadDataHandler *handler;
+    PRadHyCalSystem *hycal_sys;
+    PRadGEMSystem *gem_sys;
     HistType histType;
     AnnoType annoType;
     ViewMode viewMode;
@@ -250,7 +248,7 @@ private:
 
 #ifdef RECON_DISPLAY
 private slots:
-    void showReconEvent(int evt);
+    void showReconEvent();
     void setupReconMethods();
     void enableReconstruct();
 private:

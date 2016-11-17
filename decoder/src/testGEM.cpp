@@ -9,7 +9,6 @@
 #include "PRadDSTParser.h"
 #include "PRadEvioParser.h"
 #include "PRadBenchMark.h"
-#include "PRadDAQUnit.h"
 #include "PRadGEMSystem.h"
 #include <iostream>
 #include <string>
@@ -26,7 +25,7 @@ int main(int /*argc*/, char * /*argv*/ [])
     PRadDSTParser *dst_parser = new PRadDSTParser(handler);
 
     // read configuration files
-    handler->ReadConfig("config.txt");
+    // handler->ReadConfig("config.txt");
 
     PRadBenchMark timer;
 

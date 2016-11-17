@@ -144,7 +144,9 @@ public:
     static const char *get_module_type_name(int type);
     static const char *get_sector_name(int sec);
     static double distance(const PRadHyCalModule &m1, const PRadHyCalModule &m2);
-private:
+
+
+protected:
     PRadHyCalDetector *detector;
     PRadADCChannel *daq_ch;
     std::string name;

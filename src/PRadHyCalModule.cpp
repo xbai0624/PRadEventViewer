@@ -342,3 +342,4 @@ std::ostream &operator <<(std::ostream &os, const PRadHyCalModule &m)
 
     return os;
 }
+

@@ -62,33 +62,38 @@ HEADERS += include/PRadEventViewer.h \
            include/Spectrum.h \
            include/SpectrumSettingPanel.h \
            include/HtmlDelegate.h \
-           include/PRadDetector.h \
-           include/PRadDAQUnit.h \
-           include/PRadTDCGroup.h \
-           include/PRadEvioParser.h \
-           include/PRadDSTParser.h \
-           include/PRadDataHandler.h \
-           include/PRadEventStruct.h \
-           include/PRadLogBox.h \
-           include/PRadException.h \
-           include/PRadHistCanvas.h \
            include/QRootCanvas.h \
            include/ConfigParser.h \
            include/ConfigValue.h \
            include/ConfigObject.h \
+           include/PRadHistCanvas.h \
+           include/PRadLogBox.h \
+           include/PRadDetector.h \
+           include/PRadEvioParser.h \
+           include/PRadDSTParser.h \
+           include/PRadDataHandler.h \
+           include/datastruct.h \
+           include/PRadEventStruct.h \
+           include/PRadException.h \
            include/PRadBenchMark.h \
+           include/PRadEventFilter.h \
+           include/PRadCoordSystem.h \
+           include/PRadDetMatch.h \
+           include/PRadHyCalSystem.h \
+           include/PRadHyCalDetector.h \
+           include/PRadHyCalModule.h \
+           include/PRadCalibConst.h \
+           include/PRadDAQChannel.h \
+           include/PRadADCChannel.h \
+           include/PRadTDCChannel.h \
            include/PRadHyCalCluster.h \
            include/PRadSquareCluster.h \
-           include/PRadIslandCluster.h \
            include/PRadGEMSystem.h \
            include/PRadGEMDetector.h \
            include/PRadGEMPlane.h \
            include/PRadGEMFEC.h \
            include/PRadGEMAPV.h \
-           include/PRadGEMCluster.h \
-           include/PRadEventFilter.h \
-           include/PRadCoordSystem.h \
-           include/PRadDetMatch.h
+           include/PRadGEMCluster.h
 
 SOURCES += src/main.cpp \
            src/PRadEventViewer.cpp \
@@ -98,32 +103,36 @@ SOURCES += src/main.cpp \
            src/Spectrum.cpp \
            src/SpectrumSettingPanel.cpp \
            src/HtmlDelegate.cpp \
-           src/PRadDetector.cpp \
-           src/PRadDAQUnit.cpp \
-           src/PRadTDCGroup.cpp \
-           src/PRadEvioParser.cpp \
-           src/PRadDSTParser.cpp \
-           src/PRadDataHandler.cpp \
-           src/PRadLogBox.cpp \
-           src/PRadException.cpp \
-           src/PRadHistCanvas.cpp \
            src/QRootCanvas.cpp \
            src/ConfigParser.cpp \
            src/ConfigValue.cpp \
            src/ConfigObject.cpp \
+           src/PRadHistCanvas.cpp \
+           src/PRadLogBox.cpp \
+           src/PRadDetector.cpp \
+           src/PRadEvioParser.cpp \
+           src/PRadDSTParser.cpp \
+           src/PRadDataHandler.cpp \
+           src/PRadException.cpp \
            src/PRadBenchMark.cpp \
+           src/PRadEventFilter.cpp \
+           src/PRadCoordSystem.cpp \
+           src/PRadDetMatch.cpp \
+           src/PRadHyCalSystem.cpp \
+           src/PRadHyCalDetector.cpp \
+           src/PRadHyCalModule.cpp \
+           src/PRadCalibConst.cpp \
+           src/PRadDAQChannel.cpp \
+           src/PRadADCChannel.cpp \
+           src/PRadTDCChannel.cpp \
            src/PRadHyCalCluster.cpp \
            src/PRadSquareCluster.cpp \
-           src/PRadIslandCluster.cpp \
            src/PRadGEMSystem.cpp \
            src/PRadGEMDetector.cpp \
            src/PRadGEMPlane.cpp \
            src/PRadGEMFEC.cpp \
            src/PRadGEMAPV.cpp \
-           src/PRadGEMCluster.cpp \
-           src/PRadEventFilter.cpp \
-           src/PRadCoordSystem.cpp \
-           src/PRadDetMatch.cpp
+           src/PRadGEMCluster.cpp
 
 LIBS += -lexpat -lgfortran \
         -L$$(ROOTSYS)/lib -lCore -lRint -lRIO -lNet -lHist \

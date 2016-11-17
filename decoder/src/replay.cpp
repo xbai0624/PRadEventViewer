@@ -9,7 +9,6 @@
 #include "PRadDataHandler.h"
 #include "PRadEvioParser.h"
 #include "PRadBenchMark.h"
-#include "PRadDAQUnit.h"
 #include "PRadGEMSystem.h"
 #include <iostream>
 #include <string>

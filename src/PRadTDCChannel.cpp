@@ -7,7 +7,6 @@
 
 #include "PRadTDCChannel.h"
 #include "PRadADCChannel.h"
-#include "PRadDAQUnit.h"
 #include "TH1I.h"
 
 

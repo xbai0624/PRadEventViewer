@@ -16,7 +16,7 @@
 
 PRadSquareCluster::PRadSquareCluster(const std::string &path)
 {
-    Configure();
+    Configure(path);
 }
 
 PRadSquareCluster::~PRadSquareCluster()
@@ -36,7 +36,7 @@ void PRadSquareCluster::Configure(const std::string &path)
     // if no configuration file specified, load the default value quietly
     bool verbose = (!path.empty());
 
-    square_size = getDefConfig<unsigned int>("Square Size", 2, verbose);
+    square_size = getDefConfig<unsigned int>("Square Size", 5, verbose);
 }
 
 void PRadSquareCluster::Reconstruct(PRadHyCalDetector *det)
@@ -70,8 +70,8 @@ std::vector<PRadHyCalModule*> PRadSquareCluster::findCenters(const PRadHyCalDete
             continue;
 
         bool overlap = false;
-        float dist_x = (2.*(float)square_size + 0.5)*module->GetX();
-        float dist_y = (2.*(float)square_size + 0.5)*module->GetY();
+        float dist_x = float(square_size)*module->GetSizeX();
+        float dist_y = float(square_size)*module->GetSizeY();
 
         for(auto &center : center_modules)
         {
@@ -101,8 +101,8 @@ HyCalHit PRadSquareCluster::formCluster(PRadHyCalModule *center, const PRadHyCal
 
     std::vector<PRadHyCalModule *> group;
 
-    float dist_x = ((float)square_size + 0.5)*center->GetX();
-    float dist_y = ((float)square_size + 0.5)*center->GetY();
+    float dist_x = float(square_size)/2.*center->GetSizeX();
+    float dist_y = float(square_size)/2.*center->GetSizeY();
 
     // search the modules and group them
     for(auto &module : det->GetModuleList())

@@ -1,14 +1,14 @@
-#ifndef PRAD_HYCAL_SCENE_H
-#define PRAD_HYCAL_SCENE_H
+#ifndef QT_HYCAL_SCENE_H
+#define QT_HYCAL_SCENE_H
 
 #include <QGraphicsScene>
 #include <vector>
-#include <unordered_map>
+#include "PRadHyCalDetector.h"
 
 class PRadEventViewer;
 class HyCalModule;
 
-class HyCalScene : public QGraphicsScene
+class HyCalScene : public QGraphicsScene, public PRadHyCalDetector
 {
     Q_OBJECT
 
@@ -90,9 +90,8 @@ public:
     void UpdateScalerBox(const QString &text, const int &group = 0);
     void UpdateScalerBox(const QStringList &texts);
     void ShowScalers(const bool &s = true) {showScalers = s;};
-    void addModule(HyCalModule *module);
-    void addItem(QGraphicsItem *item);
-    QVector<HyCalModule *> GetModuleList() {return moduleList;};
+    // overloaded
+    void ReadModuleList(const std::string &path);
 
 protected:
     void drawForeground(QPainter *painter, const QRectF &rect);
@@ -112,7 +111,6 @@ private:
     QList<TextBox> tdcBoxList;
     QVector<TextBox> scalarBoxList;
     QVector<HitsMark> hitsMarkList;
-    QVector<HyCalModule *> moduleList;
 };
 
 #endif

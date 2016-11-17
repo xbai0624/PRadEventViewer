@@ -6,13 +6,10 @@
 //============================================================================//
 
 #include "ReconSettingPanel.h"
-#include "PRadDataHandler.h"
-#include "PRadHyCalCluster.h"
-#include "PRadIslandCluster.h"
-#include "PRadSquareCluster.h"
+#include "PRadHyCalSystem.h"
+#include "PRadGEMSystem.h"
 #include "PRadCoordSystem.h"
 #include "PRadDetMatch.h"
-#include "PRadGEMSystem.h"
 #include "MarkSettingWidget.h"
 
 #include <QFileDialog>
@@ -32,7 +29,7 @@
 #define MATCH_ITEMS 6
 
 ReconSettingPanel::ReconSettingPanel(QWidget *parent)
-: QDialog(parent), handler(nullptr), coordSystem(nullptr), detMatch(nullptr)
+: QDialog(parent), hycal(nullptr), gem(nullptr), coordSystem(nullptr), detMatch(nullptr)
 {
     setWindowTitle(tr("Reconstruction Settings"));
 
@@ -59,8 +56,8 @@ QGroupBox *ReconSettingPanel::createMarkGroup()
 
     // default settings
     int mark_index[] = {0, 4, 5};
-    int mark_width[] = {2, 1, 1};
-    double mark_size[] = {7.0, 3.0, 3.0};
+    int mark_width[] = {2, 2, 2};
+    double mark_size[] = {7.0, 5.0, 5.0};
     QColor mark_color[] = {Qt::black, Qt::red, Qt::magenta};
 
     for(size_t i = 0; i < markSettings.size(); ++i)
@@ -238,9 +235,9 @@ QDialogButtonBox *ReconSettingPanel::createStandardButtons()
     return buttonBox;
 }
 
-void ReconSettingPanel::ConnectDataHandler(PRadDataHandler *h)
+void ReconSettingPanel::ConnectHyCalSystem(PRadHyCalSystem *h)
 {
-    handler = h;
+    hycal = h;
 
     // set the methods combo box according to the data handler settings
     hyCalMethods->clear();
@@ -249,8 +246,10 @@ void ReconSettingPanel::ConnectDataHandler(PRadDataHandler *h)
         return;
 
     int index = -1; // means no value selected in combo box
-    auto methods = handler->GetHyCalClusterMethodsList();
-    auto current = handler->GetHyCalClusterMethodName();
+    // name list
+    auto methods = hycal->GetClusterMethodNames();
+    // current method name
+    auto current = hycal->GetClusterMethodName();
 
     for(size_t i = 0; i < methods.size(); ++i)
     {
@@ -261,9 +260,17 @@ void ReconSettingPanel::ConnectDataHandler(PRadDataHandler *h)
     }
 
     hyCalMethods->setCurrentIndex(index);
+}
+
+void ReconSettingPanel::ConnectGEMSystem(PRadGEMSystem *g)
+{
+    gem = g;
+
+    if(g == nullptr)
+        return;
 
     // set the config values from GEM clustering method
-    PRadGEMCluster *gem_method = handler->GetSRS()->GetClusterMethod();
+    PRadGEMCluster *gem_method = gem->GetClusterMethod();
 
     gemMinHits->setValue(gem_method->GetConfig<int>(gemMinLabel->text().toStdString()));
     gemMaxHits->setValue(gem_method->GetConfig<int>(gemMaxLabel->text().toStdString()));
@@ -312,7 +319,7 @@ void ReconSettingPanel::ConnectMatchSystem(PRadDetMatch *m)
 void ReconSettingPanel::updateHyCalPath()
 {
     std::string name = hyCalMethods->currentText().toStdString();
-    PRadHyCalCluster *method = handler->GetHyCalClusterMethod(name);
+    PRadHyCalCluster *method = hycal->GetClusterMethod(name);
 
     if(method)
         hyCalConfigPath->setText(QString::fromStdString(method->GetConfigPath()));
@@ -338,8 +345,12 @@ void ReconSettingPanel::openHyCalConfig()
 // load the configuration file for selected method
 void ReconSettingPanel::loadHyCalConfig()
 {
-    handler->ConfigureHyCalClusterMethod(hyCalMethods->currentText().toStdString(),
-                                         hyCalConfigPath->text().toStdString());
+    std::string method_name = hyCalMethods->currentText().toStdString();
+    std::string config_path = hyCalConfigPath->text().toStdString();
+
+    PRadHyCalCluster *method = hycal->GetClusterMethod(method_name);
+    if(method)
+        method->Configure(config_path);
 }
 
 void ReconSettingPanel::changeCoordType(int t)
@@ -427,7 +438,8 @@ void ReconSettingPanel::restoreCoordData()
 // reconnects all the objects to read their settings
 void ReconSettingPanel::SyncSettings()
 {
-    ConnectDataHandler(handler);
+    ConnectHyCalSystem(hycal);
+    ConnectGEMSystem(gem);
     ConnectCoordSystem(coordSystem);
     ConnectMatchSystem(detMatch);
 }
@@ -449,15 +461,17 @@ void ReconSettingPanel::RestoreSettings()
 // apply all the changes
 void ReconSettingPanel::ApplyChanges()
 {
-    // set data handler
-    if(handler != nullptr) {
-
+    // set hycal
+    if(hycal) {
         // change HyCal clustering method
         std::string method = hyCalMethods->currentText().toStdString();
-        handler->SetHyCalClusterMethod(method);
+        hycal->SetClusterMethod(method);
+    }
 
+    // set gem
+    if(gem) {
         // set corresponding gem cluster configuration values
-        PRadGEMCluster *gem_method = handler->GetSRS()->GetClusterMethod();
+        PRadGEMCluster *gem_method = gem->GetClusterMethod();
         gem_method->SetConfigValue(gemMinLabel->text().toStdString(), gemMinHits->value());
         gem_method->SetConfigValue(gemMaxLabel->text().toStdString(), gemMaxHits->value());
         gem_method->SetConfigValue(gemSplitLabel->text().toStdString(), gemSplitThres->value());
@@ -466,12 +480,13 @@ void ReconSettingPanel::ApplyChanges()
     }
 
     // set coordinate system
-    if(coordSystem != nullptr) {
+    if(coordSystem) {
         saveCoordData();
         coordSystem->SetCurrentCoord(det_coords);
     }
 
-    if(detMatch != nullptr) {
+    // set detector matching system
+    if(detMatch) {
         for(size_t i = 0; i < matchConfBox.size(); ++i)
         {
             detMatch->SetConfigValue(matchConfLabel[i]->text().toStdString(), matchConfBox[i]->value());

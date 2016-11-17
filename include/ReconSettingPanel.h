@@ -8,7 +8,8 @@
 #include "PRadCoordSystem.h"
 #include "PRadDetector.h"
 
-class PRadDataHandler;
+class PRadHyCalSystem;
+class PRadGEMSystem;
 class PRadDetMatch;
 class MarkSettingWidget;
 
@@ -29,7 +30,8 @@ public:
     ~ReconSettingPanel() {};
 
     // connect objects
-    void ConnectDataHandler(PRadDataHandler *h);
+    void ConnectHyCalSystem(PRadHyCalSystem *h);
+    void ConnectGEMSystem(PRadGEMSystem *g);
     void ConnectCoordSystem(PRadCoordSystem *c);
     void ConnectMatchSystem(PRadDetMatch *m);
 
@@ -69,7 +71,8 @@ private slots:
     void restoreCoordData();
 
 private:
-    PRadDataHandler *handler;
+    PRadHyCalSystem *hycal;
+    PRadGEMSystem *gem;
     PRadCoordSystem *coordSystem;
     PRadDetMatch *detMatch;
 

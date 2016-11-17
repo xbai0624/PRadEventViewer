@@ -389,6 +389,7 @@ void PRadGEMAPV::FillRawData(const uint32_t *buf, const size_t &size)
 // fill zero suppressed data
 void PRadGEMAPV::FillZeroSupData(const size_t &ch, const size_t &ts, const unsigned short &val)
 {
+    ts_index = 0;
     size_t idx = ch + ts_index + ts*TIME_SAMPLE_DIFF;
     if(ts >= time_samples ||
        ch >= TIME_SAMPLE_SIZE ||
@@ -408,6 +409,8 @@ void PRadGEMAPV::FillZeroSupData(const size_t &ch, const size_t &ts, const unsig
 // fill zero suppressed data
 void PRadGEMAPV::FillZeroSupData(const size_t &ch, const std::vector<float> &vals)
 {
+    ts_index = 0;
+
     if(vals.size() != time_samples || ch >= TIME_SAMPLE_SIZE)
     {
         std::cerr << "GEM APV Error: Failed to fill zero suppressed data, "

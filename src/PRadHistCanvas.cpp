@@ -35,7 +35,7 @@ void PRadHistCanvas::AddCanvas(int row, int column, int color)
     QRootCanvas *newCanvas = new QRootCanvas(this);
     canvases.push_back(newCanvas);
     fillColors.push_back(color);
-    
+
     // add canvas in vertical layout
     layout->addWidget(newCanvas, row, column);
     newCanvas->SetFillColor(bkgColor->GetNumber());
@@ -44,8 +44,7 @@ void PRadHistCanvas::AddCanvas(int row, int column, int color)
 
 void PRadHistCanvas::UpdateHist(int index, TH1 *hist, bool auto_range)
 {
-    --index;
-    if(index < 0 || index >= canvases.size())
+    if(!hist || index < 0 || index >= canvases.size())
         return;
 
     canvases[index]->cd();
@@ -72,8 +71,7 @@ void PRadHistCanvas::UpdateHist(int index, TH1 *hist, bool auto_range)
 // show the histogram in first slot, try a Gaussian fit with given parameters
 void PRadHistCanvas::UpdateHist(int index, TH1 *hist, int range_min, int range_max)
 {
-    --index;
-    if(index < 0 || index >= canvases.size())
+    if(!hist || index < 0 || index >= canvases.size())
         return;
 
     canvases[index]->cd();
@@ -94,8 +92,7 @@ void PRadHistCanvas::UpdateHist(int index, TH1 *hist, int range_min, int range_m
 
 void PRadHistCanvas::UpdateHist(int index, TH2 *hist)
 {
-    --index;
-    if(index < 0 || index >= canvases.size())
+    if(!hist || index < 0 || index >= canvases.size())
         return;
 
     canvases[index]->cd();

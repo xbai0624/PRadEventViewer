@@ -1,5 +1,5 @@
-#ifndef PRAD_GEM_DETECTOR_H
-#define PRAD_GEM_DETECTOR_H
+#ifndef PRAD_HYCAL_DETECTOR_H
+#define PRAD_HYCAL_DETECTOR_H
 
 #include <vector>
 #include <string>
@@ -37,7 +37,7 @@ public:
     // public member functions
     void SetSystem(PRadHyCalSystem *sys, bool force_set = false);
     void UnsetSystem(bool force_unset =false);
-    void ReadModuleList(const std::string &path);
+    virtual void ReadModuleList(const std::string &path);
     void ReadCalibrationFile(const std::string &path);
     bool AddModule(PRadHyCalModule *module);
     void RemoveModule(int id);
@@ -56,9 +56,10 @@ public:
     PRadHyCalModule *GetModule(const std::string &module_name) const;
     double GetEnergy() const;
     const std::vector<PRadHyCalModule*> &GetModuleList() const {return module_list;};
+    std::vector<HyCalHit> &GetCluster() {return hycal_clusters;};
     const std::vector<HyCalHit> &GetCluster() const {return hycal_clusters;};
 
-private:
+protected:
     PRadHyCalSystem *system;
     std::vector<PRadHyCalModule*> module_list;
     std::unordered_map<int, PRadHyCalModule*> id_map;

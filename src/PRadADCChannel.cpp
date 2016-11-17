@@ -276,7 +276,7 @@ void PRadADCChannel::ClearHists()
 
 // zero suppression, triggered when adc value is statistically
 // above pedestal (5 sigma)
-bool PRadADCChannel::Sparsified(const unsigned short &adcVal)
+bool PRadADCChannel::Sparsify(const unsigned short &adcVal)
 {
     if(adcVal < sparsify)
         return false;

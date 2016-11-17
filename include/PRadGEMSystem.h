@@ -51,6 +51,7 @@ public:
     void ReadPedestalFile(const std::string &path) throw(PRadException);
     void Clear();
     void ChooseEvent(const EventData &data);
+    void Reconstruct();
     void Reconstruct(const EventData &data);
     void RebuildDetectorMap();
     void RebuildDAQMap();

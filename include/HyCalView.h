@@ -1,5 +1,5 @@
-#ifndef PRAD_HYCAL_VIEW_H
-#define PRAD_HYCAL_VIEW_H
+#ifndef QT_HYCAL_VIEW_H
+#define QT_HYCAL_VIEW_H
 
 #include <QGraphicsView>
 

@@ -41,6 +41,4 @@ private:
     double non_linear;
 };
 
-ConfigParser &operator >>(ConfigParser &p, PRadCalibConst &c);
-
 #endif

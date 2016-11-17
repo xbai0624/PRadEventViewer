@@ -8,7 +8,6 @@
 //============================================================================//
 
 #include "PRadDataHandler.h"
-#include "PRadDAQUnit.h"
 #include "TFile.h"
 #include "TH1.h"
 #include "TMath.h"

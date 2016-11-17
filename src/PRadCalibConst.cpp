@@ -89,15 +89,3 @@ const
 
     return 0.;
 }
-
-ConfigParser &operator >>(ConfigParser &p, PRadCalibConst &c)
-{
-    double f, e, gains[DEFAULT_REF_NUM], nl;
-
-    p >> f >> e;
-    for(int i = 0; i < DEFAULT_REF_NUM; ++i)
-        p >> gains[i];
-    p >> nl;
-
-    return p;
-}

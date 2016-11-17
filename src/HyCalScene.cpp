@@ -177,16 +177,55 @@ void HyCalScene::drawHitsMark(QPainter *painter, const QPointF& pos, const HyCal
     }
 }
 
-void HyCalScene::addItem(QGraphicsItem *item)
+// pverloaded read module list
+void HyCalScene::ReadModuleList(const std::string &path)
 {
-    QGraphicsScene::addItem(item);
+    if(path.empty())
+        return;
+
+    ConfigParser c_parser;
+    if(!c_parser.ReadFile(path)) {
+        std::cerr << "PRad HyCal Detector Error: Failed to read module list file "
+                  << "\"" << path << "\"."
+                  << std::endl;
+        return;
+    }
+
+    // clear all modules
+    ClearModuleList();
+
+    std::string name;
+    std::string type, sector;
+    PRadHyCalModule::Geometry geo;
+
+    // some info that is not read from list
+    while (c_parser.ParseLine())
+    {
+        if(!c_parser.CheckElements(11))
+            continue;
+
+        c_parser >> name >> type
+                 >> geo.size_x >> geo.size_y >> geo.size_z
+                 >> geo.x >> geo.y >> geo.z
+                 >> sector >> geo.row >> geo.column;
+
+        geo.type = PRadHyCalModule::get_module_type(type.c_str());
+        geo.sector = PRadHyCalModule::get_sector_id(sector.c_str());
+
+        HyCalModule *module = new HyCalModule(console, name, geo);
+
+        // failed to add module to detector
+        if(!AddModule(module)) {
+            delete module;
+            continue;
+        }
+        addItem(module);
+    }
+
+    // sort the module by id
+    SortModuleList();
 }
 
-void HyCalScene::addModule(HyCalModule *module)
-{
-    QGraphicsScene::addItem(module);
-    moduleList.push_back(module);
-}
 
 void HyCalScene::AddTDCBox(const QString &text,
                            const QColor &textColor,

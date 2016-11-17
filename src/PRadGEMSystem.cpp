@@ -34,12 +34,14 @@ using namespace std;
 
 // constructor
 PRadGEMSystem::PRadGEMSystem(const string &config_file, int daq_cap, int det_cap)
-: gem_recon(new PRadGEMCluster()), PedestalMode(false)
+: gem_recon(new PRadGEMCluster()), PedestalMode(false),
+  def_ts(3), def_cth(20.), def_zth(5)
 {
     daq_slots.resize(daq_cap, nullptr);
     det_slots.resize(det_cap, nullptr);
 
-    Configure(config_file);
+    if(!config_file.empty())
+        Configure(config_file);
 }
 
 // the copy and move constructor will not only copy all the members that managed
@@ -620,6 +622,11 @@ void PRadGEMSystem::ChooseEvent(const EventData &data)
         if(apv)
             apv->FillZeroSupData(hit.addr.strip, hit.values);
     }
+
+    for(auto &det : det_list)
+    {
+        det->CollectHits();
+    }
 }
 
 // reconstruct certain event
@@ -666,6 +673,11 @@ void PRadGEMSystem::Reconstruct(const EventData &data)
         plane->AddPlaneHit(apv->GetPlaneStripNb(hit.addr.strip), hit.values);
     }
 
+    Reconstruct();
+}
+
+void PRadGEMSystem::Reconstruct()
+{
     for(auto &det : det_list)
     {
         det->ReconstructHits(gem_recon);

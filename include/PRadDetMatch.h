@@ -36,9 +36,9 @@ public:
 
     void Configure(const std::string& path);
 
-    std::vector<MatchedIndex> Match(HyCalHit *hycal, int nHyCal,
-                                    GEMHit *gem1, int nGEM1,
-                                    GEMHit *gem2, int nGEM2) const;
+    std::vector<MatchedIndex> Match(std::vector<HyCalHit> &hycal,
+                                    std::vector<GEMHit> &gem1,
+                                    std::vector<GEMHit> &gem2) const;
     bool PreMatch(const HyCalHit &h, const GEMHit &g) const;
     bool PostMatch(MatchedIndex &idx, HyCalHit &h, GEMHit *g1, GEMHit *g2) const;
 

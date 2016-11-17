@@ -100,7 +100,7 @@ void PRadDataHandler::RegisterEPICS(const string &name, const uint32_t &id, cons
 {
     if(id >= (uint32_t)epics_values.size())
     {
-        epics_values.resize(id, EPICS_UNDEFINED_VALUE);
+        epics_values.resize(id + 1, EPICS_UNDEFINED_VALUE);
     }
 
     epics_map[name] = id;
@@ -272,7 +272,7 @@ void PRadDataHandler::FeedData(ADC1881MData &adcData)
         return;
 
     if(newEvent->is_physics_event()) {
-        if(channel->Sparsified(adcData.val)) {
+        if(channel->Sparsify(adcData.val)) {
             newEvent->add_adc(ADC_Data(channel->GetID(), adcData.val)); // store this data word
         }
     } else if (newEvent->is_monitor_event()) {
@@ -466,6 +466,7 @@ void PRadDataHandler::ChooseEvent(const EventData &event)
         hycal_sys->ChooseEvent(event);
     if(gem_sys)
         gem_sys->ChooseEvent(event);
+
     current_event = event.event_number;
 }
 
@@ -550,7 +551,11 @@ void PRadDataHandler::SaveEPICSChannels(const string &path)
 }
 
 EventData &PRadDataHandler::GetEvent(const unsigned int &index)
+throw (PRadException)
 {
+    if(!energyData.size())
+        throw PRadException("PRad Data Handler Error", "Empty data bank!");
+
     if(index >= energyData.size()) {
         return energyData.back();
     } else {

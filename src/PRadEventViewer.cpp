@@ -33,23 +33,21 @@
 #include "Spectrum.h"
 #include "SpectrumSettingPanel.h"
 #include "HtmlDelegate.h"
-#include "ConfigParser.h"
-
-#include "PRadEvioParser.h"
 #include "PRadHistCanvas.h"
-#include "PRadDataHandler.h"
-#include "PRadDAQUnit.h"
-#include "PRadTDCGroup.h"
 #include "PRadLogBox.h"
+
 #include "PRadBenchMark.h"
+#include "PRadDataHandler.h"
+#include "PRadDSTParser.h"
+#include "PRadEvioParser.h"
+#include "PRadHyCalSystem.h"
+#include "PRadGEMSystem.h"
 
 #ifdef RECON_DISPLAY
 #include "PRadHyCalCluster.h"
-#include "PRadIslandCluster.h"
 #include "PRadSquareCluster.h"
 #include "PRadCoordSystem.h"
 #include "PRadDetMatch.h"
-#include "PRadGEMSystem.h"
 #include "ReconSettingPanel.h"
 #endif
 
@@ -74,8 +72,13 @@
 // constructor                                                                //
 //============================================================================//
 PRadEventViewer::PRadEventViewer()
-: handler(new PRadDataHandler())
+: handler(new PRadDataHandler()),
+  hycal_sys(new PRadHyCalSystem()),
+  gem_sys(new PRadGEMSystem())
 {
+    // build connections
+    handler->SetHyCalSystem(hycal_sys);
+    handler->SetGEMSystem(gem_sys);
     initView();
     setupUI();
 }
@@ -93,6 +96,8 @@ PRadEventViewer::~PRadEventViewer()
     delete detMatch;
 #endif
     delete handler;
+    delete hycal_sys;
+    delete gem_sys;
 }
 
 // set up the view for HyCal
@@ -103,7 +108,15 @@ void PRadEventViewer::initView()
 
     generateScalerBoxes();
     generateSpectrum();
-    generateHyCalModules();
+
+    hycal_sys->SetDetector(HyCal);
+    hycal_sys->Configure("config/hycal.conf");
+    gem_sys->Configure("config/gem.conf");
+
+    // Default setting
+    selection = nullptr; //(HyCalModule*) HyCal->GetModuleList().at(0);
+    annoType = NoAnnotation;
+    viewMode = EnergyView;
 
     view = new HyCalView;
     view->setScene(HyCal);
@@ -178,23 +191,7 @@ void PRadEventViewer::generateSpectrum()
     connect(energySpectrum, SIGNAL(spectrumChanged()), this, SLOT(Refresh()));
 }
 
-// crate HyCal modules from module list
-void PRadEventViewer::generateHyCalModules()
-{
-    readModuleList();
-
-    // other information for data handler
-    handler->ReadEPICSChannels("config/epics_channels.txt");
-    handler->ReadPedestalFile("config/pedestal.dat");
-    handler->ReadCalibrationFile("config/calibration.txt");
-
-    // Default setting
-    selection = HyCal->GetModuleList().at(0);
-    annoType = NoAnnotation;
-    viewMode = EnergyView;
-
-}
-
+// crate scaler boxed
 void PRadEventViewer::generateScalerBoxes()
 {
     HyCal->AddScalerBox(tr("Pb-Glass Sum")    , Qt::black, QRectF(-650, -640, 150, 40), QColor(255, 155, 155, 50));
@@ -430,8 +427,12 @@ void PRadEventViewer::setupInfoWindow()
 
     // add new items to status info
     QStringList statusProperty;
-    statusProperty << tr("  Module ID") << tr("  Module Type") << tr("  DAQ Address") << tr("  TDC Group") << tr("  HV Address") << tr("  Occupancy")
-                   << tr("  Pedestal") << tr("  Event Number") << tr("  Energy") << tr("  ADC Count") << tr("  High Voltage") << tr("  Custom (Editable)");
+    statusProperty << tr("  Module ID") << tr("  Module Type")
+                   << tr("  DAQ Address") << tr("  TDC Group")
+                   << tr("  HV Address") << tr("  Occupancy")
+                   << tr("  Pedestal") << tr("  Event Number")
+                   << tr("  Energy") << tr("  ADC Count")
+                   << tr("  High Voltage") << tr("  Custom (Editable)");
 
     for(int i = 0; i < 6; ++i) // row iteration
     {
@@ -464,85 +465,28 @@ void PRadEventViewer::setupInfoWindow()
 // read information from configuration files                                  //
 //============================================================================//
 
-// read module list from file
-void PRadEventViewer::readModuleList()
-{
-    // build TDC groups first
-    handler->ReadTDCList("config/tdc_group_list.txt");
-
-    ConfigParser c_parser;
-    if(!c_parser.ReadFile("config/module_list.txt")) {
-        std::cerr << "ERROR: Missing configuration file \"config/module_list.txt\""
-                  << ", cannot generate HyCal channels!"
-                  << std::endl;
-        exit(1);
-    }
-
-    std::string moduleName;
-    std::string tdcGroup;
-    unsigned int crate, slot, channel, type;
-    double size_x, size_y, x, y;
-
-    // some info that is not read from list
-    // initialize first
-
-    while (c_parser.ParseLine())
-    {
-        if(c_parser.NbofElements() == 13) {
-            c_parser >> moduleName // module name
-                     >> crate >> slot >> channel // daq settings
-                     >> tdcGroup // tdc group name
-                     >> type >> size_x >> size_y >> x >> y; // geometry
-
-            ChannelAddress daqAddr(crate, slot, channel);
-            PRadDAQUnit::Geometry geo(PRadDAQUnit::ChannelType(type), size_x, size_y, x, y);
-
-            HyCalModule* newModule = new HyCalModule(this, moduleName, daqAddr, tdcGroup, geo);
-
-            c_parser >> crate >> slot >> channel; // hv settings
-            ChannelAddress hvAddr(crate, slot, channel);
-            newModule->UpdateHVSetup(hvAddr);
-
-            HyCal->addModule(newModule);
-            handler->RegisterChannel(newModule);
-        } else {
-            std::cout << "Unrecognized input format in configuration file, skipped one line!"
-                      << std::endl;
-        }
-    }
-
-    // make handler to build the module map
-    handler->BuildChannelMap();
-
-    // set TDC Group box for the TDC view
-    setTDCGroupBox();
-}
-
 // build module maps for speed access to module
 // send the tdc group geometry to scene for annotation
 void PRadEventViewer::setTDCGroupBox()
 {
-    // tdc maps
-    std::unordered_map< std::string, PRadTDCGroup * > tdcList = handler->GetTDCGroupSet();
-    for(auto &it : tdcList)
+    for(auto &tdc : hycal_sys->GetTDCList())
     {
-        PRadTDCGroup *tdcGroup = it.second;
-        std::vector< PRadDAQUnit* > groupList = tdcGroup->GetGroupList();
+        auto ch_list = tdc->GetChannelList();
 
-        if(!groupList.size())
+        if(!ch_list.size())
             continue;
 
         // get id and set background color
-        QString tdcGroupName = QString::fromStdString(tdcGroup->GetName());
+        QString tdcGroupName = QString::fromStdString(tdc->GetName());
         QColor bkgColor;
-        int tdc = tdcGroupName.mid(1).toInt();
+        int tdc_id = tdcGroupName.mid(1).toInt();
         if(tdcGroupName.at(0) == 'G') { // below is to make different color for adjacent groups
-             if(tdc&1)
+             if(tdc_id&1)
                 bkgColor = QColor(255, 153, 153, 50);
              else
                 bkgColor = QColor(204, 204, 255, 50);
         } else {
-            if((tdc&1)^(((tdc-1)/6)&1))
+            if((tdc_id&1)^(((tdc_id-1)/6)&1))
                 bkgColor = QColor(51, 204, 255, 50);
             else
                 bkgColor = QColor(0, 255, 153, 50);
@@ -552,20 +496,20 @@ void PRadEventViewer::setTDCGroupBox()
         double xmax = -600., xmin = 600.;
         double ymax = -600., ymin = 600.;
         bool has_module = false;
-        for(auto &channel : groupList)
+        for(auto &channel : ch_list)
         {
-            HyCalModule *module = dynamic_cast<HyCalModule *>(channel);
+            PRadHyCalModule *module = channel->GetModule();
             if(module == nullptr)
                 continue;
 
             has_module = true;
-            PRadDAQUnit::Geometry geo = module->GetGeometry();
+            auto geo = module->GetGeometry();
             xmax = std::max(geo.x + geo.size_x/2., xmax);
             xmin = std::min(geo.x - geo.size_x/2., xmin);
             ymax = std::max(geo.y + geo.size_y/2., ymax);
             ymin = std::min(geo.y - geo.size_y/2., ymin);
         }
-        QRectF groupBox = QRectF(xmin + HYCAL_SHIFT, ymin, xmax-xmin, ymax-ymin);
+        QRectF groupBox = QRectF(CARTESIAN_TO_HYCALSCENE(xmin, ymin), xmax-xmin, ymax-ymin);
         if(has_module)
             HyCal->AddTDCBox(tdcGroupName, Qt::black, groupBox, bkgColor);
     }
@@ -579,52 +523,9 @@ void PRadEventViewer::setTDCGroupBox()
 template<typename... Args>
 void PRadEventViewer::ModuleAction(void (HyCalModule::*act)(Args...), Args&&... args)
 {
-    QVector<HyCalModule*> moduleList = HyCal->GetModuleList();
-    for(auto &module : moduleList)
+    for(auto &module : HyCal->GetModuleList())
     {
-        (module->*act)(std::forward<Args>(args)...);
-    }
-}
-
-void PRadEventViewer::ListModules()
-{
-    QVector<HyCalModule*> moduleList = HyCal->GetModuleList();
-    std::ofstream outf("config/current_list.txt");
-
-    outf << "#"
-         << std::setw(9) << "Name"
-         << std::setw(10) << "DAQ Crate"
-         << std::setw(6) << "Slot"
-         << std::setw(6) << "Chan"
-         << std::setw(6) << "TDC"
-         << std::setw(10) << "Type"
-         << std::setw(10) << "size_x"
-         << std::setw(10) << "size_y"
-         << std::setw(10) << "x"
-         << std::setw(10) << "y"
-         << std::setw(10) << "HV Crate"
-         << std::setw(6) << "Slot"
-         << std::setw(6) << "Chan"
-         << std::endl;
-
-    for(auto &module : moduleList)
-    {
-        outf << std::setw(10) << module->GetReadID().toStdString()
-             << std::setw(10) << module->GetDAQInfo().crate
-             << std::setw(6)  << module->GetDAQInfo().slot
-             << std::setw(6)  << module->GetDAQInfo().channel
-             << std::setw(6)  << module->GetTDCName()
-             << std::setw(10) << (int)module->GetGeometry().type
-             << std::setw(10)  << module->GetGeometry().size_x
-             << std::setw(10)  << module->GetGeometry().size_y
-             << std::setw(10)  << module->GetGeometry().x
-             << std::setw(10)  << -module->GetGeometry().y
-//             << std::setw(10) << module->GetPedestal().mean
-//             << std::setw(8)  << module->GetPedestal().sigma
-             << std::setw(10) << module->GetHVInfo().crate
-             << std::setw(6)  << module->GetHVInfo().slot
-             << std::setw(6)  << module->GetHVInfo().channel
-             << std::endl;
+        (((HyCalModule*)module)->*act)(std::forward<Args>(args)...);
     }
 }
 
@@ -658,7 +559,7 @@ void PRadEventViewer::Refresh()
         auto moduleList = HyCal->GetModuleList();
         for(auto module : moduleList)
         {
-            ChannelAddress hv_addr = module->GetHVInfo();
+            ChannelAddress hv_addr = module->GetHVAddress();
             PRadHVSystem::Voltage volt = hvSystem->GetVoltage(hv_addr.crate, hv_addr.slot, hv_addr.channel);
             if(!volt.ON)
                 module->SetColor(QColor(255, 255, 255));
@@ -672,7 +573,7 @@ void PRadEventViewer::Refresh()
         auto moduleList = HyCal->GetModuleList();
         for(auto module : moduleList)
         {
-            ChannelAddress hv_addr = module->GetHVInfo();
+            ChannelAddress hv_addr = module->GetHVAddress();
             PRadHVSystem::Voltage volt = hvSystem->GetVoltage(hv_addr.crate, hv_addr.slot, hv_addr.channel);
             module->SetColor(energySpectrum->GetColor(volt.Vset));
         }
@@ -759,7 +660,7 @@ void PRadEventViewer::openPedFile()
     QString file = getFileName(tr("Open pedestal file"), dir, filters, "");
 
     if (!file.isEmpty()) {
-        handler->ReadPedestalFile(file.toStdString());
+        hycal_sys->ReadPedestalFile(file.toStdString());
     }
 }
 
@@ -804,7 +705,7 @@ void PRadEventViewer::openCalibrationFile()
     QString file = getFileName(tr("Open calibration constants file"), dir, filters, "");
 
     if (!file.isEmpty()) {
-        handler->ReadCalibrationFile(file.toStdString());
+        hycal_sys->GetDetector()->ReadCalibrationFile(file.toStdString());
     }
 }
 
@@ -819,7 +720,7 @@ void PRadEventViewer::openGainFactorFile()
     QString file = getFileName(tr("Open gain factors file"), dir, filters, "");
 
     if (!file.isEmpty()) {
-        handler->ReadGainFile(file.toStdString());
+        hycal_sys->ReadRunInfoFile(file.toStdString());
     }
 }
 
@@ -937,12 +838,20 @@ void PRadEventViewer::changeCurrentEvent(int evt)
 
 void PRadEventViewer::handleEventChange(int evt)
 {
-    handler->ChooseEvent(evt - 1); // fetch data from handler
+    try {
+        auto &event = handler->GetEvent(evt - 1); // fetch data from handler
+        handler->ChooseEvent(event);
+
 #ifdef RECON_DISPLAY
-    if(enableRecon->isChecked())
-        showReconEvent(evt - 1);
+        if(enableRecon->isChecked() && event.is_physics_event())
+            showReconEvent();
 #endif
-    Refresh();
+        Refresh();
+    } catch (PRadException &e) {
+        QMessageBox::critical(this,
+                              QString::fromStdString(e.FailureType()),
+                              QString::fromStdString(e.FailureDesc()));
+    }
 }
 
 void PRadEventViewer::updateEventRange()
@@ -967,30 +876,33 @@ void PRadEventViewer::UpdateHistCanvas()
     switch(histType) {
     default:
     case EnergyTDCHist:
-        if(selection != nullptr) {
-            histCanvas->UpdateHist(1, selection->GetHist("PHYS"));
-            PRadTDCGroup *tdc = selection->GetTDCGroup();
+        if(selection && selection->GetChannel()) {
+            histCanvas->UpdateHist(0, selection->GetChannel()->GetHist("Physics"));
+            PRadTDCChannel *tdc = selection->GetChannel()->GetTDC();
             if(tdc)
-                histCanvas->UpdateHist(2, tdc->GetHist());
+                histCanvas->UpdateHist(1, tdc->GetHist());
             else
-                histCanvas->UpdateHist(2, selection->GetHist("LMS"));
+                histCanvas->UpdateHist(1, selection->GetChannel()->GetHist("LMS"));
         }
-        histCanvas->UpdateHist(3, handler->GetEnergyHist());
+        histCanvas->UpdateHist(2, hycal_sys->GetEnergyHist());
         break;
 
     case ModuleHist:
-        if(selection != nullptr) {
-            histCanvas->UpdateHist(1, selection->GetHist("PHYS"));
-            histCanvas->UpdateHist(2, selection->GetHist("LMS"));
-            histCanvas->UpdateHist(3, selection->GetHist("PED"));
+        if(selection && selection->GetChannel()) {
+            histCanvas->UpdateHist(0, selection->GetChannel()->GetHist("Physics"));
+            histCanvas->UpdateHist(1, selection->GetChannel()->GetHist("LMS"));
+            histCanvas->UpdateHist(2, selection->GetChannel()->GetHist("Pedestal"));
         }
         break;
 
-     case TaggerHist:
-         histCanvas->UpdateHist(1, handler->GetTagEHist());
-         histCanvas->UpdateHist(2, handler->GetTagTHist());
-         histCanvas->UpdateHist(3, handler->GetEnergyHist());
-     }
+    case TaggerHist:
+        /* TODO re-enable after adding tagger system
+         histCanvas->UpdateHist(0, handler->GetTagEHist());
+         histCanvas->UpdateHist(1, handler->GetTagTHist());
+         histCanvas->UpdateHist(2, handler->GetEnergyHist());
+        */
+        break;
+    }
 }
 
 void PRadEventViewer::SelectModule(HyCalModule* module)
@@ -1007,43 +919,55 @@ void PRadEventViewer::UpdateStatusInfo()
 
     QStringList valueList;
     QString typeInfo;
-
-    ChannelAddress daqInfo = selection->GetDAQInfo();
-    ChannelAddress hvInfo = selection->GetHVInfo();
-    PRadDAQUnit::Geometry geoInfo = selection->GetGeometry();
+    PRadHyCalModule::Geometry geoInfo = selection->GetGeometry();
 
     switch(geoInfo.type)
     {
-    case HyCalModule::LeadTungstate:
+    case PRadHyCalModule::PbWO4:
         typeInfo = tr("<center><p><b>PbWO<sub>4</sub></b></p></center>");
         break;
-    case HyCalModule::LeadGlass:
+    case PRadHyCalModule::PbGlass:
         typeInfo = tr("<center><p><b>Pb-Glass</b></p></center>");
-        break;
-    case HyCalModule::Scintillator:
-        typeInfo = tr("<center><p><b>Scintillator</b></p></center>");
-        break;
-    case HyCalModule::LightMonitor:
-        typeInfo = tr("<center><p><b>Light Monitor</b></p></center>");
         break;
     default:
         typeInfo = tr("<center><p><b>Unknown</b></p></center>");
         break;
     }
 
-    // first value column
-    valueList << selection->GetReadID()                                   // module ID
-              << typeInfo                                                 // module type
-              << tr("C") + QString::number(daqInfo.crate)                 // daq crate
-                 + tr(", S") + QString::number(daqInfo.slot)              // daq slot
-                 + tr(", Ch") + QString::number(daqInfo.channel)          // daq channel
-              << QString::fromStdString(selection->GetTDCName())          // tdc group
-              << tr("C") + QString::number(hvInfo.crate)                  // hv crate
-                 + tr(", S") + QString::number(hvInfo.slot)               // hv slot
-                 + tr(", Ch") + QString::number(hvInfo.channel)           // hv channel
-              << QString::number(selection->GetOccupancy());              // Occupancy
+    ChannelAddress daqAddr;
+    double pedMean = 0, pedSig = 0;
+    int occupancy = 0, adcVal = 0;
+    PRadADCChannel *channel = selection->GetChannel();
+    std::string tdcName;
+    if(channel) {
+        pedMean = channel->GetPedestal().mean;
+        pedSig = channel->GetPedestal().sigma;
+        occupancy = channel->GetOccupancy();
+        daqAddr = channel->GetAddress();
+        adcVal = channel->GetValue();
+        if(channel->GetTDC())
+            tdcName = channel->GetTDC()->GetName();
+    }
 
-    PRadDAQUnit::Pedestal ped = selection->GetPedestal();
+#ifdef USE_CAEN_HV
+    ChannelAddress hvAddr = selection->GetHVAddress();
+#endif
+
+    // first value column
+    valueList << selection->GetReadID()                             // module ID
+              << typeInfo                                           // module type
+              << tr("C") + QString::number(daqAddr.crate)           // daq crate
+                 + tr(", S") + QString::number(daqAddr.slot)        // daq slot
+                 + tr(", Ch") + QString::number(daqAddr.channel)    // daq channel
+              << QString::fromStdString(tdcName)                    // tdc group
+#ifdef USE_CAEN_HV
+              << tr("C") + QString::number(hvAddr.crate)            // hv crate
+                 + tr(", S") + QString::number(hvAddr.slot)         // hv slot
+                 + tr(", Ch") + QString::number(hvAddr.channel)     // hv channel
+#else
+              << tr("N/A")
+#endif
+              << QString::number(occupancy);                        // Occupancy
 
 #ifdef USE_CAEN_HV
     PRadHVSystem::Voltage volt = hvSystem->GetVoltage(hvInfo.crate, hvInfo.slot, hvInfo.channel);
@@ -1055,19 +979,21 @@ void PRadEventViewer::UpdateStatusInfo()
 #endif
 
     // second value column
-    valueList << QString::number(ped.mean)                                // pedestal mean
+    valueList << QString::number(pedMean)                           // pedestal mean
 #if QT_VERSION >= 0x050000
                  + tr(" \u00B1 ")
 #else
                  + tr(" \261 ")
 #endif
-                 + QString::number(ped.sigma,'f',2)                       // pedestal sigma
-              << QString::number(handler->GetCurrentEventNb())            // current event
-              << QString::number(selection->GetEnergy()) + tr(" MeV / ")  // energy
-                 + QString::number(handler->GetEnergy()) + tr(" MeV")     // total energy
-              << QString::number(selection->GetADC())                     // ADC value
-              << temp                                                     // HV info
-              << QString::number(selection->GetCustomValue());            // custom value
+                 + QString::number(pedSig,'f',2)                    // pedestal sigma
+              << QString::number(handler->GetCurrentEventNb())      // current event
+              << QString::number(selection->GetEnergy())
+                 + tr(" MeV / ")                                    // energy
+                 + QString::number(HyCal->GetEnergy())
+                 + tr(" MeV")                                       // total energy
+              << QString::number(adcVal)                            // ADC value
+              << temp                                               // HV info
+              << QString::number(selection->GetCustomValue());      // custom value
 
     // update status info window
     for(int i = 0; i < 6; ++i)
@@ -1114,7 +1040,7 @@ void PRadEventViewer::readCustomValue(const QString &filepath)
         return;
     }
 
-    ModuleAction(&HyCalModule::UpdateCustomValue, 0.);
+    ModuleAction(&HyCalModule::SetCustomValue, 0.);
 
     double min_value = 0.;
     double max_value = 1.;
@@ -1128,9 +1054,9 @@ void PRadEventViewer::readCustomValue(const QString &filepath)
             std::string name;
             double value;
             c_parser >> name >> value;
-            HyCalModule *module = dynamic_cast<HyCalModule*>(handler->GetChannel(name));
+            HyCalModule *module = (HyCalModule*) HyCal->GetModule(name);
             if(module != nullptr) {
-                module->UpdateCustomValue(value);
+                module->SetCustomValue(value);
                 min_value = std::min(value, min_value);
                 max_value = std::max(value, max_value);
             }
@@ -1197,7 +1123,7 @@ void PRadEventViewer::saveHistToFile()
     if(rootFile.isEmpty()) // did not open a file
         return;
 
-    handler->SaveHistograms(rootFile.toStdString());
+    hycal_sys->SaveHists(rootFile.toStdString());
 
     rStatusLabel->setText(tr("All histograms are saved to ") + rootFile);
 }
@@ -1214,13 +1140,13 @@ void PRadEventViewer::savePedestalFile()
 
     std::ofstream pedestalmap(pedFile.toStdString());
 
-    for(auto &channel : handler->GetChannelList())
+    for(auto &channel : hycal_sys->GetADCList())
     {
-        ChannelAddress daqInfo = channel->GetDAQInfo();
-        PRadDAQUnit::Pedestal ped = channel->GetPedestal();
-        pedestalmap << daqInfo.crate << "  "
-                    << daqInfo.slot << "  "
-                    << daqInfo.channel << "  "
+        ChannelAddress addr = channel->GetAddress();
+        PRadADCChannel::Pedestal ped = channel->GetPedestal();
+        pedestalmap << addr.crate << "  "
+                    << addr.slot << "  "
+                    << addr.channel << "  "
                     << ped.mean << "  "
                     << ped.sigma << std::endl;
     }
@@ -1230,13 +1156,16 @@ void PRadEventViewer::savePedestalFile()
 
 void PRadEventViewer::findPeak()
 {
-    if(selection == nullptr) return;
-    TH1 *h = selection->GetHist("PHYS");
+    if(!selection || !selection->GetChannel())
+        return;
+
+    TH1 *h = selection->GetChannel()->GetHist("PHYS");
+
     //Use TSpectrum to find the peak candidates
     TSpectrum s(10);
     int nfound = s.Search(h, 20 , "", 0.05);
     if(nfound) {
-        double ped = selection->GetPedestal().mean;
+        double ped = selection->GetChannel()->GetPedestal().mean;
         auto *xpeaks = s.GetPositionX();
         std::cout <<"Main peak location: " << xpeaks[0] <<". "
                   << int(xpeaks[0] - ped) << " away from the pedestal."
@@ -1247,7 +1176,7 @@ void PRadEventViewer::findPeak()
 
 void PRadEventViewer::fitPedestal()
 {
-    handler->FitPedestal();
+    hycal_sys->FitPedestal();
     UpdateHistCanvas();
     emit currentEventChanged(eventSpin->value());
 }
@@ -1296,12 +1225,12 @@ void PRadEventViewer::fitHistogram()
     if (dialog.exec() == QDialog::Accepted) {
         // If the user didn't dismiss the dialog, do something with the fields
         try {
-            auto pars = handler->FitHistogram(fields.at(0)->text().toStdString(),
-                                              fields.at(1)->text().toStdString(),
-                                              fields.at(2)->text().toStdString(),
-                                              fields.at(3)->text().toDouble(),
-                                              fields.at(4)->text().toDouble(),
-                                              true);
+            auto pars = hycal_sys->FitHist(fields.at(0)->text().toStdString(),
+                                           fields.at(1)->text().toStdString(),
+                                           fields.at(2)->text().toStdString(),
+                                           fields.at(3)->text().toDouble(),
+                                           fields.at(4)->text().toDouble(),
+                                           true);
 
             UpdateHistCanvas();
 
@@ -1322,7 +1251,7 @@ void PRadEventViewer::correctGainFactor()
         handler->SetRunNumber(run_number);
     }
 
-    handler->CorrectGainFactor();
+    hycal_sys->CorrectGainFactor(2);
     // Refill the histogram to show the changes
     handler->RefillEnergyHist();
     UpdateHistCanvas();
@@ -1380,16 +1309,13 @@ void PRadEventViewer::handleRootEvents()
 
 void PRadEventViewer::setupReconDisplay()
 {
-    // load GEM configuration
-    handler->ReadGEMConfiguration("database/gem_map.txt");
-    handler->ReadGEMPedestalFile("database/gem_ped.dat");
-
     // add hycal clustering methods
     coordSystem = new PRadCoordSystem("database/coordinates.dat");
     detMatch = new PRadDetMatch("config/det_match.conf");
 
     reconSetting = new ReconSettingPanel(this);
-    reconSetting->ConnectDataHandler(handler);
+    reconSetting->ConnectHyCalSystem(hycal_sys);
+    reconSetting->ConnectGEMSystem(gem_sys);
     reconSetting->ConnectCoordSystem(coordSystem);
     reconSetting->ConnectMatchSystem(detMatch);
 
@@ -1439,39 +1365,32 @@ void PRadEventViewer::setupReconMethods()
     emit(changeCurrentEvent(eventSpin->value()));
 }
 
-void PRadEventViewer::showReconEvent(int evt)
+void PRadEventViewer::showReconEvent()
 {
     HyCal->ClearHitsMarks();
     if(handler->GetEventCount() == 0)
         return;
 
-    auto &thisEvent = handler->GetEvent(evt);
-
-    if(!thisEvent.is_physics_event())
-        return;
-
     // reconstruction
-    PRadGEMSystem *gem_srs = handler->GetSRS();
-    handler->HyCalReconstruct(thisEvent);
-    gem_srs->Reconstruct(thisEvent);
+    hycal_sys->Reconstruct();
+    gem_sys->Reconstruct();
 
     // get reconstructed clusters
-    int n, n1, n2;
-    HyCalHit *hycal_hit = handler->GetHyCalCluster(n);
-    GEMHit *gem1_hit = gem_srs->GetDetector("PRadGEM1")->GetCluster(n1);
-    GEMHit *gem2_hit = gem_srs->GetDetector("PRadGEM2")->GetCluster(n2);
+    auto &hycal_hit = HyCal->GetCluster();
+    auto &gem1_hit = gem_sys->GetDetector(PRadDetector::PRadGEM1)->GetCluster();
+    auto &gem2_hit = gem_sys->GetDetector(PRadDetector::PRadGEM2)->GetCluster();
 
     // coordinates transform, projection
-    coordSystem->Transform(hycal_hit, n);
-    coordSystem->Transform(gem1_hit, n1);
-    coordSystem->Transform(gem2_hit, n2);
+    coordSystem->Transform(hycal_hit.begin(), hycal_hit.end());
+    coordSystem->Transform(gem1_hit.begin(), gem1_hit.end());
+    coordSystem->Transform(gem2_hit.begin(), gem2_hit.end());
 
-    coordSystem->Projection(hycal_hit, n);
-    coordSystem->Projection(gem1_hit, n1);
-    coordSystem->Projection(gem2_hit, n2);
+    coordSystem->Projection(hycal_hit.begin(), hycal_hit.end());
+    coordSystem->Projection(gem1_hit.begin(), gem1_hit.end());
+    coordSystem->Projection(gem2_hit.begin(), gem2_hit.end());
 
     // hits matching
-    auto matched = detMatch->Match(hycal_hit, n, gem1_hit, n1, gem2_hit, n2);
+    auto matched = detMatch->Match(hycal_hit, gem1_hit, gem2_hit);
 
     // display HyCal hits
     if(reconSetting->ShowDetector(PRadDetector::HyCal)) {
@@ -1484,10 +1403,10 @@ void PRadEventViewer::showReconEvent(int evt)
                 HyCal->AddHitsMark("HyCal Hit", p, attr, QString::number(hycal_hit[m.hycal].E) + "MeV");
             }
         } else {
-            for(int i = 0; i < n; ++i)
+            for(auto &hit : hycal_hit)
             {
-                QPointF p(CARTESIAN_TO_HYCALSCENE(hycal_hit[i].x, hycal_hit[i].y));
-                HyCal->AddHitsMark("HyCal Hit", p, attr, QString::number(hycal_hit[i].E) + " MeV");
+                QPointF p(CARTESIAN_TO_HYCALSCENE(hit.x, hit.y));
+                HyCal->AddHitsMark("HyCal Hit", p, attr, QString::number(hit.E) + " MeV");
             }
         }
 
@@ -1506,9 +1425,9 @@ void PRadEventViewer::showReconEvent(int evt)
                 }
             }
         } else {
-            for(int i = 0; i < n1; ++i)
+            for(auto &hit : gem1_hit)
             {
-                QPointF p(CARTESIAN_TO_HYCALSCENE(gem1_hit[i].x, gem1_hit[i].y));
+                QPointF p(CARTESIAN_TO_HYCALSCENE(hit.x, hit.y));
                 HyCal->AddHitsMark("GEM1 Hit", p, attr);
             }
         }
@@ -1527,9 +1446,9 @@ void PRadEventViewer::showReconEvent(int evt)
                 }
             }
         } else {
-            for(int i = 0; i < n2; ++i)
+            for(auto &hit : gem2_hit)
             {
-                QPointF p(CARTESIAN_TO_HYCALSCENE(gem2_hit[i].x, gem2_hit[i].y));
+                QPointF p(CARTESIAN_TO_HYCALSCENE(hit.x, hit.y));
                 HyCal->AddHitsMark("GEM2 Hit", p, attr);
             }
         }

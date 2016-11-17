@@ -243,6 +243,16 @@ void PRadGEMDetector::ReconstructHits()
     ReconstructHits(gem_recon);
 }
 
+// collect all the hits from APVs
+void PRadGEMDetector::CollectHits()
+{
+    for(auto &plane : planes)
+    {
+        if(plane != nullptr)
+            plane->CollectAPVHits();
+    }
+}
+
 // clear all the hits on plane
 void PRadGEMDetector::ClearHits()
 {
@@ -296,14 +306,5 @@ const
         return std::vector<PRadGEMAPV*>();
 
     return planes[type]->GetAPVList();
-}
-
-// get reconstructed clusters as an array
-const GEMHit *PRadGEMDetector::GetCluster(int &n)
-const
-{
-    n = (int)gem_clusters.size();
-    // vector to array
-    return &gem_clusters[0];
 }
 

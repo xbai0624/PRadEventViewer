@@ -50,25 +50,25 @@ void PRadDetMatch::Configure(const std::string &path)
     overlapSigma = getDefConfig<float>("GEM_Overlap_Factor", 10, verbose);
 }
 
-std::vector<MatchedIndex> PRadDetMatch::Match(HyCalHit *hycal, int nHyCal,
-                                              GEMHit *gem1, int nGEM1,
-                                              GEMHit *gem2, int nGEM2)
+std::vector<MatchedIndex> PRadDetMatch::Match(std::vector<HyCalHit> &hycal,
+                                              std::vector<GEMHit> &gem1,
+                                              std::vector<GEMHit> &gem2)
 const
 {
     std::vector<MatchedIndex> result;
 
-    for(int i = 0; i < nHyCal; ++i)
+    for(size_t i = 0; i < hycal.size(); ++i)
     {
         MatchedIndex index(i);
 
         // pre match, only check if distance is within the range
         // fill in hits as candidates
-        for(int j = 0; j < nGEM1; ++j)
+        for(size_t j = 0; j < gem1.size(); ++j)
         {
             if(PreMatch(hycal[i], gem1[j]))
                 index.gem1_cand.push_back(j);
         }
-        for(int j = 0; j < nGEM2; ++j)
+        for(size_t j = 0; j < gem2.size(); ++j)
         {
             if(PreMatch(hycal[i], gem2[j]))
                 index.gem2_cand.push_back(j);
@@ -76,7 +76,7 @@ const
 
         // post match, do further check, which one is the closest
         // and if the two gem hits are overlapped
-        if(PostMatch(index, hycal[i], gem1, gem2))
+        if(PostMatch(index, hycal[i], &gem1[0], &gem2[0]))
             result.push_back(index);
     }
 

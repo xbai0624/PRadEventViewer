@@ -1,37 +1,39 @@
-#ifndef PRAD_HYCAL_MODULE_H
-#define PRAD_HYCAL_MODULE_H
+#ifndef QT_HYCAL_MODULE_H
+#define QT_HYCAL_MODULE_H
 
 #include <QGraphicsItem>
 #include <QStyleOptionGraphicsItem>
 #include <QFont>
-#include "PRadDAQUnit.h"
+#include "PRadHyCalModule.h"
+#include "datastruct.h"
+
 
 class PRadEventViewer;
 
-class HyCalModule : public QGraphicsItem, public PRadDAQUnit
+class HyCalModule : public QGraphicsItem, public PRadHyCalModule
 {
 public:
     HyCalModule(PRadEventViewer* const p,
-                const std::string &rid,
-                const ChannelAddress &daqAddr,
-                const std::string &tdc,
-                const PRadDAQUnit::Geometry &geo);
+                const std::string &name,
+                const PRadHyCalModule::Geometry &geo);
     virtual ~HyCalModule();
 
     void Initialize();
-    void CalcGeometry();
     void SetColor(const QColor &c) {color = c;};
     void SetColor(const double &val);
-    void ShowPedestal() {SetColor(pedestal.mean);};
-    void ShowPedSigma() {SetColor(pedestal.sigma);};
-    void ShowOccupancy() {SetColor(occupancy);};
+    void ShowPedestal();
+    void ShowPedSigma();
+    void ShowOccupancy();
     void ShowEnergy();
     void ShowCustomValue() {SetColor(custom_value);};
-    void UpdateHVSetup(ChannelAddress &set) {hv_addr = set;};
-    void UpdateCustomValue(double val) {custom_value = val;};
-    const double &GetCustomValue() {return custom_value;};
-    QString GetReadID() {return name;};
-    ChannelAddress GetHVInfo() {return hv_addr;};
+    void SetCustomValue(double val) {custom_value = val;};
+    const double &GetCustomValue() const {return custom_value;};
+    QString GetReadID() const {return qname;};
+
+#ifdef USE_CAEN_HV
+    void SetHVAddress(const ChannelAddress &set) {hv_addr = set;};
+    const ChannelAddress &GetHVAddress() const {return hv_addr;};
+#endif
 
     // overload
     QRectF boundingRect() const;
@@ -46,7 +48,7 @@ protected:
 
 private:
     PRadEventViewer *console;
-    QString name;
+    QString qname;
     ChannelAddress hv_addr;
 
     bool m_hover;

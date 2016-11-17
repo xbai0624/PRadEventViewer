@@ -50,6 +50,7 @@ public:
     void ConnectPlanes();
     void ReconstructHits(PRadGEMCluster *c);
     void ReconstructHits();
+    void CollectHits();
     void ClearHits();
 
     // get parameters
@@ -60,8 +61,7 @@ public:
     PRadGEMPlane *GetPlane(const std::string &type) const;
     std::vector<PRadGEMPlane*> GetPlaneList() const;
     std::vector<PRadGEMAPV*> GetAPVList(const int &type) const;
-    int GetNClusters() const {return (int)gem_clusters.size();};
-    const GEMHit *GetCluster(int &n) const;
+    std::vector<GEMHit> &GetCluster() {return gem_clusters;};
     const std::vector<GEMHit> &GetCluster() const {return gem_clusters;};
 
 private:

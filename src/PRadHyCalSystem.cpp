@@ -166,11 +166,18 @@ void PRadHyCalSystem::Configure(const std::string &path)
         hycal->ReadCalibrationFile(GetConfig<std::string>("Calibration File"));
     }
 
+    // channel, pedestal and gain factors
     ReadChannelList(GetConfig<std::string>("DAQ Channel List"));
     ReadPedestalFile(GetConfig<std::string>("DAQ Pedestal File"));
     ReadRunInfoFile(GetConfig<std::string>("Run Info File"));
 
+    // build connection between modules and channels
     BuildConnections();
+
+    // reconstruction configuration
+    SetClusterMethod(GetConfig<std::string>("Cluster Method"));
+    recon->Configure(GetConfig<std::string>("Cluster Configuration"));
+
 }
 
 // read DAQ channel list
@@ -441,12 +448,16 @@ void PRadHyCalSystem::ChooseEvent(const EventData &event)
 // reconstruct the event to clusters
 void PRadHyCalSystem::Reconstruct(const EventData &event)
 {
+    // updat the information first
+    ChooseEvent(event);
+    Reconstruct();
+}
+
+void PRadHyCalSystem::Reconstruct()
+{
     // cannot reconstruct without necessary objects
     if(!hycal || !recon)
         return;
-
-    // updat the information first
-    ChooseEvent(event);
 
     recon->Reconstruct(hycal);
 }
@@ -463,6 +474,8 @@ void PRadHyCalSystem::Reset()
 // add detector, remove the original detector
 void PRadHyCalSystem::SetDetector(PRadHyCalDetector *h)
 {
+    RemoveDetector();
+
     hycal = h;
 
     if(hycal)
@@ -709,6 +722,9 @@ void PRadHyCalSystem::ClearClusterMethods()
 
 void PRadHyCalSystem::SetClusterMethod(const std::string &name)
 {
+    if(name.empty())
+        return;
+
     auto it = recon_map.find(name);
     if(it != recon_map.end()) {
         recon = it->second;

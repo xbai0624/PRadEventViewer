@@ -98,8 +98,7 @@ public:
     double GetLiveTime() {return (1. - runInfo.dead_count/runInfo.ungated_count);};
     TH2I *GetTagEHist() {return TagEHist;};
     TH2I *GetTagTHist() {return TagTHist;};
-    EventData &GetEvent(const unsigned int &index);
-    EventData &GetLastEvent();
+    EventData &GetEvent(const unsigned int &index) throw (PRadException);
     std::deque<EventData> &GetEventData() {return energyData;};
     EPICSData &GetEPICSEvent(const unsigned int &index);
     std::deque<EPICSData> &GetEPICSData() {return epicsData;};
