@@ -77,9 +77,14 @@ std::vector<PRadHyCalModule*> PRadSquareCluster::findCenters(const PRadHyCalDete
         {
             // overlap with other modules, discarded this center
             // TODO, probably better to do splitting other than discarding
-            if((fabs(center->GetX() - module->GetX()) < dist_x) ||
-               (fabs(center->GetY() - module->GetY()) < dist_y)) {
+            if((fabs(center->GetX() - module->GetX()) <= dist_x) &&
+               (fabs(center->GetY() - module->GetY()) <= dist_y)) {
                 overlap = true;
+
+                // change this center if it has less energy
+                if(center->GetEnergy() < module->GetEnergy()) {
+                    center = module;
+                }
                 break; // no need to continue the check
             }
         }

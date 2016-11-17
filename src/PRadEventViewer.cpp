@@ -838,8 +838,10 @@ void PRadEventViewer::changeCurrentEvent(int evt)
 
 void PRadEventViewer::handleEventChange(int evt)
 {
-    if(evt < 1)
+    if(evt < 1) {
+        Refresh();
         return;
+    }
 
     try {
         auto &event = handler->GetEvent(evt - 1); // fetch data from handler
@@ -1162,7 +1164,7 @@ void PRadEventViewer::findPeak()
     if(!selection || !selection->GetChannel())
         return;
 
-    TH1 *h = selection->GetChannel()->GetHist("PHYS");
+    TH1 *h = selection->GetChannel()->GetHist("Physics");
 
     //Use TSpectrum to find the peak candidates
     TSpectrum s(10);
@@ -1204,7 +1206,7 @@ void PRadEventViewer::fitHistogram()
           << tr("Range Max.");
 
     de_value << ((selection) ? QString::fromStdString(selection->GetName()) : "W1")
-             << "PHYS"
+             << "Physics"
              << "gaus"
              << "0"
              << "8000";
@@ -1603,6 +1605,8 @@ void PRadEventViewer::onlineUpdate(const size_t &max_events)
         }
 
         if(num) {
+            // show this event
+            handler->ChooseEvent(0);
             UpdateHistCanvas();
             UpdateOnlineInfo();
             Refresh();
