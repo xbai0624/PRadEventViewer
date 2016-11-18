@@ -92,7 +92,7 @@ struct EPICSData
 
     EPICSData()
     {};
-    EPICSData(const int &ev, std::vector<float> &val)
+    EPICSData(const int &ev, const std::vector<float> &val)
     : event_number(ev), values(val)
     {};
 
@@ -101,6 +101,11 @@ struct EPICSData
         event_number = 0;
         values.clear();
     };
+
+    bool operator <(const int &evt) const {return event_number < evt;};
+    bool operator >(const int &evt) const {return event_number > evt;};
+    bool operator ==(const int &evt) const {return event_number == evt;};
+    bool operator !=(const int &evt) const {return event_number != evt;};
 };
 //============================================================================//
 // *END* RAW EPICS DATA STRUCTURE                                             //

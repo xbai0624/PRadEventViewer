@@ -2,18 +2,20 @@
 #define PRAD_EPIC_SYSTEM_H
 
 #include <string>
+#include <vector>
+#include <deque>
 #include <unordered_map>
 #include "PRadEventStruct.h"
 #include "PRadException.h"
 
 // epics channel
-struct epics_ch
+struct EPICSChannel
 {
     std::string name;
     uint32_t id;
     float value;
 
-    epics_ch(const std::string &n, const uint32_t &i, const float &v)
+    EPICSChannel(const std::string &n, const uint32_t &i, const float &v)
     : name(n), id(i), value(v)
     {};
 };
@@ -24,29 +26,30 @@ public:
     PRadEPICSystem(const std::string &path);
     virtual ~PRadEPICSystem();
 
-    // read channel file
-    void ReadEPICSMap(const std::string &path);
-    // add channel
-    void AddChannel(const std::string &name, const uint32_t &id, const float &value);
+    void Reset();
+    void ReadMap(const std::string &path);
+    void SaveMap(const std::string &path) const;
+    void AddChannel(const std::string &name);
+    void AddChannel(const std::string &name, uint32_t id, float value);
+    void UpdateChannel(const std::string &name, const float &value);
+    void AddEvent(const EPICSData &data);
+    void FillRawData(const char *buf);
+    void SaveData(const int &event_number, bool online = false);
 
-    void UpdateEPICS(const std::string &name, const float &value);
+    std::vector<EPICSChannel> GetSortedList() const;
+    const std::vector<float> &GetValues() const {return epics_values;};
+    float GetValue(const std::string &name) const;
+    float GetValue(const std::string &name, int evt) const;
+    const EPICSData &GetEvent(const unsigned int &index) const throw(PRadException);
+    const std::deque<EPICSData> &GetEventData() const {return epics_data;};
+    unsigned int GetEventCount() const {return epics_data.size();};
 
-    EPICSData &GetEPICSEvent(const unsigned int &index);
-    std::deque<EPICSData> &GetEPICSData() {return epicsData;};
-    float GetEPICSValue(const std::string &name);
-    float GetEPICSValue(const std::string &name, const int &index);
-    float GetEPICSValue(const std::string &name, const EventData &event);
-    void PrintOutEPICS();
-    void PrintOutEPICS(const std::string &name);
-
-    std::vector<epics_ch> GetSortedEPICSList();
-    void SaveEPICSChannels(const std::string &path);
 
 private:
     // data related
     std::unordered_map<std::string, uint32_t> epics_map;
     std::vector<float> epics_values;
-    std::deque<EPICSData> epicsData;
+    std::deque<EPICSData> epics_data;
 };
 
 #endif

@@ -639,8 +639,7 @@ void PRadEventViewer::openDataFile()
         UpdateStatusBar(DATA_FILE);
     }
 
-    std::cout << "Parsed " << handler->GetEventCount() << " events and "
-              << handler->GetEPICSEventCount() << " EPICS events from "
+    std::cout << "Parsed " << handler->GetEventCount() << " events from "
               << fileList.size() << " files." << std::endl
               << " Used " << timer.GetElapsedTime() << " ms."
               << std::endl;

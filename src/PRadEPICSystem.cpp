@@ -7,31 +7,70 @@
 // 11/18/2016                                                                 //
 //============================================================================//
 
-#include "PRadEPICSytem.h"
+#include "PRadEPICSystem.h"
+#include "ConfigParser.h"
+#include "canalib.h"
 #include <iostream>
 #include <iomanip>
 #include <algorithm>
 
 #define EPICS_UNDEFINED_VALUE -9999.9
 
-void PRadEPICSystem::PRadEPICSystem(const std::string &path)
+PRadEPICSystem::PRadEPICSystem(const std::string &path)
 {
-    ReadEPICSMap(path);
+    ReadMap(path);
 }
 
-void PRadEPICSystem::~PRadEPICSystem()
+PRadEPICSystem::~PRadEPICSystem()
 {
     // place holder
 }
 
-void PRadEPICSystem::AddChannel(const string &name)
+void PRadEPICSystem::Reset()
 {
-
+    epics_data = std::deque<EPICSData>();
+    for(auto &value : epics_values)
+    {
+        value = EPICS_UNDEFINED_VALUE;
+    }
 }
 
-void PRadEPICSystem::RegisterChannel(const std::string &name,
-                                     const uint32_t &id,
-                                     const float &value)
+void PRadEPICSystem::ReadMap(const std::string &path)
+{
+    ConfigParser c_parser;
+
+    if(!c_parser.ReadFile(path)) {
+        std::cout << "PRad EPICS Warning: Failed to open map file "
+                  << "\"" << path << "\""
+                  << ", no EPICS channel created!"
+                  << std::endl;
+        return;
+    }
+
+    while(c_parser.ParseLine())
+    {
+        if(!c_parser.CheckElements(1))
+            continue;
+
+        AddChannel(c_parser.TakeFirst());
+    }
+}
+
+void PRadEPICSystem::AddChannel(const std::string &name)
+{
+    auto it = epics_map.find(name);
+
+    if(it == epics_map.end()) {
+        epics_map[name] = epics_values.size();
+        epics_values.push_back(EPICS_UNDEFINED_VALUE);
+    } else {
+        std::cout << "PRad EPICS Warning: Failed to add duplicated channel "
+                  << name << ", its channel id is " << it->second
+                  << std::endl;
+    }
+}
+
+void PRadEPICSystem::AddChannel(const std::string &name, uint32_t id, float value)
 {
     if(id >= (uint32_t)epics_values.size())
     {
@@ -42,53 +81,90 @@ void PRadEPICSystem::RegisterChannel(const std::string &name,
     epics_values.at(id) = value;
 }
 
-float PRadEPICSystem::GetEPICSValue(const string &name)
+void PRadEPICSystem::UpdateChannel(const std::string &name, const float &value)
+{
+    auto it = epics_map.find(name);
+    if(it != epics_map.end()) {
+        epics_values[it->second] = value;
+    }
+}
+
+void PRadEPICSystem::FillRawData(const char *data)
+{
+    ConfigParser c_parser;
+    // using config parser to deal with text buffer
+    c_parser.ReadBuffer((const char*) data);
+
+    float number;
+    std::string name;
+    while(c_parser.ParseLine())
+    {
+        // expect 2 elements for each line
+        // channel_name  channel_value
+        if(c_parser.NbofElements() == 2) {
+            c_parser >> number >> name;
+            UpdateChannel(name, number);
+        }
+    }
+}
+
+void PRadEPICSystem::AddEvent(const EPICSData &data)
+{
+    epics_data.push_back(data);
+}
+
+void PRadEPICSystem::SaveData(const int &event_number, bool online)
+{
+    if(online && epics_data.size())
+        epics_data.pop_front();
+
+    epics_data.emplace_back(event_number, epics_values);
+}
+
+float PRadEPICSystem::GetValue(const std::string &name)
+const
 {
     auto it = epics_map.find(name);
     if(it == epics_map.end()) {
-        cerr << "Data Handler: Did not find EPICS channel " << name << endl;
+        std::cout << "PRad EPICS Warning: Did not find EPICS channel "
+                  << name
+                  << std::endl;
         return EPICS_UNDEFINED_VALUE;
     }
 
     return epics_values.at(it->second);
 }
 
-float PRadEPICSystem::GetEPICSValue(const string &name, const int &index)
-{
-    if((unsigned int)index >= energyData.size())
-        return GetEPICSValue(name);
-
-    return GetEPICSValue(name, energyData.at(index));
-}
-
-float PRadEPICSystem::GetEPICSValue(const string &name, const EventData &event)
+float PRadEPICSystem::GetValue(const std::string &name, int evt)
+const
 {
     float result = EPICS_UNDEFINED_VALUE;
 
     auto it = epics_map.find(name);
     if(it == epics_map.end()) {
-        cerr << "Data Handler: Did not find EPICS channel " << name << endl;
-        return result;
+        std::cerr << "PRad EPICS Warning: Did not find EPICS channel "
+                  << name
+                  << std::endl;
+        return EPICS_UNDEFINED_VALUE;
     }
 
     uint32_t channel_id = it->second;
-    int event_number = event.event_number;
 
-    // find the epics event before this event
-    for(size_t i = 0; i < epicsData.size(); ++i)
-    {
-        if(epicsData.at(i).event_number >= event_number) {
-            if(i > 0) result = epicsData.at(i-1).values.at(channel_id);
-            break;
-        }
+    auto interval = cana::binary_search_interval(epics_data.begin(), epics_data.end(), evt);
+
+    // found the epics event that just before evt, and it has that channel
+    if((interval.second != epics_data.end()) &&
+       (interval.first->values.size() > channel_id)) {
+        result = interval.first->values.at(channel_id);
     }
 
     return result;
 }
 
-vector<epics_ch> PRadEPICSystem::GetSortedEPICSList()
+std::vector<EPICSChannel> PRadEPICSystem::GetSortedList()
+const
 {
-    vector<epics_ch> epics_list;
+    std::vector<EPICSChannel> epics_list;
 
     for(auto &ch : epics_map)
     {
@@ -96,95 +172,46 @@ vector<epics_ch> PRadEPICSystem::GetSortedEPICSList()
         epics_list.emplace_back(ch.first, ch.second, value);
     }
 
-    sort(epics_list.begin(), epics_list.end(), [](const epics_ch &a, const epics_ch &b) {return a.id < b.id;});
+    std::sort(epics_list.begin(), epics_list.end(),
+              [] (const EPICSChannel &a, const EPICSChannel &b)
+              {return a.id < b.id;});
 
     return epics_list;
 }
 
-void PRadEPICSystem::PrintOutEPICS()
+void PRadEPICSystem::SaveMap(const std::string &path)
+const
 {
-    vector<epics_ch> epics_list = GetSortedEPICSList();
-
-    for(auto &ch : epics_list)
-    {
-        cout << ch.name << ": " << epics_values.at(ch.id) << endl;
-    }
-}
-
-void PRadEPICSystem::PrintOutEPICS(const string &name)
-{
-    auto it = epics_map.find(name);
-    if(it == epics_map.end()) {
-        cout << "Did not find the EPICS channel "
-             << name << endl;
-        return;
-    }
-
-    cout << name << ": " << epics_values.at(it->second) << endl;
-}
-
-void PRadEPICSystem::SaveEPICSChannels(const string &path)
-{
-    ofstream out(path);
+    std::ofstream out(path);
 
     if(!out.is_open()) {
-        cerr << "Cannot open file "
-             << "\"" << path << "\""
-             << " to save EPICS channels!"
-             << endl;
+        std::cerr << "PRad EPICS Error: Cannot open file "
+                  << "\"" << path << "\""
+                  << " to save EPICS channels!"
+                  << std::endl;
         return;
     }
 
-    vector<epics_ch> epics_list = GetSortedEPICSList();
+    std::vector<EPICSChannel> epics_list = GetSortedList();
 
     for(auto &ch : epics_list)
     {
-        out << ch.name << endl;
+        out << ch.name << std::endl;
     }
 
     out.close();
 }
 
-EPICSData &PRadEPICSystem::GetEPICSEvent(const unsigned int &index)
+const EPICSData &PRadEPICSystem::GetEvent(const unsigned int &index)
+const
+throw(PRadException)
 {
-    if(index >= epicsData.size()) {
-        return epicsData.back();
-    } else {
-        return epicsData.at(index);
-    }
+    if(epics_data.empty())
+        throw PRadException("PRad EPICS Error", "empty data bank!");
+
+    if(index >= epics_data.size())
+        return epics_data.back();
+
+    return epics_data.at(index);
 }
 
-void PRadEPICSystem::ReadEPICSMap(const string &path)
-{
-    ConfigParser c_parser;
-
-    if(!c_parser.ReadFile(path)) {
-        cout << "WARNING: Fail to open EPICS channel file "
-             << "\"" << path << "\""
-             << ", no EPICS channel created!"
-             << endl;
-        return;
-    }
-
-    string name;
-    float initial_value = EPICS_UNDEFINED_VALUE;
-
-    while(c_parser.ParseLine())
-    {
-        if(c_parser.NbofElements() == 1) {
-            name = c_parser.TakeFirst();
-            if(epics_map.find(name) == epics_map.end()) {
-                epics_map[name] = epics_values.size();
-                epics_values.push_back(initial_value);
-            } else {
-                cout << "Duplicated epics channel " << name
-                     << ", its channel id is " << epics_map[name]
-                     << endl;
-            }
-        } else {
-            cout << "Unrecognized input format in  epics channel file, skipped one line!"
-                 << endl;
-        }
-    }
-
-};

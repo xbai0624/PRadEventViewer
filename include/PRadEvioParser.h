@@ -3,7 +3,6 @@
 
 #include <fstream>
 #include <cstdint>
-#include "ConfigParser.h"
 #include "datastruct.h"
 #include "PRadException.h"
 
@@ -47,7 +46,6 @@ private:
 
 private:
     PRadDataHandler *myHandler;
-    ConfigParser c_parser;
     unsigned int event_number;
 };
 

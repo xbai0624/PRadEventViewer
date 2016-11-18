@@ -14,6 +14,7 @@
 #include "PRadDSTParser.h"
 #include "PRadHyCalSystem.h"
 #include "PRadGEMSystem.h"
+#include "PRadEPICSystem.h"
 #include "PRadBenchMark.h"
 #include "ConfigParser.h"
 #include "TH2.h"
@@ -45,6 +46,7 @@ PRadDataHandler::~PRadDataHandler()
 
     delete parser;
     delete dst_parser;
+    delete epic_sys;
 }
 
 void PRadDataHandler::ReadConfig(const string &path)
@@ -61,10 +63,6 @@ void PRadDataHandler::ReadConfig(const string &path)
     while(c_parser.ParseLine())
     {
         string func_name = c_parser.TakeFirst();
-        if((func_name.find("EPICS Channel") != string::npos)) {
-            const string var1 = c_parser.TakeFirst().String();
-            ExecuteConfigCommand(&PRadDataHandler::ReadEPICSChannels, var1);
-        }
         if((func_name.find("Run Number") != string::npos)) {
             const int var1 = c_parser.TakeFirst().Int();
             ExecuteConfigCommand(&PRadDataHandler::SetRunNumber, var1);
@@ -96,24 +94,13 @@ void PRadDataHandler::SetOnlineMode(const bool &mode)
     onlineMode = mode;
 }
 
-void PRadDataHandler::RegisterEPICS(const string &name, const uint32_t &id, const float &value)
-{
-    if(id >= (uint32_t)epics_values.size())
-    {
-        epics_values.resize(id + 1, EPICS_UNDEFINED_VALUE);
-    }
-
-    epics_map[name] = id;
-    epics_values.at(id) = value;
-}
-
 // erase the data container
 void PRadDataHandler::Clear()
 {
     // used memory won't be released, but it can be used again for new data file
     energyData = deque<EventData>();
-    epicsData = deque<EPICSData>();
     runInfo.clear();
+    epic_sys->Reset();
 
     parser->SetEventNumber(0);
     totalE = 0;
@@ -138,21 +125,6 @@ void PRadDataHandler::UpdateTrgType(const unsigned char &trg)
              << endl;
     }
     newEvent->trigger = trg;
-}
-
-void PRadDataHandler::UpdateEPICS(const string &name, const float &value)
-{
-    auto it = epics_map.find(name);
-
-    if(it == epics_map.end()) {
-        cout << "Data Handler:: Received data from unregistered EPICS channel " << name
-             << ". Assign a new channel id " << epics_values.size()
-             << "." << endl;
-        epics_map[name] = epics_values.size();
-        epics_values.push_back(value);
-    } else {
-        epics_values.at(it->second) = value;
-    }
 }
 
 void PRadDataHandler::AccumulateBeamCharge(EventData &event)
@@ -198,50 +170,6 @@ void PRadDataHandler::UpdateOnlineInfo(EventData &event)
 
     //update beam current
     onlineInfo.beam_current = event.get_beam_current();
-}
-
-float PRadDataHandler::GetEPICSValue(const string &name)
-{
-    auto it = epics_map.find(name);
-    if(it == epics_map.end()) {
-        cerr << "Data Handler: Did not find EPICS channel " << name << endl;
-        return EPICS_UNDEFINED_VALUE;
-    }
-
-    return epics_values.at(it->second);
-}
-
-float PRadDataHandler::GetEPICSValue(const string &name, const int &index)
-{
-    if((unsigned int)index >= energyData.size())
-        return GetEPICSValue(name);
-
-    return GetEPICSValue(name, energyData.at(index));
-}
-
-float PRadDataHandler::GetEPICSValue(const string &name, const EventData &event)
-{
-    float result = EPICS_UNDEFINED_VALUE;
-
-    auto it = epics_map.find(name);
-    if(it == epics_map.end()) {
-        cerr << "Data Handler: Did not find EPICS channel " << name << endl;
-        return result;
-    }
-
-    uint32_t channel_id = it->second;
-    int event_number = event.event_number;
-
-    // find the epics event before this event
-    for(size_t i = 0; i < epicsData.size(); ++i)
-    {
-        if(epicsData.at(i).event_number >= event_number) {
-            if(i > 0) result = epicsData.at(i-1).values.at(channel_id);
-            break;
-        }
-    }
-
-    return result;
 }
 
 void PRadDataHandler::FeedData(JLabTIData &tiData)
@@ -351,6 +279,11 @@ void PRadDataHandler::FeedData(vector<GEMZeroSupData> &gemData)
         gem_sys->FillZeroSupData(gemData, newEvent->gem_data);
 }
 
+void PRadDataHandler::FeedData(EPICSRawData &epicsData)
+{
+    epic_sys->FillRawData(epicsData.buf);
+}
+
 //TODO move to hycal system
 void PRadDataHandler::FillHistograms(EventData &data)
 {
@@ -416,15 +349,10 @@ void PRadDataHandler::WaitEventProcess()
 void PRadDataHandler::EndProcess(EventData *data)
 {
     if(data->type == EPICS_Info) {
-
-        if(onlineMode && epicsData.size())
-            epicsData.pop_front();
-
         if(replayMode)
-            dst_parser->WriteEPICS(EPICSData(data->event_number, epics_values));
+            dst_parser->WriteEPICS(EPICSData(data->event_number, epic_sys->GetValues()));
         else
-            epicsData.emplace_back(data->event_number, epics_values);
-
+            epic_sys->SaveData(data->event_number, onlineMode);
     } else { // event or sync event
 
         FillHistograms(*data);
@@ -491,65 +419,6 @@ int PRadDataHandler::GetCurrentEventNb()
     return current_event;
 }
 
-vector<epics_ch> PRadDataHandler::GetSortedEPICSList()
-{
-    vector<epics_ch> epics_list;
-
-    for(auto &ch : epics_map)
-    {
-        float value = epics_values.at(ch.second);
-        epics_list.emplace_back(ch.first, ch.second, value);
-    }
-
-    sort(epics_list.begin(), epics_list.end(), [](const epics_ch &a, const epics_ch &b) {return a.id < b.id;});
-
-    return epics_list;
-}
-
-void PRadDataHandler::PrintOutEPICS()
-{
-    vector<epics_ch> epics_list = GetSortedEPICSList();
-
-    for(auto &ch : epics_list)
-    {
-        cout << ch.name << ": " << epics_values.at(ch.id) << endl;
-    }
-}
-
-void PRadDataHandler::PrintOutEPICS(const string &name)
-{
-    auto it = epics_map.find(name);
-    if(it == epics_map.end()) {
-        cout << "Did not find the EPICS channel "
-             << name << endl;
-        return;
-    }
-
-    cout << name << ": " << epics_values.at(it->second) << endl;
-}
-
-void PRadDataHandler::SaveEPICSChannels(const string &path)
-{
-    ofstream out(path);
-
-    if(!out.is_open()) {
-        cerr << "Cannot open file "
-             << "\"" << path << "\""
-             << " to save EPICS channels!"
-             << endl;
-        return;
-    }
-
-    vector<epics_ch> epics_list = GetSortedEPICSList();
-
-    for(auto &ch : epics_list)
-    {
-        out << ch.name << endl;
-    }
-
-    out.close();
-}
-
 EventData &PRadDataHandler::GetEvent(const unsigned int &index)
 throw (PRadException)
 {
@@ -562,50 +431,6 @@ throw (PRadException)
         return energyData.at(index);
     }
 }
-
-EPICSData &PRadDataHandler::GetEPICSEvent(const unsigned int &index)
-{
-    if(index >= epicsData.size()) {
-        return epicsData.back();
-    } else {
-        return epicsData.at(index);
-    }
-}
-
-void PRadDataHandler::ReadEPICSChannels(const string &path)
-{
-    ConfigParser c_parser;
-
-    if(!c_parser.ReadFile(path)) {
-        cout << "WARNING: Fail to open EPICS channel file "
-             << "\"" << path << "\""
-             << ", no EPICS channel created!"
-             << endl;
-        return;
-    }
-
-    string name;
-    float initial_value = EPICS_UNDEFINED_VALUE;
-
-    while(c_parser.ParseLine())
-    {
-        if(c_parser.NbofElements() == 1) {
-            name = c_parser.TakeFirst();
-            if(epics_map.find(name) == epics_map.end()) {
-                epics_map[name] = epics_values.size();
-                epics_values.push_back(initial_value);
-            } else {
-                cout << "Duplicated epics channel " << name
-                     << ", its channel id is " << epics_map[name]
-                     << endl;
-            }
-        } else {
-            cout << "Unrecognized input format in  epics channel file, skipped one line!"
-                 << endl;
-        }
-    }
-
-};
 
 // TODO move to hycal system
 // Refill energy hist after correct gain factos
@@ -788,7 +613,7 @@ void PRadDataHandler::Replay(const string &r_path, const int &split, const strin
 
     dst_parser->WriteHyCalInfo(hycal_sys);
     dst_parser->WriteGEMInfo(gem_sys);
-    dst_parser->WriteEPICSMap();
+    dst_parser->WriteEPICSMap(epic_sys);
 
     replayMode = true;
 
@@ -822,7 +647,7 @@ void PRadDataHandler::ReadFromDST(const string &path, const uint32_t &mode)
                 energyData.push_back(dst_parser->GetEvent());
                 break;
             case PRad_DST_Epics:
-                epicsData.push_back(dst_parser->GetEPICSEvent());
+                epic_sys->AddEvent(dst_parser->GetEPICSEvent());
                 break;
             default:
                 break;
@@ -851,9 +676,9 @@ void PRadDataHandler::WriteToDST(const string &path)
 
         dst_parser->WriteHyCalInfo(hycal_sys);
         dst_parser->WriteGEMInfo(gem_sys);
-        dst_parser->WriteEPICSMap();
+        dst_parser->WriteEPICSMap(epic_sys);
 
-        for(auto &epics : epicsData)
+        for(auto &epics : epic_sys->GetEventData())
         {
             dst_parser->WriteEPICS(epics);
         }

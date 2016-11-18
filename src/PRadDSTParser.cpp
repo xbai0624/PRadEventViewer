@@ -9,8 +9,8 @@
 #include <iomanip>
 #include "PRadDSTParser.h"
 #include "PRadDataHandler.h"
+#include "PRadEPICSystem.h"
 #include "PRadHyCalSystem.h"
-#include "PRadCalibConst.h"
 #include "PRadGEMSystem.h"
 
 #define DST_FILE_VERSION 0x13  // 0xff
@@ -260,22 +260,24 @@ throw(PRadException)
         handler->UpdateRunInfo(runInfo);
 }
 
-void PRadDSTParser::WriteEPICSMap()
+void PRadDSTParser::WriteEPICSMap(PRadEPICSystem *epics)
 throw(PRadException)
 {
     if(!dst_out.is_open())
         throw PRadException("WRITE DST", "output file is not opened!");
+    if(!epics)
+        throw PRadException("WRITE DST", "EPICS System does not exist!");
 
     // write header
     uint32_t event_info = (PRad_DST_EvHeader << 8) | PRad_DST_Epics_Map;
     dst_out.write((char*) &event_info, sizeof(event_info));
 
-    vector<epics_ch> epics_channels = handler->GetSortedEPICSList();
+    vector<EPICSChannel> channels = epics->GetSortedList();
 
-    uint32_t ch_size = epics_channels.size();
+    uint32_t ch_size = channels.size();
     dst_out.write((char*) &ch_size, sizeof(ch_size));
 
-    for(auto &ch : epics_channels)
+    for(auto &ch : channels)
     {
         uint32_t str_size = ch.name.size();
         dst_out.write((char*) &str_size, sizeof(str_size));
@@ -286,7 +288,7 @@ throw(PRadException)
     }
 }
 
-void PRadDSTParser::readEPICSMap()
+void PRadDSTParser::readEPICSMap(PRadEPICSystem *epics)
 throw(PRadException)
 {
     if(!dst_in.is_open())
@@ -310,8 +312,8 @@ throw(PRadException)
         dst_in.read((char*) &id, sizeof(id));
         dst_in.read((char*) &value, sizeof(value));
 
-        if(!(update_mode & NO_EPICS_MAP_UPDATE))
-            handler->RegisterEPICS(str, id, value);
+        if(epics && !(update_mode & NO_EPICS_MAP_UPDATE))
+            epics->AddChannel(str, id, value);
     }
 }
 
@@ -376,12 +378,11 @@ throw(PRadException)
             cal.base_gains.push_back(gain);
         }
 
-        if(!hycal)
+        if(!hycal || hycal->GetADCChannel(i))
             continue;
 
         PRadADCChannel *adc = hycal->GetADCChannel(i);
-        if(!adc)
-            continue;
+
         if(!(update_mode & NO_HYCAL_PED_UPDATE))
             adc->SetPedestal(ped);
         if(adc->GetModule() && !(update_mode & NO_HYCAL_CAL_UPDATE))
@@ -481,7 +482,7 @@ bool PRadDSTParser::Read()
                 readEPICS(epics_event);
                 break;
             case PRad_DST_Epics_Map:
-                readEPICSMap();
+                readEPICSMap(handler->GetEPICSystem());
                 break;
             case PRad_DST_Run_Info:
                 readRunInfo();

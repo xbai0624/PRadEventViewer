@@ -93,7 +93,9 @@ HEADERS += include/PRadEventViewer.h \
            include/PRadGEMPlane.h \
            include/PRadGEMFEC.h \
            include/PRadGEMAPV.h \
-           include/PRadGEMCluster.h
+           include/PRadGEMCluster.h \
+           include/PRadEPICSystem.h \
+           include/canalib.h
 
 SOURCES += src/main.cpp \
            src/PRadEventViewer.cpp \
@@ -132,7 +134,9 @@ SOURCES += src/main.cpp \
            src/PRadGEMPlane.cpp \
            src/PRadGEMFEC.cpp \
            src/PRadGEMAPV.cpp \
-           src/PRadGEMCluster.cpp
+           src/PRadGEMCluster.cpp \
+           src/PRadEPICSystem.cpp \
+           src/canalib.cpp
 
 LIBS += -lexpat -lgfortran \
         -L$$(ROOTSYS)/lib -lCore -lRint -lRIO -lNet -lHist \

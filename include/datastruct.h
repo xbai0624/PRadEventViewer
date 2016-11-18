@@ -219,6 +219,11 @@ struct TDCV1190Data
     unsigned int val;
 };
 
+struct EPICSRawData
+{
+    const char *buf;
+};
+
 struct GEMRawData
 {
     GEMChannelAddress addr;

@@ -532,20 +532,10 @@ void PRadEvioParser::parseTIData(const uint32_t *data, const size_t &size, const
 // parse EPICS data (in textual format
 void PRadEvioParser::parseEPICS(const uint32_t *data)
 {
-    // using config parser to deal with text buffer
-    c_parser.ReadBuffer((const char*) data);
+    EPICSRawData epics_data;
+    epics_data.buf = (const char*) data;
 
-    while(c_parser.ParseLine())
-    {
-        // expect 2 elements for each line
-        // channel_name  channel_value
-        if(c_parser.NbofElements() == 2) {
-            float number;
-            string name;
-            c_parser >> number >> name;
-            myHandler->UpdateEPICS(name, number);
-        }
-    }
+    myHandler->FeedData(epics_data);
 }
 
 

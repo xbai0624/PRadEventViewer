@@ -17,21 +17,8 @@ class PRadEvioParser;
 class PRadDSTParser;
 class PRadHyCalSystem;
 class PRadGEMSystem;
-class PRadGEMAPV;
-class TH1D;
+class PRadEPICSystem;
 class TH2I;
-
-// epics channel
-struct epics_ch
-{
-    std::string name;
-    uint32_t id;
-    float value;
-
-    epics_ch(const std::string &n, const uint32_t &i, const float &v)
-    : name(n), id(i), value(v)
-    {};
-};
 
 class PRadDataHandler
 {
@@ -42,19 +29,16 @@ public:
     // mode change
     void SetOnlineMode(const bool &mode);
 
-    // add channels
-    void RegisterEPICS(const std::string &name, const uint32_t &id, const float &value);
-
     void SetHyCalSystem(PRadHyCalSystem *hycal) {hycal_sys = hycal;};
     void SetGEMSystem(PRadGEMSystem *gem) {gem_sys = gem;};
     PRadHyCalSystem *GetHyCalSystem() const {return hycal_sys;};
     PRadGEMSystem *GetGEMSystem() const {return gem_sys;};
+    PRadEPICSystem *GetEPICSystem() const {return epic_sys;};
 
     // read config files
     void ReadConfig(const std::string &path);
     template<typename... Args>
     void ExecuteConfigCommand(void (PRadDataHandler::*act)(Args...), Args&&... args);
-    void ReadEPICSChannels(const std::string &path);
 
     // file reading and writing
     void ReadFromDST(const std::string &path, const uint32_t &mode = 0);
@@ -78,9 +62,9 @@ public:
     void FeedData(TDCV1190Data &tdcData);
     void FeedData(GEMRawData &gemData);
     void FeedData(std::vector<GEMZeroSupData> &gemData);
+    void FeedData(EPICSRawData &epicsData);
     void FeedTaggerHits(TDCV1190Data &tdcData);
     void FillHistograms(EventData &data);
-    void UpdateEPICS(const std::string &name, const float &value);
     void UpdateTrgType(const unsigned char &trg);
     void AccumulateBeamCharge(EventData &event);
     void UpdateLiveTimeScaler(EventData &event);
@@ -92,7 +76,6 @@ public:
     void ChooseEvent(const int &idx = -1);
     void ChooseEvent(const EventData &event);
     unsigned int GetEventCount() {return energyData.size();};
-    unsigned int GetEPICSEventCount() {return epicsData.size();};
     int GetRunNumber() {return runInfo.run_number;};
     double GetBeamCharge() {return runInfo.beam_charge;};
     double GetLiveTime() {return (1. - runInfo.dead_count/runInfo.ungated_count);};
@@ -100,17 +83,10 @@ public:
     TH2I *GetTagTHist() {return TagTHist;};
     EventData &GetEvent(const unsigned int &index) throw (PRadException);
     std::deque<EventData> &GetEventData() {return energyData;};
-    EPICSData &GetEPICSEvent(const unsigned int &index);
-    std::deque<EPICSData> &GetEPICSData() {return epicsData;};
     RunInfo &GetRunInfo() {return runInfo;};
     OnlineInfo &GetOnlineInfo() {return onlineInfo;};
     double GetEnergy() {return totalE;};
     double GetEnergy(const EventData &event);
-    float GetEPICSValue(const std::string &name);
-    float GetEPICSValue(const std::string &name, const int &index);
-    float GetEPICSValue(const std::string &name, const EventData &event);
-    void PrintOutEPICS();
-    void PrintOutEPICS(const std::string &name);
 
     // analysis tools
     void InitializeByData(const std::string &path = "", int run = -1, int ref = DEFAULT_REF_PMT);
@@ -120,14 +96,13 @@ public:
 
     // other functions
     void GetRunNumberFromFileName(const std::string &name, const size_t &pos = 0, const bool &verbose = true);
-    std::vector<epics_ch> GetSortedEPICSList();
-    void SaveEPICSChannels(const std::string &path);
 
 private:
     PRadEvioParser *parser;
     PRadDSTParser *dst_parser;
     PRadHyCalSystem *hycal_sys;
     PRadGEMSystem *gem_sys;
+    PRadEPICSystem *epic_sys;
     RunInfo runInfo;
     OnlineInfo onlineInfo;
     double totalE;
@@ -140,7 +115,6 @@ private:
     std::unordered_map< std::string, uint32_t > epics_map;
     std::vector< float > epics_values;
     std::deque< EventData > energyData;
-    std::deque< EPICSData > epicsData;
 
     EventData *newEvent;
     TH2I *TagEHist;
