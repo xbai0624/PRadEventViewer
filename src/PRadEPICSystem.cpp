@@ -37,6 +37,9 @@ void PRadEPICSystem::Reset()
 
 void PRadEPICSystem::ReadMap(const std::string &path)
 {
+    if(path.empty())
+        return;
+
     ConfigParser c_parser;
 
     if(!c_parser.ReadFile(path)) {
@@ -135,7 +138,7 @@ const
     return epics_values.at(it->second);
 }
 
-float PRadEPICSystem::GetValue(const std::string &name, int evt)
+float PRadEPICSystem::FindValue(int evt, const std::string &name)
 const
 {
     float result = EPICS_UNDEFINED_VALUE;
@@ -153,7 +156,7 @@ const
     auto interval = cana::binary_search_interval(epics_data.begin(), epics_data.end(), evt);
 
     // found the epics event that just before evt, and it has that channel
-    if((interval.second != epics_data.end()) &&
+    if((interval.first != epics_data.end()) &&
        (interval.first->values.size() > channel_id)) {
         result = interval.first->values.at(channel_id);
     }
@@ -215,3 +218,14 @@ throw(PRadException)
     return epics_data.at(index);
 }
 
+int PRadEPICSystem::FindEvent(int evt)
+const
+{
+    auto interval = cana::binary_search_interval(epics_data.begin(), epics_data.end(), evt);
+
+    // found the epics event that just before evt, and it has that channel
+    if(interval.first != epics_data.end())
+        return (interval.first - epics_data.begin());
+
+    return -1;
+}

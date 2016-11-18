@@ -123,6 +123,27 @@ namespace cana
         return mid;
     }
 
+    template<class RdmaccIt, typename T, class Comp>
+    RdmaccIt binary_search(RdmaccIt beg, RdmaccIt end, const T &val, Comp comp)
+    {
+        RdmaccIt not_found = end;
+
+        RdmaccIt mid = beg + (end - beg)/2;
+        while(mid != end && comp(*mid,val) != 0)
+        {
+            if(comp(*mid, val) > 0)
+                end = mid;
+            else
+                beg = mid + 1;
+            mid = beg + (end - beg)/2;
+        }
+
+        if(mid == end)
+            return not_found;
+
+        return mid;
+    }
+
     template<class RdmaccIt, typename T>
     std::pair<RdmaccIt, RdmaccIt> binary_search_interval(RdmaccIt beg,
                                                          RdmaccIt end,
@@ -141,6 +162,36 @@ namespace cana
 
         if(mid == end) {
             if(*mid < val) {
+                return std::make_pair(mid, mid + 1);
+            } else {
+                if(mid == first)
+                    return std::make_pair(last, last);
+                return std::make_pair(mid - 1, mid);
+            }
+        }
+
+        return std::make_pair(mid, mid);
+    }
+
+    template<class RdmaccIt, typename T, class Compare>
+    std::pair<RdmaccIt, RdmaccIt> binary_search_interval(RdmaccIt beg,
+                                                         RdmaccIt end,
+                                                         const T &val,
+                                                         Compare comp)
+    {
+        RdmaccIt first = beg, last = end;
+        RdmaccIt mid = beg + (end - beg)/2;
+        while(mid != end && comp(*mid, val) != 0)
+        {
+            if(comp(*mid, val) > 0)
+                end = mid;
+            else
+                beg = mid + 1;
+            mid = beg + (end - beg)/2;
+        }
+
+        if(mid == end) {
+            if(comp(*mid, val) < 0) {
                 return std::make_pair(mid, mid + 1);
             } else {
                 if(mid == first)

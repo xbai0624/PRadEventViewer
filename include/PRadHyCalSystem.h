@@ -71,6 +71,7 @@ public:
     void SetDetector(PRadHyCalDetector *h);
     void RemoveDetector();
     void DisconnectDetector(bool force_disconn = false);
+    double GetEnergy(const EventData &event);
     PRadHyCalModule *GetModule(const int &id) const;
     PRadHyCalModule *GetModule(const std::string &name) const;
     std::vector<PRadHyCalModule*> GetModuleList() const;
@@ -102,6 +103,7 @@ public:
     // histogram related
     void FillEnergyHist();
     void FillEnergyHist(const double &e);
+    void FillEnergyHist(const EventData &event);
     void ResetEnergyHist();
     TH1 *GetEnergyHist() const {return energy_hist;};
     void SaveHists(const std::string &path);

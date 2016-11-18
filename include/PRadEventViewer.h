@@ -17,6 +17,7 @@ class SpectrumSettingPanel;
 class PRadHistCanvas;
 class PRadLogBox;
 class PRadDataHandler;
+class PRadEPICSystem;
 class PRadHyCalSystem;
 class PRadGEMSystem;
 class PRadCoordSystem;
@@ -163,6 +164,7 @@ private:
                              QFileDialog::FileMode fmode = QFileDialog::ExistingFiles);
 
     PRadDataHandler *handler;
+    PRadEPICSystem *epic_sys;
     PRadHyCalSystem *hycal_sys;
     PRadGEMSystem *gem_sys;
     HistType histType;

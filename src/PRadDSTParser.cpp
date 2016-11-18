@@ -18,7 +18,8 @@
 using namespace std;
 
 PRadDSTParser::PRadDSTParser(PRadDataHandler *h)
-: handler(h), input_length(0), type(PRad_DST_Undefined), update_mode(0)
+: handler(h), input_length(0),
+  type(PRad_DST_Undefined), update_mode(DST_UPDATE_NONE)
 {
 }
 
@@ -232,7 +233,7 @@ throw(PRadException)
     }
 }
 
-void PRadDSTParser::WriteRunInfo()
+void PRadDSTParser::WriteRunInfo(const PRadDataHandler *h)
 throw(PRadException)
 {
     if(!dst_out.is_open())
@@ -242,11 +243,11 @@ throw(PRadException)
     uint32_t event_info = (PRad_DST_EvHeader << 8) | PRad_DST_Run_Info;
     dst_out.write((char*) &event_info, sizeof(event_info));
 
-    auto runInfo = handler->GetRunInfo();
+    auto runInfo = h->GetRunInfo();
     dst_out.write((char*) &runInfo, sizeof(runInfo));
 }
 
-void PRadDSTParser::readRunInfo()
+void PRadDSTParser::readRunInfo(PRadDataHandler *h)
 throw(PRadException)
 {
     if(!dst_in.is_open())
@@ -256,11 +257,11 @@ throw(PRadException)
 
     dst_in.read((char*) &runInfo, sizeof(runInfo));
 
-    if(!(update_mode & NO_RUN_INFO_UPDATE))
-        handler->UpdateRunInfo(runInfo);
+    if(h && !(update_mode & NO_RUN_INFO_UPDATE))
+        h->UpdateRunInfo(runInfo);
 }
 
-void PRadDSTParser::WriteEPICSMap(PRadEPICSystem *epics)
+void PRadDSTParser::WriteEPICSMap(const PRadEPICSystem *epics)
 throw(PRadException)
 {
     if(!dst_out.is_open())
@@ -482,16 +483,25 @@ bool PRadDSTParser::Read()
                 readEPICS(epics_event);
                 break;
             case PRad_DST_Epics_Map:
-                readEPICSMap(handler->GetEPICSystem());
+                if(handler)
+                    readEPICSMap(handler->GetEPICSystem());
+                else
+                    readEPICSMap(nullptr);
                 break;
             case PRad_DST_Run_Info:
-                readRunInfo();
+                readRunInfo(handler);
                 break;
             case PRad_DST_HyCal_Info:
-                readHyCalInfo(handler->GetHyCalSystem());
+                if(handler)
+                    readHyCalInfo(handler->GetHyCalSystem());
+                else
+                    readHyCalInfo(nullptr);
                 break;
             case PRad_DST_GEM_Info:
-                readGEMInfo(handler->GetGEMSystem());
+                if(handler)
+                    readGEMInfo(handler->GetGEMSystem());
+                else
+                    readGEMInfo(nullptr);
                 break;
             default:
                 return false;

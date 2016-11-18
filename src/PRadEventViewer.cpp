@@ -40,6 +40,7 @@
 #include "PRadDataHandler.h"
 #include "PRadDSTParser.h"
 #include "PRadEvioParser.h"
+#include "PRadEPICSystem.h"
 #include "PRadHyCalSystem.h"
 #include "PRadGEMSystem.h"
 
@@ -73,10 +74,12 @@
 //============================================================================//
 PRadEventViewer::PRadEventViewer()
 : handler(new PRadDataHandler()),
+  epic_sys(new PRadEPICSystem()),
   hycal_sys(new PRadHyCalSystem()),
   gem_sys(new PRadGEMSystem())
 {
     // build connections
+    handler->SetEPICSystem(epic_sys);
     handler->SetHyCalSystem(hycal_sys);
     handler->SetGEMSystem(gem_sys);
     initView();
@@ -98,6 +101,7 @@ PRadEventViewer::~PRadEventViewer()
     delete handler;
     delete hycal_sys;
     delete gem_sys;
+    delete epic_sys;
 }
 
 // set up the view for HyCal
@@ -109,6 +113,7 @@ void PRadEventViewer::initView()
     generateScalerBoxes();
     generateSpectrum();
 
+    epic_sys->ReadMap("config/epics_channels.conf");
     hycal_sys->SetDetector(HyCal);
     hycal_sys->Configure("config/hycal.conf");
     gem_sys->Configure("config/gem.conf");
@@ -639,7 +644,8 @@ void PRadEventViewer::openDataFile()
         UpdateStatusBar(DATA_FILE);
     }
 
-    std::cout << "Parsed " << handler->GetEventCount() << " events from "
+    std::cout << "Parsed " << handler->GetEventCount() << " events and "
+              << epic_sys->GetEventCount() << " EPICS events from "
               << fileList.size() << " files." << std::endl
               << " Used " << timer.GetElapsedTime() << " ms."
               << std::endl;
@@ -764,7 +770,7 @@ void PRadEventViewer::findEvent()
     // Show the dialog as modal
     if (dialog.exec() == QDialog::Accepted) {
         // If the user didn't dismiss the dialog, do something with the fields
-        int index = handler->FindEventIndex(lineEdit->text().toInt());
+        int index = handler->FindEvent(lineEdit->text().toInt());
         if(index >= 0)
             eventSpin->setValue(index + 1);
         else {

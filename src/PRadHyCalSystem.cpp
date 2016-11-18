@@ -649,23 +649,37 @@ const
     return nullptr;
 }
 
+double PRadHyCalSystem::GetEnergy(const EventData &event)
+{
+    double energy = 0.;
+    for(auto &adc : event.adc_data)
+    {
+        if(adc.channel_id >= adc_list.size())
+            continue;
+
+        energy += adc_list[adc.channel_id]->GetEnergy(adc.value);
+    }
+
+    return energy;
+}
+
 // histogram manipulation
 void PRadHyCalSystem::FillEnergyHist()
 {
     if(!hycal)
         return;
 
-    double total_E = 0;
-    for(auto module : hycal->GetModuleList())
-    {
-        total_E += module->GetEnergy();
-    }
-    energy_hist->Fill(total_E);
+    energy_hist->Fill(hycal->GetEnergy());
 }
 
 void PRadHyCalSystem::FillEnergyHist(const double &e)
 {
     energy_hist->Fill(e);
+}
+
+void PRadHyCalSystem::FillEnergyHist(const EventData &event)
+{
+    energy_hist->Fill(GetEnergy(event));
 }
 
 void PRadHyCalSystem::ResetEnergyHist()

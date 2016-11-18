@@ -10,23 +10,22 @@
 #include <iomanip>
 #include <algorithm>
 #include "PRadDataHandler.h"
-#include "PRadEvioParser.h"
-#include "PRadDSTParser.h"
 #include "PRadHyCalSystem.h"
 #include "PRadGEMSystem.h"
 #include "PRadEPICSystem.h"
 #include "PRadBenchMark.h"
 #include "ConfigParser.h"
+#include "canalib.h"
 #include "TH2.h"
 
 #define EPICS_UNDEFINED_VALUE -9999.9
 
 using namespace std;
 
+// constructor
 PRadDataHandler::PRadDataHandler()
-: parser(new PRadEvioParser(this)), dst_parser(new PRadDSTParser(this)),
-  hycal_sys(nullptr), gem_sys(nullptr), totalE(0), onlineMode(false),
-  replayMode(false), current_event(0)
+: parser(this), dst_parser(this),
+  hycal_sys(nullptr), gem_sys(nullptr), onlineMode(false), replayMode(false), current_event(0)
 {
     TagEHist = new TH2I("Tagger E", "Tagger E counter", 2000, 0, 20000, 384, 0, 383);
     TagTHist = new TH2I("Tagger T", "Tagger T counter", 2000, 0, 20000, 128, 0, 127);
@@ -39,75 +38,95 @@ PRadDataHandler::PRadDataHandler()
     onlineInfo.add_trigger("Scintillator", 5);
 }
 
+// destructor
 PRadDataHandler::~PRadDataHandler()
 {
     delete TagEHist;
     delete TagTHist;
-
-    delete parser;
-    delete dst_parser;
-    delete epic_sys;
 }
 
-void PRadDataHandler::ReadConfig(const string &path)
-{
-    ConfigParser c_parser;
-    c_parser.SetSplitters(":,");
-
-    if(!c_parser.ReadFile(path)) {
-        cerr << "Data Handler: Cannot open configuration file "
-             << "\"" << path << "\"."
-             << endl;
-    }
-
-    while(c_parser.ParseLine())
-    {
-        string func_name = c_parser.TakeFirst();
-        if((func_name.find("Run Number") != string::npos)) {
-            const int var1 = c_parser.TakeFirst().Int();
-            ExecuteConfigCommand(&PRadDataHandler::SetRunNumber, var1);
-        }
-        if((func_name.find("Initialize File") != string::npos)) {
-            const string var1 = c_parser.TakeFirst().String();
-            ExecuteConfigCommand(&PRadDataHandler::InitializeByData, var1, -1, 2);
-        }
-    }
-}
-
-// execute command
-template<typename... Args>
-void PRadDataHandler::ExecuteConfigCommand(void (PRadDataHandler::*act)(Args...), Args&&... args)
-{
-    (this->*act)(forward<Args>(args)...);
-}
-
-// decode event buffer
+// decode an event buffer
 void PRadDataHandler::Decode(const void *buffer)
 {
-    parser->ReadEventBuffer(buffer);
+    parser.ReadEventBuffer(buffer);
 
-    WaitEventProcess();
+    waitEventProcess();
 }
 
-void PRadDataHandler::SetOnlineMode(const bool &mode)
+void PRadDataHandler::ReadFromDST(const string &path, const uint32_t &mode)
 {
-    onlineMode = mode;
+    try {
+        dst_parser.OpenInput(path);
+
+        dst_parser.SetMode(mode);
+
+        cout << "Data Handler: Reading events from DST file "
+             << "\"" << path << "\""
+             << endl;
+
+        while(dst_parser.Read())
+        {
+            switch(dst_parser.EventType())
+            {
+            case PRad_DST_Event:
+                FillHistograms(dst_parser.GetEvent());
+                event_data.push_back(dst_parser.GetEvent());
+                break;
+            case PRad_DST_Epics:
+                if(epic_sys)
+                    epic_sys->AddEvent(dst_parser.GetEPICSEvent());
+                break;
+            default:
+                break;
+            }
+        }
+
+    } catch(PRadException &e) {
+        cerr << e.FailureType() << ": "
+             << e.FailureDesc() << endl
+             << "Write to DST Aborted!" << endl;
+    } catch(exception &e) {
+        cerr << e.what() << endl
+             << "Write to DST Aborted!" << endl;
+    }
+    dst_parser.CloseInput();
+ }
+
+
+// read fro evio file
+void PRadDataHandler::ReadFromEvio(const string &path, const int &evt, const bool &verbose)
+{
+    parser.ReadEvioFile(path.c_str(), evt, verbose);
+    waitEventProcess();
+}
+
+//read from several evio file
+void PRadDataHandler::ReadFromSplitEvio(const string &path, const int &split, const bool &verbose)
+{
+    if(split < 0) {// default input, no split
+        ReadFromEvio(path.c_str(), -1, verbose);
+    } else {
+        for(int i = 0; i <= split; ++i)
+        {
+            string split_path = path + "." + to_string(i);
+            ReadFromEvio(split_path.c_str(), -1, verbose);
+        }
+    }
 }
 
 // erase the data container
 void PRadDataHandler::Clear()
 {
     // used memory won't be released, but it can be used again for new data file
-    energyData = deque<EventData>();
+    event_data = deque<EventData>();
+    parser.SetEventNumber(0);
     runInfo.clear();
-    epic_sys->Reset();
-
-    parser->SetEventNumber(0);
-    totalE = 0;
 
     TagEHist->Reset();
     TagTHist->Reset();
 
+    if(epic_sys)
+        epic_sys->Reset();
     if(hycal_sys)
         hycal_sys->Reset();
 
@@ -117,14 +136,14 @@ void PRadDataHandler::Clear()
 
 void PRadDataHandler::UpdateTrgType(const unsigned char &trg)
 {
-    if(newEvent->trigger && (newEvent->trigger != trg)) {
+    if(new_event->trigger && (new_event->trigger != trg)) {
         cerr << "ERROR: Trigger type mismatch at event "
-             << parser->GetEventNumber()
-             << ", was " << (int) newEvent->trigger
+             << parser.GetEventNumber()
+             << ", was " << (int) new_event->trigger
              << " now " << (int) trg
              << endl;
     }
-    newEvent->trigger = trg;
+    new_event->trigger = trg;
 }
 
 void PRadDataHandler::AccumulateBeamCharge(EventData &event)
@@ -174,16 +193,16 @@ void PRadDataHandler::UpdateOnlineInfo(EventData &event)
 
 void PRadDataHandler::FeedData(JLabTIData &tiData)
 {
-    newEvent->timestamp = tiData.time_high;
-    newEvent->timestamp <<= 32;
-    newEvent->timestamp |= tiData.time_low;
+    new_event->timestamp = tiData.time_high;
+    new_event->timestamp <<= 32;
+    new_event->timestamp |= tiData.time_low;
 }
 
 void PRadDataHandler::FeedData(JLabDSCData &dscData)
 {
     for(uint32_t i = 0; i < dscData.size; ++i)
     {
-        newEvent->dsc_data.emplace_back(dscData.gated_buf[i], dscData.ungated_buf[i]);
+        new_event->dsc_data.emplace_back(dscData.gated_buf[i], dscData.ungated_buf[i]);
     }
 }
 
@@ -199,12 +218,12 @@ void PRadDataHandler::FeedData(ADC1881MData &adcData)
     if(!channel)
         return;
 
-    if(newEvent->is_physics_event()) {
+    if(new_event->is_physics_event()) {
         if(channel->Sparsify(adcData.val)) {
-            newEvent->add_adc(ADC_Data(channel->GetID(), adcData.val)); // store this data word
+            new_event->add_adc(ADC_Data(channel->GetID(), adcData.val)); // store this data word
         }
-    } else if (newEvent->is_monitor_event()) {
-        newEvent->add_adc(ADC_Data(channel->GetID(), adcData.val));
+    } else if (new_event->is_monitor_event()) {
+        new_event->add_adc(ADC_Data(channel->GetID(), adcData.val));
     }
 
 }
@@ -219,7 +238,7 @@ void PRadDataHandler::FeedData(TDCV767Data &tdcData)
     if(!tdc)
         return;
 
-    newEvent->tdc_data.push_back(TDC_Data(tdc->GetID(), tdcData.val));
+    new_event->tdc_data.push_back(TDC_Data(tdc->GetID(), tdcData.val));
 }
 
 void PRadDataHandler::FeedData(TDCV1190Data &tdcData)
@@ -237,7 +256,7 @@ void PRadDataHandler::FeedData(TDCV1190Data &tdcData)
     if(!tdc)
         return;
 
-    newEvent->add_tdc(TDC_Data(tdc->GetID(), tdcData.val));
+    new_event->add_tdc(TDC_Data(tdc->GetID(), tdcData.val));
 }
 
 void PRadDataHandler::FeedTaggerHits(TDCV1190Data &tdcData)
@@ -249,7 +268,7 @@ void PRadDataHandler::FeedTaggerHits(TDCV1190Data &tdcData)
     {
         int e_ch = tdcData.addr.channel + (tdcData.addr.slot - 3)*64 + TAGGER_CHANID;
         // E Channel 30000 + channel
-        newEvent->add_tdc(TDC_Data(e_ch, tdcData.val));
+        new_event->add_tdc(TDC_Data(e_ch, tdcData.val));
     }
     // T Channel
     if(tdcData.addr.slot == 14)
@@ -261,7 +280,7 @@ void PRadDataHandler::FeedTaggerHits(TDCV1190Data &tdcData)
         else
             t_ch = (t_ch + 16)%32;
         t_ch += t_lr*64;
-        newEvent->add_tdc(TDC_Data(t_ch + TAGGER_CHANID + TAGGER_T_CHANID, tdcData.val));
+        new_event->add_tdc(TDC_Data(t_ch + TAGGER_CHANID + TAGGER_T_CHANID, tdcData.val));
     }
 }
 
@@ -269,19 +288,20 @@ void PRadDataHandler::FeedTaggerHits(TDCV1190Data &tdcData)
 void PRadDataHandler::FeedData(GEMRawData &gemData)
 {
     if(gem_sys)
-        gem_sys->FillRawData(gemData, newEvent->gem_data, newEvent->is_monitor_event());
+        gem_sys->FillRawData(gemData, new_event->gem_data, new_event->is_monitor_event());
 }
 
 // feed GEM data which has been zero-suppressed
 void PRadDataHandler::FeedData(vector<GEMZeroSupData> &gemData)
 {
     if(gem_sys)
-        gem_sys->FillZeroSupData(gemData, newEvent->gem_data);
+        gem_sys->FillZeroSupData(gemData, new_event->gem_data);
 }
 
 void PRadDataHandler::FeedData(EPICSRawData &epicsData)
 {
-    epic_sys->FillRawData(epicsData.buf);
+    if(epic_sys)
+        epic_sys->FillRawData(epicsData.buf);
 }
 
 //TODO move to hycal system
@@ -327,20 +347,20 @@ void PRadDataHandler::FillHistograms(EventData &data)
 // signal of new event
 void PRadDataHandler::StartofNewEvent(const unsigned char &tag)
 {
-    newEvent = new EventData(tag);
+    new_event = new EventData(tag);
 }
 
 // signal of event end, save event or discard event in online mode
 void PRadDataHandler::EndofThisEvent(const unsigned int &ev)
 {
-    newEvent->event_number = ev;
+    new_event->event_number = ev;
     // wait for the process thread
-    WaitEventProcess();
+    waitEventProcess();
 
-    end_thread = thread(&PRadDataHandler::EndProcess, this, newEvent);
+    end_thread = thread(&PRadDataHandler::EndProcess, this, new_event);
 }
 
-void PRadDataHandler::WaitEventProcess()
+void PRadDataHandler::waitEventProcess()
 {
     if(end_thread.joinable())
         end_thread.join();
@@ -349,10 +369,12 @@ void PRadDataHandler::WaitEventProcess()
 void PRadDataHandler::EndProcess(EventData *data)
 {
     if(data->type == EPICS_Info) {
-        if(replayMode)
-            dst_parser->WriteEPICS(EPICSData(data->event_number, epic_sys->GetValues()));
-        else
-            epic_sys->SaveData(data->event_number, onlineMode);
+        if(epic_sys) {
+            if(replayMode)
+                dst_parser.WriteEPICS(EPICSData(data->event_number, epic_sys->GetValues()));
+            else
+                epic_sys->SaveData(data->event_number, onlineMode);
+        }
     } else { // event or sync event
 
         FillHistograms(*data);
@@ -364,13 +386,13 @@ void PRadDataHandler::EndProcess(EventData *data)
                 UpdateOnlineInfo(*data);
         }
 
-        if(onlineMode && energyData.size()) // online mode only saves the last event, to reduce usage of memory
-            energyData.pop_front();
+        if(onlineMode && event_data.size()) // online mode only saves the last event, to reduce usage of memory
+            event_data.pop_front();
 
         if(replayMode)
-            dst_parser->WriteEvent(*data);
+            dst_parser.WriteEvent(*data);
         else
-            energyData.emplace_back(move(*data)); // save event
+            event_data.emplace_back(move(*data)); // save event
 
     }
 
@@ -380,11 +402,11 @@ void PRadDataHandler::EndProcess(EventData *data)
 // show the event to event viewer
 void PRadDataHandler::ChooseEvent(const int &idx)
 {
-    if (energyData.size()) { // offline mode, pick the event given by console
-        if((unsigned int) idx >= energyData.size())
-            ChooseEvent(energyData.back());
+    if (event_data.size()) { // offline mode, pick the event given by console
+        if((unsigned int) idx >= event_data.size())
+            ChooseEvent(event_data.back());
         else
-            ChooseEvent(energyData.at(idx));
+            ChooseEvent(event_data.at(idx));
     }
 }
 
@@ -398,41 +420,20 @@ void PRadDataHandler::ChooseEvent(const EventData &event)
     current_event = event.event_number;
 }
 
-double PRadDataHandler::GetEnergy(const EventData &event)
-{
-    if(!hycal_sys)
-        return 0.;
-
-    double energy = 0.;
-    for(auto &adc : event.adc_data)
-    {
-        PRadADCChannel *channel = hycal_sys->GetADCChannel(adc.channel_id);
-        if(channel)
-            energy += channel->GetEnergy(adc.value);
-    }
-
-    return energy;
-}
-
-int PRadDataHandler::GetCurrentEventNb()
-{
-    return current_event;
-}
-
-EventData &PRadDataHandler::GetEvent(const unsigned int &index)
+const EventData &PRadDataHandler::GetEvent(const unsigned int &index)
+const
 throw (PRadException)
 {
-    if(!energyData.size())
+    if(!event_data.size())
         throw PRadException("PRad Data Handler Error", "Empty data bank!");
 
-    if(index >= energyData.size()) {
-        return energyData.back();
+    if(index >= event_data.size()) {
+        return event_data.back();
     } else {
-        return energyData.at(index);
+        return event_data.at(index);
     }
 }
 
-// TODO move to hycal system
 // Refill energy hist after correct gain factos
 void PRadDataHandler::RefillEnergyHist()
 {
@@ -441,31 +442,12 @@ void PRadDataHandler::RefillEnergyHist()
 
     hycal_sys->ResetEnergyHist();
 
-    for(auto &event : energyData)
+    for(auto &event : event_data)
     {
         if(!event.is_physics_event())
             continue;
 
-        hycal_sys->FillEnergyHist(GetEnergy(event));
-    }
-}
-
-void PRadDataHandler::ReadFromEvio(const string &path, const int &evt, const bool &verbose)
-{
-    parser->ReadEvioFile(path.c_str(), evt, verbose);
-    WaitEventProcess();
-}
-
-void PRadDataHandler::ReadFromSplitEvio(const string &path, const int &split, const bool &verbose)
-{
-    if(split < 0) {// default input, no split
-        ReadFromEvio(path.c_str(), -1, verbose);
-    } else {
-        for(int i = 0; i <= split; ++i)
-        {
-            string split_path = path + "." + to_string(i);
-            ReadFromEvio(split_path.c_str(), -1, verbose);
-        }
+        hycal_sys->FillEnergyHist(event);
     }
 }
 
@@ -492,7 +474,7 @@ void PRadDataHandler::InitializeByData(const string &path, int run, int ref)
 
         gem_sys->SetPedestalMode(true);
 
-        parser->ReadEvioFile(path.c_str(), 20000);
+        parser.ReadEvioFile(path.c_str(), 20000);
     }
 
     cout << "Data Handler: Fitting Pedestal for HyCal." << endl;
@@ -554,141 +536,75 @@ void PRadDataHandler::GetRunNumberFromFileName(const string &name, const size_t 
 // find event by its event number
 // it is assumed the files decoded are all from 1 single run and they are loaded in order
 // otherwise this function will not work properly
-int PRadDataHandler::FindEventIndex(const int &ev)
+int PRadDataHandler::FindEvent(int evt)
+const
 {
-    int result = -1;
+    auto event_cmp = [] (const EventData &event, const int &evt)
+                     {
+                        return event.event_number - evt;
+                     };
+    auto it = cana::binary_search(event_data.begin(), event_data.end(), evt, event_cmp);
 
-    if(ev < 0) {
-        cout << "Data Handler: Cannot find event with negative event number!" << endl;
-        return result;
-    }
+    if(it == event_data.end())
+        return -1;
 
-    if(!energyData.size()) {
-        cout << "Data Handler: No event found since data bank is empty." << endl;
-        return result;
-    }
-
-    int data_begin = 0;
-    int data_end = (int)energyData.size() - 1;
-
-    int first_event = energyData.at(0).event_number;
-
-    if(ev > first_event) {
-        int index = ev - first_event;
-        if(index >= data_end)
-            index = data_end;
-        int diff = energyData.at(index).event_number - ev;
-        while(diff > 0)
-        {
-            index -= diff;
-            if(index <= 0) {
-                index = 0;
-                break;
-            }
-            diff = energyData.at(index).event_number - ev;
-        }
-
-        data_begin = index;
-    }
-
-    for(int i = data_begin; i < data_end; ++i) {
-        if(energyData.at(i) == ev)
-            return i;
-    }
-
-    return result;
+    return it - event_data.begin();
 }
 
 void PRadDataHandler::Replay(const string &r_path, const int &split, const string &w_path)
 {
     if(w_path.empty()) {
         string file = "prad_" + to_string(runInfo.run_number) + ".dst";
-        dst_parser->OpenOutput(file);
+        dst_parser.OpenOutput(file);
     } else {
-        dst_parser->OpenOutput(w_path);
+        dst_parser.OpenOutput(w_path);
     }
 
     cout << "Replay started!" << endl;
     PRadBenchMark timer;
 
-    dst_parser->WriteHyCalInfo(hycal_sys);
-    dst_parser->WriteGEMInfo(gem_sys);
-    dst_parser->WriteEPICSMap(epic_sys);
+    dst_parser.WriteHyCalInfo(hycal_sys);
+    dst_parser.WriteGEMInfo(gem_sys);
+    dst_parser.WriteEPICSMap(epic_sys);
 
     replayMode = true;
 
     ReadFromSplitEvio(r_path, split);
 
-    dst_parser->WriteRunInfo();
+    dst_parser.WriteRunInfo(this);
 
     replayMode = false;
 
     cout << "Replay done, took " << timer.GetElapsedTime()/1000. << " s!" << endl;
-    dst_parser->CloseOutput();
+    dst_parser.CloseOutput();
 }
-
-void PRadDataHandler::ReadFromDST(const string &path, const uint32_t &mode)
-{
-    try {
-        dst_parser->OpenInput(path);
-
-        dst_parser->SetMode(mode);
-
-        cout << "Data Handler: Reading events from DST file "
-             << "\"" << path << "\""
-             << endl;
-
-        while(dst_parser->Read())
-        {
-            switch(dst_parser->EventType())
-            {
-            case PRad_DST_Event:
-                FillHistograms(dst_parser->GetEvent());
-                energyData.push_back(dst_parser->GetEvent());
-                break;
-            case PRad_DST_Epics:
-                epic_sys->AddEvent(dst_parser->GetEPICSEvent());
-                break;
-            default:
-                break;
-            }
-        }
-
-    } catch(PRadException &e) {
-        cerr << e.FailureType() << ": "
-             << e.FailureDesc() << endl
-             << "Write to DST Aborted!" << endl;
-    } catch(exception &e) {
-        cerr << e.what() << endl
-             << "Write to DST Aborted!" << endl;
-    }
-    dst_parser->CloseInput();
- }
 
 void PRadDataHandler::WriteToDST(const string &path)
 {
     try {
-        dst_parser->OpenOutput(path);
+        dst_parser.OpenOutput(path);
 
         cout << "Data Handler: Saving DST file "
              << "\"" << path << "\""
              << endl;
 
-        dst_parser->WriteHyCalInfo(hycal_sys);
-        dst_parser->WriteGEMInfo(gem_sys);
-        dst_parser->WriteEPICSMap(epic_sys);
+        dst_parser.WriteHyCalInfo(hycal_sys);
+        dst_parser.WriteGEMInfo(gem_sys);
+        dst_parser.WriteEPICSMap(epic_sys);
 
-        for(auto &epics : epic_sys->GetEventData())
-        {
-            dst_parser->WriteEPICS(epics);
+        if(epic_sys) {
+            for(auto &epics : epic_sys->GetEventData())
+            {
+                dst_parser.WriteEPICS(epics);
+            }
         }
 
-        for(auto &event : energyData)
+        for(auto &event : event_data)
         {
-            dst_parser->WriteEvent(event);
+            dst_parser.WriteEvent(event);
         }
 
-        dst_parser->WriteRunInfo();
+        dst_parser.WriteRunInfo(this);
 
     } catch(PRadException &e) {
         cerr << e.FailureType() << ": "
@@ -699,5 +615,5 @@ void PRadDataHandler::WriteToDST(const string &path)
              << "Write to DST Aborted!" << endl;
     }
 
-    dst_parser->CloseOutput();
+    dst_parser.CloseOutput();
 }

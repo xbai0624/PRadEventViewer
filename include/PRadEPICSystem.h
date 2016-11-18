@@ -23,7 +23,7 @@ struct EPICSChannel
 class PRadEPICSystem
 {
 public:
-    PRadEPICSystem(const std::string &path);
+    PRadEPICSystem(const std::string &path = "");
     virtual ~PRadEPICSystem();
 
     void Reset();
@@ -39,10 +39,11 @@ public:
     std::vector<EPICSChannel> GetSortedList() const;
     const std::vector<float> &GetValues() const {return epics_values;};
     float GetValue(const std::string &name) const;
-    float GetValue(const std::string &name, int evt) const;
     const EPICSData &GetEvent(const unsigned int &index) const throw(PRadException);
     const std::deque<EPICSData> &GetEventData() const {return epics_data;};
     unsigned int GetEventCount() const {return epics_data.size();};
+    float FindValue(int event_number, const std::string &name) const;
+    int FindEvent(int event_number) const;
 
 
 private:
