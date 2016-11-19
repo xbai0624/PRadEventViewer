@@ -24,9 +24,6 @@
 PRadHyCalSystem::PRadHyCalSystem(const std::string &path)
 : hycal(new PRadHyCalDetector("HyCal", this)), recon(nullptr)
 {
-    if(!path.empty())
-        Configure(path);
-
     // reserve enough buckets for the adc maps
     adc_addr_map.reserve(ADC_BUCKETS);
     adc_name_map.reserve(ADC_BUCKETS);
@@ -36,6 +33,9 @@ PRadHyCalSystem::PRadHyCalSystem(const std::string &path)
 
     // hycal clustering methods
     AddClusterMethod("Square", new PRadSquareCluster());
+
+    if(!path.empty())
+        Configure(path);
 }
 
 // copy constructor
@@ -175,7 +175,8 @@ void PRadHyCalSystem::Configure(const std::string &path)
 
     // reconstruction configuration
     SetClusterMethod(GetConfig<std::string>("Cluster Method"));
-    recon->Configure(GetConfig<std::string>("Cluster Configuration"));
+    if(recon)
+        recon->Configure(GetConfig<std::string>("Cluster Configuration"));
 
 }
 

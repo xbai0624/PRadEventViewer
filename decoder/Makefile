@@ -46,71 +46,77 @@ STRIP         =
 ####### Targets, add new objects here
 
 # lib PRadDecoder
-T_LIBS_DIR    = lib
-TARGET_LIBS   = libPRadDecoder.so
-
+LIB_DIR       = lib
+TARGET_LIB    = libprana.so
 LIB_SRC_DIR   = $(PRAD_PATH)/src
+LIB_OBJ_DIR   = $(LIB_DIR)/obj
+LIB_CLASSES   = PRadDAQChannel \
+				PRadADCChannel \
+				PRadTDCChannel \
+				PRadCalibConst \
+                PRadEvioParser \
+                PRadDSTParser \
+                PRadDataHandler \
+                PRadException \
+                PRadBenchMark \
+                ConfigParser \
+                ConfigValue \
+                ConfigObject \
+                PRadDetector \
+                PRadHyCalSystem \
+                PRadHyCalDetector \
+                PRadHyCalModule \
+                PRadHyCalCluster \
+                PRadSquareCluster \
+                island \
+                PRadGEMSystem \
+                PRadGEMDetector \
+                PRadGEMPlane \
+                PRadGEMFEC \
+                PRadGEMAPV \
+                PRadGEMCluster \
+                PRadEventFilter \
+                PRadCoordSystem \
+                PRadDetMatch \
+                PRadEPICSystem \
+                PRadInfoCenter \
+                PRadTaggerSystem
 
-LIB_OBJ_DIR   = $(T_LIBS_DIR)/obj
-
-LIB_OBJECTS   = $(LIB_OBJ_DIR)/PRadDAQChannel.o \
-				$(LIB_OBJ_DIR)/PRadADCChannel.o \
-				$(LIB_OBJ_DIR)/PRadTDCChannel.o \
-				$(LIB_OBJ_DIR)/PRadCalibConst.o \
-                $(LIB_OBJ_DIR)/PRadEvioParser.o \
-                $(LIB_OBJ_DIR)/PRadDSTParser.o \
-                $(LIB_OBJ_DIR)/PRadDataHandler.o \
-                $(LIB_OBJ_DIR)/PRadException.o \
-                $(LIB_OBJ_DIR)/PRadBenchMark.o \
-                $(LIB_OBJ_DIR)/ConfigParser.o \
-                $(LIB_OBJ_DIR)/ConfigValue.o \
-                $(LIB_OBJ_DIR)/ConfigObject.o \
-                $(LIB_OBJ_DIR)/PRadDetector.o \
-                $(LIB_OBJ_DIR)/PRadHyCalSystem.o \
-                $(LIB_OBJ_DIR)/PRadHyCalDetector.o \
-                $(LIB_OBJ_DIR)/PRadHyCalModule.o \
-                $(LIB_OBJ_DIR)/PRadHyCalCluster.o \
-                $(LIB_OBJ_DIR)/PRadSquareCluster.o \
-                $(LIB_OBJ_DIR)/island.o \
-                $(LIB_OBJ_DIR)/PRadGEMSystem.o \
-                $(LIB_OBJ_DIR)/PRadGEMDetector.o \
-                $(LIB_OBJ_DIR)/PRadGEMPlane.o \
-                $(LIB_OBJ_DIR)/PRadGEMFEC.o \
-                $(LIB_OBJ_DIR)/PRadGEMAPV.o \
-                $(LIB_OBJ_DIR)/PRadGEMCluster.o \
-                $(LIB_OBJ_DIR)/PRadEventFilter.o \
-                $(LIB_OBJ_DIR)/PRadCoordSystem.o \
-                $(LIB_OBJ_DIR)/PRadDetMatch.o
+LIB_OBJECTS   = $(addprefix $(LIB_OBJ_DIR)/, $(LIB_CLASSES:=.o))
 
 
 # examples
-TARGET       =  testLMS \
-                testGEM \
+EXAMPLE_SRC   = src
+EXAMPLE_DIR   = .
+EXAMPLE       = testGEM \
                 testHyCal \
+				testDST \
                 getAvgGain \
                 replay
+#                testLMS
 #                testEPICS
 #                testIsland
 #                testCombine
 #                testMatch
 #                testSim
 
-EXE_LIBS      = -L$(T_LIBS_DIR) -lPRadDecoder
+EXAMPLE_BINS  = $(addprefix $(EXAMPLE_DIR)/, $(EXAMPLE))
+EXAMPLE_LIBS  = -L$(LIB_DIR) -lprana
 
 first: all
 
 all: lib exe
 
-lib: Makefile $(TARGET_LIBS)
+lib: Makefile $(TARGET_LIB)
 
-exe: Makefile $(TARGET)
+exe: Makefile $(EXAMPLE_BINS)
 
 
 
 ####### Build rules
 
-$(TARGET_LIBS):  $(LIB_OBJECTS)
-	$(LINK) $(LFLAGS_LIBS) -o $(T_LIBS_DIR)/$(TARGET_LIBS) $(LIB_OBJECTS) $(LIBS)
+$(TARGET_LIB):  $(LIB_OBJECTS)
+	$(LINK) $(LFLAGS_LIBS) -o $(LIB_DIR)/$(TARGET_LIB) $(LIB_OBJECTS) $(LIBS)
 
 $(LIB_OBJ_DIR)/%.o: $(LIB_SRC_DIR)/%.cpp
 	$(CXX) -c $(CXXFLAGS_LIBS) $(INCPATH) -o $@ $<
@@ -118,35 +124,8 @@ $(LIB_OBJ_DIR)/%.o: $(LIB_SRC_DIR)/%.cpp
 $(LIB_OBJ_DIR)/island.o: $(LIB_SRC_DIR)/island.F
 	$(FORTRAN) -c $(FFLAGS) $(INCPATH) -o $@ $<
 
-testIsland: src/testIsland.cpp
-	$(CXX) $(CXXFLAGS) -o $@ $< $(INCPATH) $(LIBS) $(EXE_LIBS)
-
-testEPICS: src/testEPICS.cpp
-	$(CXX) $(CXXFLAGS) -o $@ $< $(INCPATH) $(LIBS) $(EXE_LIBS)
-
-testLMS: src/testLMS.cpp
-	$(CXX) $(CXXFLAGS) -o $@ $< $(INCPATH) $(LIBS) $(EXE_LIBS)
-
-testGEM: src/testGEM.cpp
-	$(CXX) $(CXXFLAGS) -o $@ $< $(INCPATH) $(LIBS) $(EXE_LIBS)
-
-testHyCal: src/testHyCal.cpp
-	$(CXX) $(CXXFLAGS) -o $@ $< $(INCPATH) $(LIBS) $(EXE_LIBS)
-
-testSim: src/testSim.cpp
-	$(CXX) $(CXXFLAGS) -o $@ $< $(INCPATH) $(LIBS) $(EXE_LIBS)
-
-testCombine: src/testCombine.cpp
-	$(CXX) $(CXXFLAGS) -o $@ $< $(INCPATH) $(LIBS) $(EXE_LIBS)
-
-testMatch: src/testMatch.cpp
-	$(CXX) $(CXXFLAGS) -o $@ $< $(INCPATH) $(LIBS) $(EXE_LIBS)
-
-getAvgGain: src/getAvgGain.cpp
-	$(CXX) $(CXXFLAGS) -o $@ $< $(INCPATH) $(LIBS) $(EXE_LIBS)
-
-replay: src/replay.cpp
-	$(CXX) $(CXXFLAGS) -o $@ $< $(INCPATH) $(LIBS) $(EXE_LIBS)
+$(EXAMPLE_DIR)/%: $(EXAMPLE_SRC)/%.cpp
+	$(CXX) $(CXXFLAGS) -o $@ $< $(INCPATH) $(LIBS) $(EXAMPLE_LIBS)
 
 
 ####### Clean
@@ -156,10 +135,10 @@ cleanobj:
 	$(DEL_FILE) $(LIB_OBJ_DIR)/*.o $(EXE_OBJ_DIR)/*.o
 
 cleanexe:
-	$(DEL_FILE) $(TARGET)
+	$(DEL_FILE) $(EXAMPLE)
 
 cleanlib:
-	$(DEL_FILE) $(T_LIBS_DIR)/$(TARGET_LIBS)
+	$(DEL_FILE) $(LIB_DIR)/$(TARGET_LIB)
 
 ####### Install
 

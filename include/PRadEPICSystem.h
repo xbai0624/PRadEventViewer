@@ -32,6 +32,7 @@ public:
     void AddChannel(const std::string &name);
     void AddChannel(const std::string &name, uint32_t id, float value);
     void UpdateChannel(const std::string &name, const float &value);
+    void AddEvent(EPICS_Data &&data);
     void AddEvent(const EPICS_Data &data);
     void FillRawData(const char *buf);
     void SaveData(const int &event_number, bool online = false);

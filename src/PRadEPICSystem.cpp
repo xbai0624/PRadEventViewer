@@ -112,6 +112,11 @@ void PRadEPICSystem::FillRawData(const char *data)
     }
 }
 
+void PRadEPICSystem::AddEvent(EPICS_Data &&data)
+{
+    epics_data.emplace_back(data);
+}
+
 void PRadEPICSystem::AddEvent(const EPICS_Data &data)
 {
     epics_data.push_back(data);

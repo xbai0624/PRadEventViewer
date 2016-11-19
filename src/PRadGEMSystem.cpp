@@ -536,7 +536,7 @@ const
 }
 
 // fill raw data to a certain apv
-void PRadGEMSystem::FillRawData(GEMRawData &raw, vector<GEM_Data> &container, const bool &fill_hist)
+void PRadGEMSystem::FillRawData(const GEMRawData &raw, EventData &event)
 {
     PRadGEMAPV *apv = GetAPV(raw.addr);
 
@@ -544,7 +544,7 @@ void PRadGEMSystem::FillRawData(GEMRawData &raw, vector<GEM_Data> &container, co
 
         apv->FillRawData(raw.buf, raw.size);
 
-        if(fill_hist) {
+        if(event.is_monitor_event()) {
             if(PedestalMode)
                 apv->FillPedHist();
         } else {
@@ -552,7 +552,7 @@ void PRadGEMSystem::FillRawData(GEMRawData &raw, vector<GEM_Data> &container, co
 #ifdef MULTI_THREAD
             locker.lock();
 #endif
-            apv->CollectZeroSupHits(container);
+            apv->CollectZeroSupHits(event.get_gem_data());
 #ifdef MULTI_THREAD
             locker.unlock();
 #endif
@@ -576,8 +576,7 @@ void PRadGEMSystem::Reset()
 }
 
 // fill zero suppressed data and re-collect these data in GEM_Data format
-void PRadGEMSystem::FillZeroSupData(vector<GEMZeroSupData> &data_pack,
-                                    vector<GEM_Data> &container)
+void PRadGEMSystem::FillZeroSupData(const vector<GEMZeroSupData> &data_pack, EventData &event)
 {
     // clear all the APVs' hits
     for(auto &fec : fec_list)
@@ -595,7 +594,7 @@ void PRadGEMSystem::FillZeroSupData(vector<GEMZeroSupData> &data_pack,
     // collect these zero-suppressed hits
     for(auto &fec : fec_list)
     {
-        fec->APVControl(&PRadGEMAPV::CollectZeroSupHits, container);
+        fec->APVControl(&PRadGEMAPV::CollectZeroSupHits, event.get_gem_data());
     }
 #ifdef MULTI_THREAD
         locker.unlock();
@@ -603,7 +602,7 @@ void PRadGEMSystem::FillZeroSupData(vector<GEMZeroSupData> &data_pack,
 }
 
 // fill zero suppressed data
-void PRadGEMSystem::FillZeroSupData(GEMZeroSupData &data)
+void PRadGEMSystem::FillZeroSupData(const GEMZeroSupData &data)
 {
     PRadGEMAPV *apv = GetAPV(data.addr);
 

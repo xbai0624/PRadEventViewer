@@ -49,9 +49,26 @@ enum PRadDSTMode
 class PRadDSTParser
 {
 public:
-    PRadDSTParser(PRadDataHandler *h);
+    friend class PRadDataHandler;
+
+public:
+    // constructor
+    PRadDSTParser(PRadDataHandler *h = nullptr);
+
+    // copy/move constructors
+    PRadDSTParser(const PRadDSTParser &that) = delete;
+    PRadDSTParser(PRadDSTParser &&that) = delete;
+
+    // detructor
     virtual ~PRadDSTParser();
 
+    // copy/move assignment operators
+    PRadDSTParser &operator =(const PRadDSTParser &rhs) = delete;
+    PRadDSTParser &operator =(PRadDSTParser &&rhs) = delete;
+
+    // public member functions
+    void SetHandler(PRadDataHandler *h) {handler = h;};
+    PRadDataHandler *GetHandler() const {return handler;};
     void OpenOutput(const std::string &path,
                     std::ios::openmode mode = std::ios::out | std::ios::binary);
     void OpenInput(const std::string &path,
@@ -60,11 +77,11 @@ public:
     void CloseInput();
     void SetMode(const uint32_t &bit) {update_mode = bit;};
     bool Read();
-    PRadDSTInfo EventType() {return type;};
-    EventData &GetEvent() {return event;};
-    EPICS_Data &GetEPICSEvent() {return epics_event;};
+    PRadDSTInfo EventType() const {return type;};
+    const EventData &GetEvent() const {return event;};
+    const EPICS_Data &GetEPICSEvent() const {return epics_event;};
 
-
+    // write information
     void WriteRunInfo() throw(PRadException);
     void WriteEvent(const EventData &data) throw(PRadException);
     void WriteEPICS(const EPICS_Data &data) throw(PRadException);

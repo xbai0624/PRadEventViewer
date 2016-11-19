@@ -10,6 +10,7 @@
 #include "PRadEvioParser.h"
 #include "PRadBenchMark.h"
 #include "PRadGEMSystem.h"
+#include "PRadInfoCenter.h"
 #include <iostream>
 #include <string>
 #include <vector>
@@ -22,7 +23,7 @@ int main(int /*argc*/, char * /*argv*/ [])
     PRadDataHandler *handler = new PRadDataHandler();
     PRadGEMSystem *gem_srs = new PRadGEMSystem("config/gem.conf");
     handler->SetGEMSystem(gem_srs);
-    PRadDSTParser *dst_parser = new PRadDSTParser(handler);
+    PRadDSTParser *dst_parser = new PRadDSTParser();
 
     // read configuration files
     // handler->ReadConfig("config.txt");
@@ -136,11 +137,10 @@ int main(int /*argc*/, char * /*argv*/ [])
     dst_parser->CloseInput();
 
     cout << "TIMER: Finished, took " << timer.GetElapsedTime() << " ms" << endl;
-    cout << "Read " << handler->GetEventCount() << " events and "
-         << handler->GetEPICSEventCount() << " EPICS events from file."
+    cout << "Read " << handler->GetEventCount() << " events "
          << endl;
-    cout << handler->GetBeamCharge() << endl;
-    cout << handler->GetLiveTime() << endl;
+    cout << PRadInfoCenter::GetBeamCharge() << endl;
+    cout << PRadInfoCenter::GetLiveTime() << endl;
 
     return 0;
 }

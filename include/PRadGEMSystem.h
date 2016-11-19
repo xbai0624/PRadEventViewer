@@ -55,9 +55,9 @@ public:
     void Reconstruct(const EventData &data);
     void RebuildDetectorMap();
     void RebuildDAQMap();
-    void FillRawData(GEMRawData &raw, std::vector<GEM_Data> &container, const bool &fill_hist = false);
-    void FillZeroSupData(std::vector<GEMZeroSupData> &data_pack, std::vector<GEM_Data> &container);
-    void FillZeroSupData(GEMZeroSupData &data);
+    void FillRawData(const GEMRawData &raw, EventData &event);
+    void FillZeroSupData(const std::vector<GEMZeroSupData> &data_pack, EventData &event);
+    void FillZeroSupData(const GEMZeroSupData &data);
     bool Register(PRadGEMDetector *det);
     bool Register(PRadGEMFEC *fec);
 

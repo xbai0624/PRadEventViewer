@@ -21,8 +21,19 @@ class TH2I;
 class PRadDataHandler
 {
 public:
+    // constructor
     PRadDataHandler();
+
+    // copy/move constructors
+    PRadDataHandler(const PRadDataHandler &that);
+    PRadDataHandler(PRadDataHandler &&that);
+
+    // destructor
     virtual ~PRadDataHandler();
+
+    // copy/move assignment operators
+    PRadDataHandler &operator =(const PRadDataHandler &rhs);
+    PRadDataHandler &operator =(PRadDataHandler &&rhs);
 
     // mode change
     void SetOnlineMode(const bool &mode);
@@ -38,30 +49,30 @@ public:
 
     // file reading and writing
     void Decode(const void *buffer);
-    void ReadFromDST(const std::string &path, const uint32_t &mode = 0);
-    void ReadFromEvio(const std::string &path, const int &evt = -1, const bool &verbose = false);
-    void ReadFromSplitEvio(const std::string &path, const int &split = -1, const bool &verbose = true);
+    void ReadFromDST(const std::string &path, unsigned int mode = 0);
+    void ReadFromEvio(const std::string &path, int evt = -1, bool verbose = false);
+    void ReadFromSplitEvio(const std::string &path, int split = -1, bool verbose = true);
     void WriteToDST(const std::string &path);
-    void Replay(const std::string &r_path, const int &split = -1, const std::string &w_path = "");
+    void Replay(const std::string &r_path, int split = -1, const std::string &w_path = "");
 
     // data handler
     void Clear();
     void StartofNewEvent(const unsigned char &tag);
     void EndofThisEvent(const unsigned int &ev);
     void EndProcess(EventData *data);
-    void FillHistograms(EventData &data);
+    void FillHistograms(const EventData &data);
     void UpdateTrgType(const unsigned char &trg);
 
 
     // feeding data
-    void FeedData(JLabTIData &tiData);
-    void FeedData(JLabDSCData &dscData);
-    void FeedData(ADC1881MData &adcData);
-    void FeedData(TDCV767Data &tdcData);
-    void FeedData(TDCV1190Data &tdcData);
-    void FeedData(GEMRawData &gemData);
-    void FeedData(std::vector<GEMZeroSupData> &gemData);
-    void FeedData(EPICSRawData &epicsData);
+    void FeedData(const JLabTIData &tiData);
+    void FeedData(const JLabDSCData &dscData);
+    void FeedData(const ADC1881MData &adcData);
+    void FeedData(const TDCV767Data &tdcData);
+    void FeedData(const TDCV1190Data &tdcData);
+    void FeedData(const GEMRawData &gemData);
+    void FeedData(const std::vector<GEMZeroSupData> &gemData);
+    void FeedData(const EPICSRawData &epicsData);
 
 
     // show data
@@ -76,10 +87,6 @@ public:
     void InitializeByData(const std::string &path = "", int ref = DEFAULT_REF_PMT);
     void RefillEnergyHist();
     int FindEvent(int event_number) const;
-
-
-    // other functions
-    void GetRunNumberFromFileName(const std::string &name, const size_t &pos = 0, const bool &verbose = true);
 
 private:
     void waitEventProcess();
@@ -98,8 +105,8 @@ private:
 
     // data related
     std::deque<EventData> event_data;
-
     EventData *new_event;
+    EventData *proc_event;
 };
 
 #endif

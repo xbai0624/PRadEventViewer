@@ -231,22 +231,16 @@ struct EventData
       adc_data(adc), tdc_data(tdc), gem_data(gem), dsc_data(dsc)
     {};
 
-    // functions
-    void initialize(const unsigned char &t = 0) // for data taking
+    void clear()
     {
-        type = t;
+        event_number = 0;
+        type = 0;
         trigger = 0;
+        timestamp = 0;
         adc_data.clear();
         tdc_data.clear();
         gem_data.clear();
         dsc_data.clear();
-    };
-
-    void clear() // fully clear
-    {
-        initialize();
-        event_number = 0;
-        timestamp = 0;
     };
 
     void update_type(const unsigned char &t) {type = t;};

@@ -19,16 +19,16 @@
 
 using namespace std;
 
+// constructor
 PRadDSTParser::PRadDSTParser(PRadDataHandler *h)
-: handler(h), input_length(0),
-  type(PRad_DST_Undefined), update_mode(DST_UPDATE_NONE)
+: handler(h), input_length(0), type(PRad_DST_Undefined), update_mode(DST_UPDATE_NONE)
 {
+    // place holder
 }
 
 PRadDSTParser::~PRadDSTParser()
 {
-    CloseInput();
-    CloseOutput();
+    // place holder
 }
 
 void PRadDSTParser::OpenOutput(const string &path, ios::openmode mode)
