@@ -99,7 +99,7 @@ double PRadInfoCenter::GetLiveTime()
     const RunInfo &run = Instance().run_info;
     if(!run.ungated_count)
         return 0.;
-    return (1. - run.dead_count/run.ungated_count);
+    return (1. - (double)run.dead_count/(double)run.ungated_count);
 };
 
 // try to determine run number from file

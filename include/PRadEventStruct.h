@@ -293,7 +293,8 @@ struct EventData
         double elapsed_time = 0.;
         if(dsc_data.size() > REF_CHANNEL)
         {
-            elapsed_time = (double)dsc_data.at(REF_CHANNEL).ungated_count/(double)REF_PULSER_FREQ;
+            elapsed_time = (double)dsc_data.at(REF_CHANNEL).ungated_count
+                          /(double)REF_PULSER_FREQ;
         }
 
         return elapsed_time;
@@ -305,7 +306,8 @@ struct EventData
         double live_time = 1.;
         if(dsc_data.size() > REF_CHANNEL)
         {
-            live_time -= (double)dsc_data.at(REF_CHANNEL).gated_count/(double)dsc_data.at(REF_CHANNEL).ungated_count;
+            live_time -= (double)dsc_data.at(REF_CHANNEL).gated_count
+                        /(double)dsc_data.at(REF_CHANNEL).ungated_count;
         }
 
         return live_time;
