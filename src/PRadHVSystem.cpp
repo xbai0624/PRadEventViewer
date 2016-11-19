@@ -265,6 +265,7 @@ void PRadHVSystem::SetPower(const ChannelAddress &addr, const bool &on_off)
 }
 
 CAEN_Crate *PRadHVSystem::GetCrate(const string &n)
+const
 {
     auto it = crate_name_map.find(n);
     if(it != crate_name_map.end())
@@ -272,7 +273,8 @@ CAEN_Crate *PRadHVSystem::GetCrate(const string &n)
     return nullptr;
 }
 
-CAEN_Crate *PRadHVSystem::GetCrate(const int &id)
+CAEN_Crate *PRadHVSystem::GetCrate(int id)
+const
 {
     auto it = crate_id_map.find(id);
     if(it != crate_id_map.end())
@@ -280,7 +282,8 @@ CAEN_Crate *PRadHVSystem::GetCrate(const int &id)
     return nullptr;
 }
 
-CAEN_Board *PRadHVSystem::GetBoard(const string &n, const unsigned short &slot)
+CAEN_Board *PRadHVSystem::GetBoard(const string &n, int slot)
+const
 {
     CAEN_Crate *crate = GetCrate(n);
     if(crate)
@@ -288,7 +291,8 @@ CAEN_Board *PRadHVSystem::GetBoard(const string &n, const unsigned short &slot)
     return nullptr;
 }
 
-CAEN_Board *PRadHVSystem::GetBoard(const int &id, const unsigned short &slot)
+CAEN_Board *PRadHVSystem::GetBoard(int id, int slot)
+const
 {
     CAEN_Crate *crate = GetCrate(id);
     if(crate)
@@ -296,7 +300,8 @@ CAEN_Board *PRadHVSystem::GetBoard(const int &id, const unsigned short &slot)
     return nullptr;
 }
 
-CAEN_Channel *PRadHVSystem::GetChannel(const string &n, const unsigned short &slot, const unsigned short &channel)
+CAEN_Channel *PRadHVSystem::GetChannel(const string &n, int slot, int channel)
+const
 {
     CAEN_Board *board = GetBoard(n, slot);
     if(board)
@@ -304,7 +309,8 @@ CAEN_Channel *PRadHVSystem::GetChannel(const string &n, const unsigned short &sl
     return nullptr;
 }
 
-CAEN_Channel *PRadHVSystem::GetChannel(const int &id, const unsigned short &slot, const unsigned short &channel)
+CAEN_Channel *PRadHVSystem::GetChannel(int id, int slot, int channel)
+const
 {
     CAEN_Board *board = GetBoard(id, slot);
     if(board)
@@ -312,7 +318,14 @@ CAEN_Channel *PRadHVSystem::GetChannel(const int &id, const unsigned short &slot
     return nullptr;
 }
 
-PRadHVSystem::Voltage PRadHVSystem::GetVoltage(const string &n, const unsigned short &slot, const unsigned short &channel)
+CAEN_Channel *PRadHVSystem::GetChannel(const ChannelAddress &addr)
+const
+{
+    return GetChannel(addr.crate, addr.slot, addr.channel);
+}
+
+PRadHVSystem::Voltage PRadHVSystem::GetVoltage(const string &n, int slot, int channel)
+const
 {
     Voltage volt;
 
@@ -327,7 +340,8 @@ PRadHVSystem::Voltage PRadHVSystem::GetVoltage(const string &n, const unsigned s
     return volt;
 }
 
-PRadHVSystem::Voltage PRadHVSystem::GetVoltage(const int &id, const unsigned short &slot, const unsigned short &channel)
+PRadHVSystem::Voltage PRadHVSystem::GetVoltage(int id, int slot, int channel)
+const
 {
     Voltage volt;
 
@@ -341,3 +355,10 @@ PRadHVSystem::Voltage PRadHVSystem::GetVoltage(const int &id, const unsigned sho
 
     return volt;
 }
+
+PRadHVSystem::Voltage PRadHVSystem::GetVoltage(const ChannelAddress &addr)
+const
+{
+    return GetVoltage(addr.crate, addr.slot, addr.channel);
+}
+

@@ -168,7 +168,6 @@ void PRadHyCalSystem::Configure(const std::string &path)
 
     // channel, pedestal and gain factors
     ReadChannelList(GetConfig<std::string>("DAQ Channel List"));
-    ReadPedestalFile(GetConfig<std::string>("DAQ Pedestal File"));
     ReadRunInfoFile(GetConfig<std::string>("Run Info File"));
 
     // build connection between modules and channels
@@ -273,43 +272,6 @@ void PRadHyCalSystem::ReadChannelList(const std::string &path)
         }
     }
 }
-
-// read pedestal file for the adc channels
-void PRadHyCalSystem::ReadPedestalFile(const std::string &path)
-{
-    if(path.empty())
-        return;
-
-    ConfigParser c_parser;
-    if(!c_parser.ReadFile(path)) {
-        std::cerr << "PRad HyCal System Error: Failed to read pedestal file "
-                  << "\"" << path << "\"."
-                  << std::endl;
-        return;
-    }
-
-    double mean, sigma;
-    ChannelAddress addr;
-    PRadADCChannel *tmp;
-
-    while(c_parser.ParseLine())
-    {
-        if(!c_parser.CheckElements(5))
-            continue;
-
-        c_parser >> addr.crate >> addr.slot >> addr.channel >> mean >> sigma;
-        tmp = GetADCChannel(addr);
-
-        if(tmp) {
-            tmp->SetPedestal(mean, sigma);
-        } else {
-            std::cout << "PRad HyCal System Warning: Cannot find ADC Channel "
-                      << addr << ", skipped its update for pedestal."
-                      << std::endl;
-        }
-    }
-
-};
 
 // build connections between ADC channels and HyCal modules
 void PRadHyCalSystem::BuildConnections()
@@ -795,6 +757,7 @@ const
 }
 
 void PRadHyCalSystem::SaveHists(const std::string &path)
+const
 {
     TFile f(path.c_str(), "recreate");
 

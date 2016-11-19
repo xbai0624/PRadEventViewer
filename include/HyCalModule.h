@@ -30,11 +30,6 @@ public:
     const double &GetCustomValue() const {return custom_value;};
     QString GetReadID() const {return qname;};
 
-#ifdef USE_CAEN_HV
-    void SetHVAddress(const ChannelAddress &set) {hv_addr = set;};
-    const ChannelAddress &GetHVAddress() const {return hv_addr;};
-#endif
-
     // overload
     QRectF boundingRect() const;
     void paint(QPainter *painter,
@@ -49,7 +44,6 @@ protected:
 private:
     PRadEventViewer *console;
     QString qname;
-    ChannelAddress hv_addr;
 
     bool m_hover;
     bool m_selected;
@@ -57,6 +51,14 @@ private:
     QFont font;
     QPainterPath shape;
     double custom_value;
+
+#ifdef USE_CAEN_HV
+public:
+    void SetHVAddress(const ChannelAddress &set) {hv_addr = set;};
+    const ChannelAddress &GetHVAddress() const {return hv_addr;};
+private:
+    ChannelAddress hv_addr;
+#endif
 };
 
 #endif

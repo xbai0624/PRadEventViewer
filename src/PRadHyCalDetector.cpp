@@ -9,6 +9,7 @@
 #include "PRadHyCalSystem.h"
 #include "TH1.h"
 #include <algorithm>
+#include <fstream>
 #include <iomanip>
 
 
@@ -202,6 +203,31 @@ void PRadHyCalDetector::ReadCalibrationFile(const std::string &path)
     }
 }
 
+void PRadHyCalDetector::SaveModuleList(const std::string &path)
+const
+{
+    std::ofstream outf(path);
+
+    OutputModuleList(outf);
+
+    outf.close();
+}
+
+void PRadHyCalDetector::SaveCalibrationFile(const std::string &path)
+const
+{
+    std::ofstream outf(path);
+
+    for(auto &module : module_list)
+    {
+        outf << std::setw(8) << module->GetName()
+             << module->GetCalibConst()
+             << std::endl;
+    }
+
+    outf.close();
+}
+
 // add a HyCal module to the detector
 bool PRadHyCalDetector::AddModule(PRadHyCalModule *module)
 {
@@ -316,6 +342,7 @@ void PRadHyCalDetector::ClearModuleList()
 }
 
 void PRadHyCalDetector::OutputModuleList(std::ostream &os)
+const
 {
     for(auto module : module_list)
     {
@@ -351,3 +378,5 @@ const
     }
     return energy;
 }
+
+

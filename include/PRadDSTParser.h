@@ -65,18 +65,18 @@ public:
     EPICSData &GetEPICSEvent() {return epics_event;};
 
 
+    void WriteRunInfo() throw(PRadException);
     void WriteEvent(const EventData &data) throw(PRadException);
     void WriteEPICS(const EPICSData &data) throw(PRadException);
     void WriteEPICSMap(const PRadEPICSystem *epics) throw(PRadException);
-    void WriteRunInfo(const PRadDataHandler *h) throw(PRadException);
     void WriteHyCalInfo(const PRadHyCalSystem *hycal) throw(PRadException);
     void WriteGEMInfo(const PRadGEMSystem *gem) throw(PRadException);
 
 private:
+    void readRunInfo() throw(PRadException);
     void readEvent(EventData &data) throw(PRadException);
     void readEPICS(EPICSData &data) throw(PRadException);
     void readEPICSMap(PRadEPICSystem *epics) throw(PRadException);
-    void readRunInfo(PRadDataHandler *h) throw(PRadException);
     void readHyCalInfo(PRadHyCalSystem *hycal) throw(PRadException);
     void readGEMInfo(PRadGEMSystem *gem) throw(PRadException);
 

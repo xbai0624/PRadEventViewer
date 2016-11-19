@@ -44,16 +44,11 @@ public:
 
     // data handler
     void Clear();
-    void SetRunNumber(const int &run) {runInfo.run_number = run;};
     void StartofNewEvent(const unsigned char &tag);
     void EndofThisEvent(const unsigned int &ev);
     void EndProcess(EventData *data);
     void FillHistograms(EventData &data);
     void UpdateTrgType(const unsigned char &trg);
-    void AccumulateBeamCharge(EventData &event);
-    void UpdateLiveTimeScaler(EventData &event);
-    void UpdateOnlineInfo(EventData &event);
-    void UpdateRunInfo(const RunInfo &ri) {runInfo = ri;};
 
 
     // feeding data
@@ -73,18 +68,13 @@ public:
     void ChooseEvent(const EventData &event);
     int GetCurrentEventNb() const {return current_event;};
     unsigned int GetEventCount() const {return event_data.size();};
-    int GetRunNumber() const {return runInfo.run_number;};
-    double GetBeamCharge() const {return runInfo.beam_charge;};
-    double GetLiveTime() const {return (1. - runInfo.dead_count/runInfo.ungated_count);};
     TH2I *GetTagEHist() const {return TagEHist;};
     TH2I *GetTagTHist() const {return TagTHist;};
     const EventData &GetEvent(const unsigned int &index) const throw (PRadException);
     const std::deque<EventData> &GetEventData() const {return event_data;};
-    const RunInfo &GetRunInfo() const {return runInfo;};
-    const OnlineInfo &GetOnlineInfo() const {return onlineInfo;};
 
     // analysis tools
-    void InitializeByData(const std::string &path = "", int run = -1, int ref = DEFAULT_REF_PMT);
+    void InitializeByData(const std::string &path = "", int ref = DEFAULT_REF_PMT);
     void RefillEnergyHist();
     int FindEvent(int event_number) const;
 
@@ -101,8 +91,6 @@ private:
     PRadHyCalSystem *hycal_sys;
     PRadGEMSystem *gem_sys;
     PRadEPICSystem *epic_sys;
-    RunInfo runInfo;
-    OnlineInfo onlineInfo;
     bool onlineMode;
     bool replayMode;
     int current_event;

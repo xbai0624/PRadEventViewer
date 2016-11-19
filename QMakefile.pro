@@ -72,6 +72,7 @@ HEADERS += include/PRadEventViewer.h \
            include/PRadEvioParser.h \
            include/PRadDSTParser.h \
            include/PRadDataHandler.h \
+           include/PRadInfoCenter.h \
            include/datastruct.h \
            include/PRadEventStruct.h \
            include/PRadException.h \
@@ -115,6 +116,7 @@ SOURCES += src/main.cpp \
            src/PRadEvioParser.cpp \
            src/PRadDSTParser.cpp \
            src/PRadDataHandler.cpp \
+           src/PRadInfoCenter.cpp \
            src/PRadException.cpp \
            src/PRadBenchMark.cpp \
            src/PRadEventFilter.cpp \

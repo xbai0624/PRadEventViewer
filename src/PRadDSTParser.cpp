@@ -12,6 +12,8 @@
 #include "PRadEPICSystem.h"
 #include "PRadHyCalSystem.h"
 #include "PRadGEMSystem.h"
+#include "PRadInfoCenter.h"
+
 
 #define DST_FILE_VERSION 0x13  // 0xff
 
@@ -233,7 +235,7 @@ throw(PRadException)
     }
 }
 
-void PRadDSTParser::WriteRunInfo(const PRadDataHandler *h)
+void PRadDSTParser::WriteRunInfo()
 throw(PRadException)
 {
     if(!dst_out.is_open())
@@ -243,11 +245,11 @@ throw(PRadException)
     uint32_t event_info = (PRad_DST_EvHeader << 8) | PRad_DST_Run_Info;
     dst_out.write((char*) &event_info, sizeof(event_info));
 
-    auto runInfo = h->GetRunInfo();
+    auto runInfo = PRadInfoCenter::Instance().GetRunInfo();
     dst_out.write((char*) &runInfo, sizeof(runInfo));
 }
 
-void PRadDSTParser::readRunInfo(PRadDataHandler *h)
+void PRadDSTParser::readRunInfo()
 throw(PRadException)
 {
     if(!dst_in.is_open())
@@ -257,8 +259,8 @@ throw(PRadException)
 
     dst_in.read((char*) &runInfo, sizeof(runInfo));
 
-    if(h && !(update_mode & NO_RUN_INFO_UPDATE))
-        h->UpdateRunInfo(runInfo);
+    if(!(update_mode & NO_RUN_INFO_UPDATE))
+        PRadInfoCenter::Instance().SetRunInfo(runInfo);
 }
 
 void PRadDSTParser::WriteEPICSMap(const PRadEPICSystem *epics)
@@ -489,7 +491,7 @@ bool PRadDSTParser::Read()
                     readEPICSMap(nullptr);
                 break;
             case PRad_DST_Run_Info:
-                readRunInfo(handler);
+                readRunInfo();
                 break;
             case PRad_DST_HyCal_Info:
                 if(handler)

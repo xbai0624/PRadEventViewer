@@ -109,13 +109,11 @@ private slots:
     void handleEventChange(int event);
     void openDataFile();
     void initializeFromFile();
-    void openPedFile();
     void openCalibrationFile();
     void openGainFactorFile();
     void openCustomMap();
     void handleRootEvents();
     void saveHistToFile();
-    void savePedestalFile();
     void findPeak();
     void fitPedestal();
     void fitHistogram();

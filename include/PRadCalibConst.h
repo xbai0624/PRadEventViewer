@@ -2,6 +2,7 @@
 #define PRAD_CALIB_CONST_H
 
 #include <vector>
+#include <iostream>
 #include "ConfigParser.h"
 
 // LMS1 LMS2 LMS3
@@ -29,8 +30,11 @@ public:
 
     double GetCalibConst() const {return factor;};
     double GetRefGain(int ref) const;
+    double GetBaseConst() const {return base_factor;};
     double GetCalibEnergy() const {return base_energy;};
     double GetNonLinearFactor() const {return non_linear;};
+    const std::vector<double> &GetRefGains() const {return base_gains;};
+
     double Calibration(const double &adc_value) const;
 
 private:
@@ -40,5 +44,7 @@ private:
     std::vector<double> base_gains;
     double non_linear;
 };
+
+std::ostream &operator <<(std::ostream &os, const PRadCalibConst &cal);
 
 #endif

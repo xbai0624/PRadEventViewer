@@ -37,6 +37,7 @@
 #include "PRadLogBox.h"
 
 #include "PRadBenchMark.h"
+#include "PRadInfoCenter.h"
 #include "PRadDataHandler.h"
 #include "PRadDSTParser.h"
 #include "PRadEvioParser.h"
@@ -245,22 +246,14 @@ QMenu *PRadEventViewer::setupFileMenu()
     openDataAction = fileMenu->addAction(tr("&Open Data File"));
     openDataAction->setShortcuts(QKeySequence::Open);
 
-    QAction *openPedAction = fileMenu->addAction(tr("Open &Pedestal File"));
-    openPedAction->setShortcuts(QKeySequence::Print);
-
     QAction *saveHistAction = fileMenu->addAction(tr("Save &Histograms"));
     saveHistAction->setShortcut(QKeySequence(Qt::CTRL + Qt::Key_H));
-
-    QAction *savePedAction = fileMenu->addAction(tr("&Save Pedestal File"));
-    savePedAction->setShortcuts(QKeySequence::Save);
 
     QAction *quitAction = fileMenu->addAction(tr("&Quit"));
     quitAction->setShortcuts(QKeySequence::Quit);
 
     connect(openDataAction, SIGNAL(triggered()), this, SLOT(openDataFile()));
-    connect(openPedAction, SIGNAL(triggered()), this, SLOT(openPedFile()));
     connect(saveHistAction, SIGNAL(triggered()), this, SLOT(saveHistToFile()));
-    connect(savePedAction, SIGNAL(triggered()), this, SLOT(savePedestalFile()));
     connect(quitAction, SIGNAL(triggered()), qApp, SLOT(quit()));
 
     return fileMenu;
@@ -562,10 +555,10 @@ void PRadEventViewer::Refresh()
     case HighVoltageView:
     {
         auto moduleList = HyCal->GetModuleList();
-        for(auto module : moduleList)
+        for(auto m : moduleList)
         {
-            ChannelAddress hv_addr = module->GetHVAddress();
-            PRadHVSystem::Voltage volt = hvSystem->GetVoltage(hv_addr.crate, hv_addr.slot, hv_addr.channel);
+            HyCalModule *module = (HyCalModule*)m;
+            PRadHVSystem::Voltage volt = hvSystem->GetVoltage(module->GetHVAddress());
             if(!volt.ON)
                 module->SetColor(QColor(255, 255, 255));
             else
@@ -576,10 +569,10 @@ void PRadEventViewer::Refresh()
     case VoltageSetView:
     {
         auto moduleList = HyCal->GetModuleList();
-        for(auto module : moduleList)
+        for(auto m : moduleList)
         {
-            ChannelAddress hv_addr = module->GetHVAddress();
-            PRadHVSystem::Voltage volt = hvSystem->GetVoltage(hv_addr.crate, hv_addr.slot, hv_addr.channel);
+            HyCalModule *module = (HyCalModule*)m;
+            PRadHVSystem::Voltage volt = hvSystem->GetVoltage(module->GetHVAddress());
             module->SetColor(energySpectrum->GetColor(volt.Vset));
         }
         break;
@@ -651,22 +644,6 @@ void PRadEventViewer::openDataFile()
               << std::endl;
 
     updateEventRange();
-}
-
-// open pedestal file
-void PRadEventViewer::openPedFile()
-{
-    QString dir = QDir::currentPath() + "/config";
-
-    QStringList filters;
-    filters << "Data files (*.dat *.txt)"
-            << "All files (*)";
-
-    QString file = getFileName(tr("Open pedestal file"), dir, filters, "");
-
-    if (!file.isEmpty()) {
-        hycal_sys->ReadPedestalFile(file.toStdString());
-    }
 }
 
 // initialize handler from data file
@@ -980,7 +957,7 @@ void PRadEventViewer::UpdateStatusInfo()
               << QString::number(occupancy);                        // Occupancy
 
 #ifdef USE_CAEN_HV
-    PRadHVSystem::Voltage volt = hvSystem->GetVoltage(hvInfo.crate, hvInfo.slot, hvInfo.channel);
+    PRadHVSystem::Voltage volt = hvSystem->GetVoltage(hvAddr);
     QString temp = QString::number(volt.Vmon) + tr(" V ")
                    + ((volt.ON)? tr("/ ") : tr("(OFF) / "))
                    + QString::number(volt.Vset) + tr(" V");
@@ -1138,32 +1115,6 @@ void PRadEventViewer::saveHistToFile()
     rStatusLabel->setText(tr("All histograms are saved to ") + rootFile);
 }
 
-void PRadEventViewer::savePedestalFile()
-{
-    QString pedFile = getFileName(tr("Save pedestal to file"),
-                                  tr("config/"),
-                                  QStringList(tr("data files (*.dat)")),
-                                  tr("dat"),
-                                  QFileDialog::AcceptSave);
-    if(pedFile.isEmpty())
-        return;
-
-    std::ofstream pedestalmap(pedFile.toStdString());
-
-    for(auto &channel : hycal_sys->GetADCList())
-    {
-        ChannelAddress addr = channel->GetAddress();
-        PRadADCChannel::Pedestal ped = channel->GetPedestal();
-        pedestalmap << addr.crate << "  "
-                    << addr.slot << "  "
-                    << addr.channel << "  "
-                    << ped.mean << "  "
-                    << ped.sigma << std::endl;
-    }
-
-    pedestalmap.close();
-}
-
 void PRadEventViewer::findPeak()
 {
     if(!selection || !selection->GetChannel())
@@ -1255,12 +1206,6 @@ void PRadEventViewer::fitHistogram()
 
 void PRadEventViewer::correctGainFactor()
 {
-    QRegExp reg("[0-9]{6}");
-    if(reg.indexIn(fileName) != -1) {
-        int run_number = reg.cap(0).toInt();
-        handler->SetRunNumber(run_number);
-    }
-
     hycal_sys->CorrectGainFactor(2);
     // Refill the histogram to show the changes
     handler->RefillEnergyHist();
@@ -1627,7 +1572,7 @@ void PRadEventViewer::onlineUpdate(const size_t &max_events)
 void PRadEventViewer::UpdateOnlineInfo()
 {
     QStringList onlineText;
-    auto info = handler->GetOnlineInfo();
+    auto info = PRadInfoCenter::Instance().GetOnlineInfo();
 
     for(auto &trg : info.trigger_info)
     {

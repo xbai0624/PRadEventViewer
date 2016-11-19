@@ -10,6 +10,7 @@
 #include <iomanip>
 #include <algorithm>
 #include "PRadDataHandler.h"
+#include "PRadInfoCenter.h"
 #include "PRadHyCalSystem.h"
 #include "PRadGEMSystem.h"
 #include "PRadEPICSystem.h"
@@ -29,13 +30,6 @@ PRadDataHandler::PRadDataHandler()
 {
     TagEHist = new TH2I("Tagger E", "Tagger E counter", 2000, 0, 20000, 384, 0, 383);
     TagTHist = new TH2I("Tagger T", "Tagger T counter", 2000, 0, 20000, 128, 0, 127);
-
-    onlineInfo.add_trigger("Lead Glass Sum", 0);
-    onlineInfo.add_trigger("Total Sum", 1);
-    onlineInfo.add_trigger("LMS Led", 2);
-    onlineInfo.add_trigger("LMS Alpha Source", 3);
-    onlineInfo.add_trigger("Tagger Master OR", 4);
-    onlineInfo.add_trigger("Scintillator", 5);
 }
 
 // destructor
@@ -120,11 +114,11 @@ void PRadDataHandler::Clear()
     // used memory won't be released, but it can be used again for new data file
     event_data = deque<EventData>();
     parser.SetEventNumber(0);
-    runInfo.clear();
 
     TagEHist->Reset();
     TagTHist->Reset();
 
+    PRadInfoCenter::Instance().Reset();
     if(epic_sys)
         epic_sys->Reset();
     if(hycal_sys)
@@ -144,51 +138,6 @@ void PRadDataHandler::UpdateTrgType(const unsigned char &trg)
              << endl;
     }
     new_event->trigger = trg;
-}
-
-void PRadDataHandler::AccumulateBeamCharge(EventData &event)
-{
-    if(event.is_physics_event())
-        runInfo.beam_charge += event.get_beam_charge();
-}
-
-void PRadDataHandler::UpdateLiveTimeScaler(EventData &event)
-{
-    if(event.is_physics_event()) {
-        runInfo.ungated_count += event.get_ref_channel().ungated_count;
-        runInfo.dead_count += event.get_ref_channel().gated_count;
-    }
-}
-
-void PRadDataHandler::UpdateOnlineInfo(EventData &event)
-{
-    // update triggers
-    for(auto trg_ch : onlineInfo.trigger_info)
-    {
-        if(trg_ch.id < event.dsc_data.size())
-        {
-            // get ungated trigger counts
-            unsigned int counts = event.get_dsc_channel(trg_ch.id).ungated_count;
-
-            // calculate the frequency
-            trg_ch.freq = (double)counts / event.get_beam_time();
-        }
-
-        else {
-            cerr << "Data Handler: Unmatched discriminator data from event "
-                 << event.event_number
-                 << ", expect trigger " << trg_ch.name
-                 << " at channel " << trg_ch.id
-                 << ", but the event only has " << event.dsc_data.size()
-                 << " dsc channels." << endl;
-        }
-    }
-
-    // update live time
-    onlineInfo.live_time = event.get_live_time();
-
-    //update beam current
-    onlineInfo.beam_current = event.get_beam_current();
 }
 
 void PRadDataHandler::FeedData(JLabTIData &tiData)
@@ -378,13 +327,7 @@ void PRadDataHandler::EndProcess(EventData *data)
     } else { // event or sync event
 
         FillHistograms(*data);
-
-        if(data->type == CODA_Sync) {
-            AccumulateBeamCharge(*data);
-            UpdateLiveTimeScaler(*data);
-            if(onlineMode)
-                UpdateOnlineInfo(*data);
-        }
+        PRadInfoCenter::Instance().UpdateInfo(*data);
 
         if(onlineMode && event_data.size()) // online mode only saves the last event, to reduce usage of memory
             event_data.pop_front();
@@ -451,7 +394,7 @@ void PRadDataHandler::RefillEnergyHist()
     }
 }
 
-void PRadDataHandler::InitializeByData(const string &path, int run, int ref)
+void PRadDataHandler::InitializeByData(const string &path, int ref)
 {
     PRadBenchMark timer;
 
@@ -466,71 +409,31 @@ void PRadDataHandler::InitializeByData(const string &path, int run, int ref)
          << endl;
 
     if(!path.empty()) {
-        // auto update run number
-        if(run < 0)
-            GetRunNumberFromFileName(path);
-        else
-            SetRunNumber(run);
-
+        PRadInfoCenter::SetRunNumber(path);
         gem_sys->SetPedestalMode(true);
-
         parser.ReadEvioFile(path.c_str(), 20000);
     }
 
     cout << "Data Handler: Fitting Pedestal for HyCal." << endl;
     hycal_sys->FitPedestal();
 
-    cout << "Data Handler: Correct HyCal Gain Factor, Run Number: " << runInfo.run_number << "." << endl;
+    cout << "Data Handler: Correct HyCal Gain Factor. " << endl;
     hycal_sys->CorrectGainFactor(ref);
 
     cout << "Data Handler: Fitting Pedestal for GEM." << endl;
     gem_sys->FitPedestal();
-//    gem_sys->SavePedestal("gem_ped_" + to_string(runInfo.run_number) + ".dat");
-//    gem_sys->SaveHistograms("gem_ped_" + to_string(runInfo.run_number) + ".root");
 
     cout << "Data Handler: Releasing Memeory." << endl;
     gem_sys->SetPedestalMode(false);
 
     // save run number
-    int run_number = runInfo.run_number;
+    int run_number = PRadInfoCenter::GetRunNumber();
     Clear();
-    SetRunNumber(run_number);
+    PRadInfoCenter::SetRunNumber(run_number);
 
-    cout << "Data Handler: Done initialization, took " << timer.GetElapsedTime()/1000. << " s" << endl;
-}
-
-void PRadDataHandler::GetRunNumberFromFileName(const string &name, const size_t &pos, const bool &verbose)
-{
-    // get rid of suffix
-    auto nameEnd = name.find(".evio");
-
-    if(nameEnd == string::npos)
-        nameEnd = name.size();
-    else
-        nameEnd -= 1;
-
-    // get rid of directories
-    auto nameBeg = name.find_last_of("/");
-    if(nameBeg == string::npos)
-        nameBeg = 0;
-    else
-        nameBeg += 1;
-
-    int number = ConfigParser::find_integer(name.substr(nameBeg, nameEnd - nameBeg + 1), pos);
-
-    if(number > 0) {
-
-        if(verbose) {
-            cout << "Data Handler: Run number is automatcially determined from file name."
-                 << endl
-                 << "File name: " << name
-                 << endl
-                 << "Run number: " << number
-                 << endl;
-        }
-
-        SetRunNumber(number);
-    }
+    cout << "Data Handler: Done initialization, took "
+         << timer.GetElapsedTime()/1000. << " s"
+         << endl;
 }
 
 // find event by its event number
@@ -539,11 +442,7 @@ void PRadDataHandler::GetRunNumberFromFileName(const string &name, const size_t 
 int PRadDataHandler::FindEvent(int evt)
 const
 {
-    auto event_cmp = [] (const EventData &event, const int &evt)
-                     {
-                        return event.event_number - evt;
-                     };
-    auto it = cana::binary_search(event_data.begin(), event_data.end(), evt, event_cmp);
+    auto it = cana::binary_search(event_data.begin(), event_data.end(), evt);
 
     if(it == event_data.end())
         return -1;
@@ -554,7 +453,7 @@ const
 void PRadDataHandler::Replay(const string &r_path, const int &split, const string &w_path)
 {
     if(w_path.empty()) {
-        string file = "prad_" + to_string(runInfo.run_number) + ".dst";
+        string file = "prad_" + to_string(PRadInfoCenter::GetRunNumber()) + ".dst";
         dst_parser.OpenOutput(file);
     } else {
         dst_parser.OpenOutput(w_path);
@@ -571,7 +470,7 @@ void PRadDataHandler::Replay(const string &r_path, const int &split, const strin
 
     ReadFromSplitEvio(r_path, split);
 
-    dst_parser.WriteRunInfo(this);
+    dst_parser.WriteRunInfo();
 
     replayMode = false;
 
@@ -604,7 +503,7 @@ void PRadDataHandler::WriteToDST(const string &path)
             dst_parser.WriteEvent(event);
         }
 
-        dst_parser.WriteRunInfo(this);
+        dst_parser.WriteRunInfo();
 
     } catch(PRadException &e) {
         cerr << e.FailureType() << ": "

@@ -39,6 +39,8 @@ public:
     void UnsetSystem(bool force_unset =false);
     virtual void ReadModuleList(const std::string &path);
     void ReadCalibrationFile(const std::string &path);
+    void SaveModuleList(const std::string &path) const;
+    void SaveCalibrationFile(const std::string &path) const;
     bool AddModule(PRadHyCalModule *module);
     void RemoveModule(int id);
     void RemoveModule(const std::string &name);
@@ -48,7 +50,7 @@ public:
     void DisconnectModule(PRadHyCalModule *module, bool force_disconn = false);
     void SortModuleList();
     void ClearModuleList();
-    void OutputModuleList(std::ostream &os);
+    void OutputModuleList(std::ostream &os) const;
 
     // get parameters
     PRadHyCalSystem *GetSystem() const {return system;};

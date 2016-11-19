@@ -55,7 +55,6 @@ public:
     // configuration
     void Configure(const std::string &path);
     void ReadChannelList(const std::string &path);
-    void ReadPedestalFile(const std::string &path);
     void ReadRunInfoFile(const std::string &path);
 
     // connections
@@ -106,7 +105,7 @@ public:
     void FillEnergyHist(const EventData &event);
     void ResetEnergyHist();
     TH1 *GetEnergyHist() const {return energy_hist;};
-    void SaveHists(const std::string &path);
+    void SaveHists(const std::string &path) const;
     std::vector<double> FitHist(const std::string &channel,
                                 const std::string &hist_name,
                                 const std::string &fit_function,

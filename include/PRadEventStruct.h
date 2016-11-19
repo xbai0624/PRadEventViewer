@@ -33,7 +33,7 @@ struct RunInfo
     : run_number(run), beam_charge(c), dead_count(d), ungated_count(ug)
     {};
 
-    void clear()
+    void reset()
     {
         run_number = 0;
         beam_charge = 0.;
@@ -77,6 +77,18 @@ struct OnlineInfo
     {
         trigger_info.emplace_back(n, i);
     };
+
+    void reset()
+    {
+        live_time = 0.;
+        beam_current = 0.;
+    }
+
+    void clear()
+    {
+        reset();
+        trigger_info.clear();
+    }
 };
 //============================================================================//
 // *END* ONLINE INFORMATION STRUCTURE                                         //
@@ -240,6 +252,10 @@ struct EventData
     void update_trigger(const unsigned char &t) {trigger = t;};
     void update_time(const uint64_t &t) {timestamp = t;};
 
+    unsigned int get_type() const {return type;};
+    unsigned int get_trigger() const {return trigger;};
+    uint64_t get_time() const {return timestamp;};
+
     void add_adc(const ADC_Data &a) {adc_data.push_back(a);};
     void add_tdc(const TDC_Data &t) {tdc_data.push_back(t);};
     void add_gemhit(const GEM_Data &g) {gem_data.push_back(g);};
@@ -255,20 +271,24 @@ struct EventData
     const std::vector<GEM_Data> &get_gem_data() const {return gem_data;};
     const std::vector<DSC_Data> &get_dsc_data() const {return dsc_data;};
 
-    bool is_physics_event() const
+    bool is_physics_event()
+    const
     {
         return ( (trigger == PHYS_LeadGlassSum) ||
                  (trigger == PHYS_TotalSum)     ||
                  (trigger == PHYS_TaggerE)      ||
                  (trigger == PHYS_Scintillator) );
     };
-    bool is_monitor_event() const
+
+    bool is_monitor_event()
+    const
     {
         return ( (trigger == LMS_Led) ||
                  (trigger == LMS_Alpha) );
     };
 
-    double get_beam_time() const
+    double get_beam_time()
+    const
     {
         double elapsed_time = 0.;
         if(dsc_data.size() > REF_CHANNEL)
@@ -279,7 +299,8 @@ struct EventData
         return elapsed_time;
     };
 
-    double get_live_time() const
+    double get_live_time()
+    const
     {
         double live_time = 1.;
         if(dsc_data.size() > REF_CHANNEL)
@@ -290,7 +311,8 @@ struct EventData
         return live_time;
     };
 
-    double get_beam_charge() const
+    double get_beam_charge()
+    const
     {
         double beam_charge = 0.;
         if(dsc_data.size() > FCUP_CHANNEL)
@@ -301,7 +323,8 @@ struct EventData
         return beam_charge;
     };
 
-    double get_beam_current() const
+    double get_beam_current()
+    const
     {
         double beam_time = get_beam_time();
         if(beam_time > 0.)
@@ -310,7 +333,8 @@ struct EventData
             return 0.;
     };
 
-    DSC_Data get_dsc_channel(const uint32_t &idx) const
+    DSC_Data get_dsc_channel(const uint32_t &idx)
+    const
     {
         if(dsc_data.size() <= idx)
             return DSC_Data();
@@ -318,12 +342,14 @@ struct EventData
             return dsc_data.at(idx);
     };
 
-    DSC_Data get_ref_channel() const
+    DSC_Data get_ref_channel()
+    const
     {
         return get_dsc_channel(REF_CHANNEL);
     };
 
-    DSC_Data get_dsc_scaled_by_ref(const uint32_t &idx) const
+    DSC_Data get_dsc_scaled_by_ref(const uint32_t &idx)
+    const
     {
         if(idx >= dsc_data.size())
             return DSC_Data();
@@ -335,26 +361,12 @@ struct EventData
         return DSC_Data((unsigned int)gated_scaled, (unsigned int)ungated_scaled);
     };
 
-    bool operator == (const int &ev) const
-    {
-        return ev == event_number;
-    };
-    bool operator > (const int &ev) const
-    {
-        return ev > event_number;
-    };
-    bool operator < (const int &ev) const
-    {
-        return ev < event_number;
-    };
-    bool operator > (const EventData &other) const
-    {
-        return other.event_number > event_number;
-    };
-    bool operator < (const EventData &other) const
-    {
-        return other.event_number < event_number;
-    };
+    bool operator == (const int &ev) const {return ev == event_number;};
+    bool operator != (const int &ev) const {return ev != event_number;};
+    bool operator > (const int &ev) const {return ev > event_number;};
+    bool operator < (const int &ev) const {return ev < event_number;};
+    bool operator > (const EventData &other) const {return other.event_number > event_number;};
+    bool operator < (const EventData &other) const {return other.event_number < event_number;};
 };
 //============================================================================//
 // *END* RAW EVENT DATA STRUCTURE                                             //

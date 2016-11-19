@@ -8,7 +8,7 @@
 //============================================================================//
 
 #include "PRadCalibConst.h"
-
+#include <iomanip>
 
 
 //============================================================================//
@@ -88,4 +88,15 @@ const
         return adc_val*factor;
 
     return 0.;
+}
+
+std::ostream &operator <<(std::ostream &os, const PRadCalibConst &cal)
+{
+    os << std::setw(12) << cal.GetBaseConst()
+       << std::setw(10) << cal.GetCalibEnergy()
+       << std::setw(15) << cal.GetNonLinearFactor();
+    for(auto gain : cal.GetRefGains())
+        os << std::setw(10) << gain;
+
+    return os;
 }

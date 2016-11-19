@@ -44,14 +44,17 @@ public:
     void SetVoltage(const ChannelAddress &addr, const float &Vset);
     void SetPower(const bool &on_off);
     void SetPower(const ChannelAddress &addr, const bool &on_off);
-    CAEN_Crate *GetCrate(const std::string &name);
-    CAEN_Crate *GetCrate(const int &id);
-    CAEN_Board *GetBoard(const std::string &name, const unsigned short &slot);
-    CAEN_Board *GetBoard(const int &id, const unsigned short &slot);
-    CAEN_Channel *GetChannel(const std::string &name, const unsigned short &slot, const unsigned short &channel);
-    CAEN_Channel *GetChannel(const int &id, const unsigned short &slot, const unsigned short &channel);
-    Voltage GetVoltage(const std::string &name, const unsigned short &slot, const unsigned short &channel);
-    Voltage GetVoltage(const int &id, const unsigned short &slot, const unsigned short &channel);
+
+    CAEN_Crate *GetCrate(const std::string &name) const;
+    CAEN_Crate *GetCrate(int id) const;
+    CAEN_Board *GetBoard(const std::string &name, int slot) const;
+    CAEN_Board *GetBoard(int id, int slot) const;
+    CAEN_Channel *GetChannel(const std::string &name, int slot, int channel) const;
+    CAEN_Channel *GetChannel(int id, int slot, int channel) const;
+    CAEN_Channel *GetChannel(const ChannelAddress &addr) const;
+    Voltage GetVoltage(const std::string &name, int slot, int channel) const;
+    Voltage GetVoltage(int id, int slot, int channel) const;
+    Voltage GetVoltage(const ChannelAddress &addr) const;
 
 private:
     PRadEventViewer *console;
