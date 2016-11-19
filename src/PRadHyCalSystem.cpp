@@ -926,7 +926,7 @@ void PRadHyCalSystem::FitPedestal()
 {
     for(auto &channel : adc_list)
     {
-        TH1 *ped_hist = channel->GetHist("PED");
+        TH1 *ped_hist = channel->GetHist("Pedestal");
 
         if(ped_hist == nullptr || ped_hist->Integral() < 1000)
             continue;
@@ -964,7 +964,7 @@ void PRadHyCalSystem::CorrectGainFactor(int ref)
     }
 
     // reference pmt has both pedestal and alpha source signals in this histogram
-    TH1* ref_alpha = ref_ch->GetHist("PHYS");
+    TH1* ref_alpha = ref_ch->GetHist("Physics");
     TH1* ref_led = ref_ch->GetHist("LMS");
     if(ref_alpha == nullptr || ref_led == nullptr) {
         std::cerr << "PRad HyCal System Error: "
