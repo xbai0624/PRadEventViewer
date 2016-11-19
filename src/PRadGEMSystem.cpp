@@ -568,6 +568,11 @@ void PRadGEMSystem::Reset()
         fec->APVControl(&PRadGEMAPV::ClearData);
         fec->APVControl(&PRadGEMAPV::ResetPedHist);
     }
+
+    for(auto &det : det_list)
+    {
+        det->Reset();
+    }
 }
 
 // fill zero suppressed data and re-collect these data in GEM_Data format

@@ -28,7 +28,8 @@ PRadEPICSystem::~PRadEPICSystem()
 
 void PRadEPICSystem::Reset()
 {
-    epics_data = std::deque<EPICSData>();
+    epics_data = std::deque<EPICS_Data>();
+
     for(auto &value : epics_values)
     {
         value = EPICS_UNDEFINED_VALUE;
@@ -111,7 +112,7 @@ void PRadEPICSystem::FillRawData(const char *data)
     }
 }
 
-void PRadEPICSystem::AddEvent(const EPICSData &data)
+void PRadEPICSystem::AddEvent(const EPICS_Data &data)
 {
     epics_data.push_back(data);
 }
@@ -205,7 +206,7 @@ const
     out.close();
 }
 
-const EPICSData &PRadEPICSystem::GetEvent(const unsigned int &index)
+const EPICS_Data &PRadEPICSystem::GetEvent(const unsigned int &index)
 const
 throw(PRadException)
 {

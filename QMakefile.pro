@@ -96,6 +96,7 @@ HEADERS += include/PRadEventViewer.h \
            include/PRadGEMAPV.h \
            include/PRadGEMCluster.h \
            include/PRadEPICSystem.h \
+           include/PRadTaggerSystem.h \
            include/canalib.h
 
 SOURCES += src/main.cpp \
@@ -138,6 +139,7 @@ SOURCES += src/main.cpp \
            src/PRadGEMAPV.cpp \
            src/PRadGEMCluster.cpp \
            src/PRadEPICSystem.cpp \
+           src/PRadTaggerSystem.cpp \
            src/canalib.cpp
 
 LIBS += -lexpat -lgfortran \

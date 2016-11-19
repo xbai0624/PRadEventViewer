@@ -15,6 +15,7 @@
 class PRadHyCalSystem;
 class PRadGEMSystem;
 class PRadEPICSystem;
+class PRadTaggerSystem;
 class TH2I;
 
 class PRadDataHandler
@@ -30,6 +31,7 @@ public:
     void SetHyCalSystem(PRadHyCalSystem *hycal) {hycal_sys = hycal;};
     void SetGEMSystem(PRadGEMSystem *gem) {gem_sys = gem;};
     void SetEPICSystem(PRadEPICSystem *epics) {epic_sys = epics;};
+    void SetTaggerSystem(PRadTaggerSystem *tagger) {tagger_sys = tagger;};
     PRadHyCalSystem *GetHyCalSystem() const {return hycal_sys;};
     PRadGEMSystem *GetGEMSystem() const {return gem_sys;};
     PRadEPICSystem *GetEPICSystem() const {return epic_sys;};
@@ -60,7 +62,6 @@ public:
     void FeedData(GEMRawData &gemData);
     void FeedData(std::vector<GEMZeroSupData> &gemData);
     void FeedData(EPICSRawData &epicsData);
-    void FeedTaggerHits(TDCV1190Data &tdcData);
 
 
     // show data
@@ -68,8 +69,6 @@ public:
     void ChooseEvent(const EventData &event);
     int GetCurrentEventNb() const {return current_event;};
     unsigned int GetEventCount() const {return event_data.size();};
-    TH2I *GetTagEHist() const {return TagEHist;};
-    TH2I *GetTagTHist() const {return TagTHist;};
     const EventData &GetEvent(const unsigned int &index) const throw (PRadException);
     const std::deque<EventData> &GetEventData() const {return event_data;};
 
@@ -88,9 +87,10 @@ private:
 private:
     PRadEvioParser parser;
     PRadDSTParser dst_parser;
+    PRadEPICSystem *epic_sys;
+    PRadTaggerSystem *tagger_sys;
     PRadHyCalSystem *hycal_sys;
     PRadGEMSystem *gem_sys;
-    PRadEPICSystem *epic_sys;
     bool onlineMode;
     bool replayMode;
     int current_event;
@@ -100,8 +100,6 @@ private:
     std::deque<EventData> event_data;
 
     EventData *new_event;
-    TH2I *TagEHist;
-    TH2I *TagTHist;
 };
 
 #endif

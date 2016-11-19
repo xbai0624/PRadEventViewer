@@ -11,9 +11,10 @@
 #include <algorithm>
 #include "PRadDataHandler.h"
 #include "PRadInfoCenter.h"
+#include "PRadEPICSystem.h"
+#include "PRadTaggerSystem.h"
 #include "PRadHyCalSystem.h"
 #include "PRadGEMSystem.h"
-#include "PRadEPICSystem.h"
 #include "PRadBenchMark.h"
 #include "ConfigParser.h"
 #include "canalib.h"
@@ -26,17 +27,16 @@ using namespace std;
 // constructor
 PRadDataHandler::PRadDataHandler()
 : parser(this), dst_parser(this),
-  hycal_sys(nullptr), gem_sys(nullptr), onlineMode(false), replayMode(false), current_event(0)
+  epic_sys(nullptr), tagger_sys(nullptr), hycal_sys(nullptr), gem_sys(nullptr),
+  onlineMode(false), replayMode(false), current_event(0)
 {
-    TagEHist = new TH2I("Tagger E", "Tagger E counter", 2000, 0, 20000, 384, 0, 383);
-    TagTHist = new TH2I("Tagger T", "Tagger T counter", 2000, 0, 20000, 128, 0, 127);
+    // place holder
 }
 
 // destructor
 PRadDataHandler::~PRadDataHandler()
 {
-    delete TagEHist;
-    delete TagTHist;
+    // place holder
 }
 
 // decode an event buffer
@@ -115,12 +115,14 @@ void PRadDataHandler::Clear()
     event_data = deque<EventData>();
     parser.SetEventNumber(0);
 
-    TagEHist->Reset();
-    TagTHist->Reset();
-
     PRadInfoCenter::Instance().Reset();
+
     if(epic_sys)
         epic_sys->Reset();
+
+    if(tagger_sys)
+        tagger_sys->Reset();
+
     if(hycal_sys)
         hycal_sys->Reset();
 
@@ -195,8 +197,10 @@ void PRadDataHandler::FeedData(TDCV1190Data &tdcData)
     if(!hycal_sys)
         return;
 
-    if(tdcData.addr.crate != PRadTS) {
-        FeedTaggerHits(tdcData);
+    // tagger hits
+    if(tdcData.addr.crate == PRadTagE) {
+        if(tagger_sys)
+            tagger_sys->FeedTaggerHits(tdcData, *new_event);
         return;
     }
 
@@ -206,31 +210,6 @@ void PRadDataHandler::FeedData(TDCV1190Data &tdcData)
         return;
 
     new_event->add_tdc(TDC_Data(tdc->GetID(), tdcData.val));
-}
-
-void PRadDataHandler::FeedTaggerHits(TDCV1190Data &tdcData)
-{
-#define TAGGER_CHANID 30000 // Tagger tdc id will start from this number
-#define TAGGER_T_CHANID 1000 // Start from TAGGER_CHANID, more than 1000 will be t channel
-    // E channel
-    if(tdcData.addr.slot == 3 || tdcData.addr.slot == 5 || tdcData.addr.slot == 7)
-    {
-        int e_ch = tdcData.addr.channel + (tdcData.addr.slot - 3)*64 + TAGGER_CHANID;
-        // E Channel 30000 + channel
-        new_event->add_tdc(TDC_Data(e_ch, tdcData.val));
-    }
-    // T Channel
-    if(tdcData.addr.slot == 14)
-    {
-        int t_lr = tdcData.addr.channel/64;
-        int t_ch = tdcData.addr.channel%64;
-        if(t_ch > 31)
-            t_ch = 32 + (t_ch + 16)%32;
-        else
-            t_ch = (t_ch + 16)%32;
-        t_ch += t_lr*64;
-        new_event->add_tdc(TDC_Data(t_ch + TAGGER_CHANID + TAGGER_T_CHANID, tdcData.val));
-    }
 }
 
 // feed GEM data
@@ -256,41 +235,11 @@ void PRadDataHandler::FeedData(EPICSRawData &epicsData)
 //TODO move to hycal system
 void PRadDataHandler::FillHistograms(EventData &data)
 {
-    if(!hycal_sys)
-        return;
+    if(hycal_sys)
+        hycal_sys->FillHists(data);
 
-    double energy = 0.;
-
-    // for all types of events
-    for(auto &adc : data.adc_data)
-    {
-        PRadADCChannel *channel = hycal_sys->GetADCChannel(adc.channel_id);
-        if(!channel)
-            continue;
-
-        channel->FillHist(adc.value, data.trigger);
-        energy += channel->GetEnergy(adc.value);
-    }
-
-    if(!data.is_physics_event())
-        return;
-
-    // for only physics events
-    hycal_sys->FillEnergyHist(energy);
-
-    for(auto &tdc : data.tdc_data)
-    {
-        PRadTDCChannel *channel = hycal_sys->GetTDCChannel(tdc.channel_id);
-        if(channel) {
-            channel->FillHist(tdc.value);
-        } else if(tdc.channel_id >= TAGGER_CHANID) {
-            int id = tdc.channel_id - TAGGER_CHANID;
-            if(id >= TAGGER_T_CHANID)
-                TagTHist->Fill(tdc.value, id - TAGGER_T_CHANID);
-            else
-                TagEHist->Fill(tdc.value, id - TAGGER_CHANID);
-        }
-    }
+    if(tagger_sys)
+        tagger_sys->FillHists(data);
 }
 
 // signal of new event
@@ -320,7 +269,7 @@ void PRadDataHandler::EndProcess(EventData *data)
     if(data->type == EPICS_Info) {
         if(epic_sys) {
             if(replayMode)
-                dst_parser.WriteEPICS(EPICSData(data->event_number, epic_sys->GetValues()));
+                dst_parser.WriteEPICS(EPICS_Data(data->event_number, epic_sys->GetValues()));
             else
                 epic_sys->SaveData(data->event_number, onlineMode);
         }
@@ -339,7 +288,7 @@ void PRadDataHandler::EndProcess(EventData *data)
 
     }
 
-    delete data; // new data memory is released here
+    delete data, data = nullptr; // new data memory is released here
 }
 
 // show the event to event viewer

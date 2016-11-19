@@ -18,6 +18,7 @@ class PRadHistCanvas;
 class PRadLogBox;
 class PRadDataHandler;
 class PRadEPICSystem;
+class PRadTaggerSystem;
 class PRadHyCalSystem;
 class PRadGEMSystem;
 class PRadCoordSystem;
@@ -163,6 +164,7 @@ private:
 
     PRadDataHandler *handler;
     PRadEPICSystem *epic_sys;
+    PRadTaggerSystem *tagger_sys;
     PRadHyCalSystem *hycal_sys;
     PRadGEMSystem *gem_sys;
     HistType histType;

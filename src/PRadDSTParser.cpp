@@ -195,7 +195,7 @@ throw(PRadException)
     }
 }
 
-void PRadDSTParser::WriteEPICS(const EPICSData &data)
+void PRadDSTParser::WriteEPICS(const EPICS_Data &data)
 throw(PRadException)
 {
     if(!dst_out.is_open())
@@ -214,7 +214,7 @@ throw(PRadException)
         dst_out.write((char*) &value, sizeof(value));
 }
 
-void PRadDSTParser::readEPICS(EPICSData &data)
+void PRadDSTParser::readEPICS(EPICS_Data &data)
 throw(PRadException)
 {
     if(!dst_in.is_open())

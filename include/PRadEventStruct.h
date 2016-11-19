@@ -97,14 +97,14 @@ struct OnlineInfo
 //============================================================================//
 // *BEGIN* RAW EPICS DATA STRUCTURE                                           //
 //============================================================================//
-struct EPICSData
+struct EPICS_Data
 {
     int event_number;
     std::vector<float> values;
 
-    EPICSData()
+    EPICS_Data()
     {};
-    EPICSData(const int &ev, const std::vector<float> &val)
+    EPICS_Data(const int &ev, const std::vector<float> &val)
     : event_number(ev), values(val)
     {};
 
@@ -241,6 +241,7 @@ struct EventData
         gem_data.clear();
         dsc_data.clear();
     };
+
     void clear() // fully clear
     {
         initialize();
@@ -256,10 +257,15 @@ struct EventData
     unsigned int get_trigger() const {return trigger;};
     uint64_t get_time() const {return timestamp;};
 
-    void add_adc(const ADC_Data &a) {adc_data.push_back(a);};
-    void add_tdc(const TDC_Data &t) {tdc_data.push_back(t);};
-    void add_gemhit(const GEM_Data &g) {gem_data.push_back(g);};
-    void add_dsc(const DSC_Data &d) {dsc_data.push_back(d);};
+    void add_adc(const ADC_Data &a) {adc_data.emplace_back(a);};
+    void add_tdc(const TDC_Data &t) {tdc_data.emplace_back(t);};
+    void add_gemhit(const GEM_Data &g) {gem_data.emplace_back(g);};
+    void add_dsc(const DSC_Data &d) {dsc_data.emplace_back(d);};
+
+    void add_adc(ADC_Data &&a) {adc_data.emplace_back(a);};
+    void add_tdc(TDC_Data &&t) {tdc_data.emplace_back(t);};
+    void add_gemhit(GEM_Data &&g) {gem_data.emplace_back(g);};
+    void add_dsc(DSC_Data &&d) {dsc_data.emplace_back(d);};
 
     std::vector<ADC_Data> &get_adc_data() {return adc_data;};
     std::vector<TDC_Data> &get_tdc_data() {return tdc_data;};

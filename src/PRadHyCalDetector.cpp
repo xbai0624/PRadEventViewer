@@ -350,6 +350,11 @@ const
     }
 }
 
+void PRadHyCalDetector::Reset()
+{
+    hycal_clusters.clear();
+}
+
 PRadHyCalModule *PRadHyCalDetector::GetModule(const int &id)
 const
 {

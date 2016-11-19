@@ -62,12 +62,12 @@ public:
     bool Read();
     PRadDSTInfo EventType() {return type;};
     EventData &GetEvent() {return event;};
-    EPICSData &GetEPICSEvent() {return epics_event;};
+    EPICS_Data &GetEPICSEvent() {return epics_event;};
 
 
     void WriteRunInfo() throw(PRadException);
     void WriteEvent(const EventData &data) throw(PRadException);
-    void WriteEPICS(const EPICSData &data) throw(PRadException);
+    void WriteEPICS(const EPICS_Data &data) throw(PRadException);
     void WriteEPICSMap(const PRadEPICSystem *epics) throw(PRadException);
     void WriteHyCalInfo(const PRadHyCalSystem *hycal) throw(PRadException);
     void WriteGEMInfo(const PRadGEMSystem *gem) throw(PRadException);
@@ -75,7 +75,7 @@ public:
 private:
     void readRunInfo() throw(PRadException);
     void readEvent(EventData &data) throw(PRadException);
-    void readEPICS(EPICSData &data) throw(PRadException);
+    void readEPICS(EPICS_Data &data) throw(PRadException);
     void readEPICSMap(PRadEPICSystem *epics) throw(PRadException);
     void readHyCalInfo(PRadHyCalSystem *hycal) throw(PRadException);
     void readGEMInfo(PRadGEMSystem *gem) throw(PRadException);
@@ -86,7 +86,7 @@ private:
     std::ifstream dst_in;
     int64_t input_length;
     EventData event;
-    EPICSData epics_event;
+    EPICS_Data epics_event;
     PRadDSTInfo type;
     uint32_t update_mode;
 };

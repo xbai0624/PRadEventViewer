@@ -100,6 +100,7 @@ public:
     std::vector<std::string> GetClusterMethodNames() const;
 
     // histogram related
+    void FillHists(const EventData &event);
     void FillEnergyHist();
     void FillEnergyHist(const double &e);
     void FillEnergyHist(const EventData &event);

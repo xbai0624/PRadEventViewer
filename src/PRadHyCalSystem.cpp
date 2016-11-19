@@ -426,6 +426,9 @@ void PRadHyCalSystem::Reconstruct()
 
 void PRadHyCalSystem::Reset()
 {
+    if(hycal)
+        hycal->Reset();
+
     for(auto &adc : adc_list)
         adc->Reset();
     for(auto &tdc : tdc_list)
@@ -626,6 +629,38 @@ double PRadHyCalSystem::GetEnergy(const EventData &event)
 }
 
 // histogram manipulation
+void PRadHyCalSystem::FillHists(const EventData &event)
+{
+    double energy = 0.;
+
+    // adc hists for all types of events
+    for(auto &adc : event.get_adc_data())
+    {
+        if(adc.channel_id >= adc_list.size())
+            continue;
+
+        PRadADCChannel *channel = adc_list.at(adc.channel_id);
+        channel->FillHist(adc.value, event.get_trigger());
+        energy += channel->GetEnergy(adc.value);
+    }
+
+    // energy and tdc for only physics events
+    if(!event.is_physics_event())
+        return;
+
+    energy_hist->Fill(energy);
+
+    for(auto &tdc : event.get_tdc_data())
+    {
+        if(tdc.channel_id >= tdc_list.size())
+            continue;
+
+        PRadTDCChannel *channel = tdc_list.at(tdc.channel_id);
+        channel->FillHist(tdc.value);
+    }
+
+}
+
 void PRadHyCalSystem::FillEnergyHist()
 {
     if(!hycal)

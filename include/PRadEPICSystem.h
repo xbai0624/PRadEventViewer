@@ -32,15 +32,15 @@ public:
     void AddChannel(const std::string &name);
     void AddChannel(const std::string &name, uint32_t id, float value);
     void UpdateChannel(const std::string &name, const float &value);
-    void AddEvent(const EPICSData &data);
+    void AddEvent(const EPICS_Data &data);
     void FillRawData(const char *buf);
     void SaveData(const int &event_number, bool online = false);
 
     std::vector<EPICSChannel> GetSortedList() const;
     const std::vector<float> &GetValues() const {return epics_values;};
     float GetValue(const std::string &name) const;
-    const EPICSData &GetEvent(const unsigned int &index) const throw(PRadException);
-    const std::deque<EPICSData> &GetEventData() const {return epics_data;};
+    const EPICS_Data &GetEvent(const unsigned int &index) const throw(PRadException);
+    const std::deque<EPICS_Data> &GetEventData() const {return epics_data;};
     unsigned int GetEventCount() const {return epics_data.size();};
     float FindValue(int event_number, const std::string &name) const;
     int FindEvent(int event_number) const;
@@ -50,7 +50,7 @@ private:
     // data related
     std::unordered_map<std::string, uint32_t> epics_map;
     std::vector<float> epics_values;
-    std::deque<EPICSData> epics_data;
+    std::deque<EPICS_Data> epics_data;
 };
 
 #endif

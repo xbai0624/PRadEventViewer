@@ -52,6 +52,7 @@ public:
     void ReconstructHits();
     void CollectHits();
     void ClearHits();
+    void Reset();
 
     // get parameters
     PRadGEMSystem *GetSystem() const {return gem_srs;};

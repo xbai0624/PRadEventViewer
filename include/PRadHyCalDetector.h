@@ -51,6 +51,7 @@ public:
     void SortModuleList();
     void ClearModuleList();
     void OutputModuleList(std::ostream &os) const;
+    void Reset();
 
     // get parameters
     PRadHyCalSystem *GetSystem() const {return system;};

@@ -42,6 +42,7 @@
 #include "PRadDSTParser.h"
 #include "PRadEvioParser.h"
 #include "PRadEPICSystem.h"
+#include "PRadTaggerSystem.h"
 #include "PRadHyCalSystem.h"
 #include "PRadGEMSystem.h"
 
@@ -76,11 +77,13 @@
 PRadEventViewer::PRadEventViewer()
 : handler(new PRadDataHandler()),
   epic_sys(new PRadEPICSystem()),
+  tagger_sys(new PRadTaggerSystem()),
   hycal_sys(new PRadHyCalSystem()),
   gem_sys(new PRadGEMSystem())
 {
     // build connections
     handler->SetEPICSystem(epic_sys);
+    handler->SetTaggerSystem(tagger_sys);
     handler->SetHyCalSystem(hycal_sys);
     handler->SetGEMSystem(gem_sys);
     initView();
@@ -103,6 +106,7 @@ PRadEventViewer::~PRadEventViewer()
     delete hycal_sys;
     delete gem_sys;
     delete epic_sys;
+    delete tagger_sys;
 }
 
 // set up the view for HyCal
@@ -830,8 +834,13 @@ void PRadEventViewer::handleEventChange(int evt)
         handler->ChooseEvent(event);
 
 #ifdef RECON_DISPLAY
-        if(enableRecon->isChecked() && event.is_physics_event())
-            showReconEvent();
+        if(enableRecon->isChecked()) {
+            // clear previous reconstructed events
+            HyCal->ClearHitsMarks();
+
+            if(event.is_physics_event())
+                showReconEvent();
+        }
 #endif
         Refresh();
     } catch (PRadException &e) {
@@ -883,11 +892,9 @@ void PRadEventViewer::UpdateHistCanvas()
         break;
 
     case TaggerHist:
-        /* TODO re-enable after adding tagger system
-         histCanvas->UpdateHist(0, handler->GetTagEHist());
-         histCanvas->UpdateHist(1, handler->GetTagTHist());
-         histCanvas->UpdateHist(2, handler->GetEnergyHist());
-        */
+        histCanvas->UpdateHist(0, tagger_sys->GetECounterHist());
+        histCanvas->UpdateHist(1, tagger_sys->GetTCounterHist());
+        histCanvas->UpdateHist(2, hycal_sys->GetEnergyHist());
         break;
     }
 }
@@ -1322,7 +1329,6 @@ void PRadEventViewer::setupReconMethods()
 
 void PRadEventViewer::showReconEvent()
 {
-    HyCal->ClearHitsMarks();
     if(handler->GetEventCount() == 0)
         return;
 

@@ -263,6 +263,13 @@ void PRadGEMDetector::ClearHits()
     }
 }
 
+// clear all the hits and clusters
+void PRadGEMDetector::Reset()
+{
+    ClearHits();
+    gem_clusters.clear();
+}
+
 PRadGEMPlane *PRadGEMDetector::GetPlane(const std::string &type)
 const
 {
