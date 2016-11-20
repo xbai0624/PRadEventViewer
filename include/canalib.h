@@ -151,26 +151,28 @@ namespace cana
     {
         RdmaccIt first = beg, last = end;
         RdmaccIt mid = beg + (end - beg)/2;
-        while(mid != end && *mid != val)
+        while(mid != end)
         {
-            if(*mid > val)
+            if(*mid == val)
+                return std::make_pair(mid, mid);
+            else if(*mid > val)
                 end = mid;
             else
                 beg = mid + 1;
             mid = beg + (end - beg)/2;
         }
 
-        if(mid == end) {
-            if(*mid < val) {
-                return std::make_pair(mid, mid + 1);
-            } else {
-                if(mid == first)
-                    return std::make_pair(last, last);
-                return std::make_pair(mid - 1, mid);
-            }
+        if(mid == last)
+            return std::make_pair(last, last);
+
+        if(*mid < val) {
+            return std::make_pair(mid, mid + 1);
+        } else {
+            if(mid == first)
+                return std::make_pair(last, last);
+            return std::make_pair(mid - 1, mid);
         }
 
-        return std::make_pair(mid, mid);
     }
 
     template<class RdmaccIt, typename T, class Compare>
@@ -181,26 +183,57 @@ namespace cana
     {
         RdmaccIt first = beg, last = end;
         RdmaccIt mid = beg + (end - beg)/2;
-        while(mid != end && comp(*mid, val) != 0)
+        while(mid != end)
         {
-            if(comp(*mid, val) > 0)
+            if(comp(*mid, val) == 0)
+                return std::make_pair(mid, mid);
+            else if(comp(*mid, val) > 0)
                 end = mid;
             else
                 beg = mid + 1;
             mid = beg + (end - beg)/2;
         }
 
-        if(mid == end) {
-            if(comp(*mid, val) < 0) {
-                return std::make_pair(mid, mid + 1);
-            } else {
-                if(mid == first)
-                    return std::make_pair(last, last);
-                return std::make_pair(mid - 1, mid);
-            }
+        if(mid == last)
+            return std::make_pair(last, last);
+
+        if(comp(*mid, val) < 0) {
+            return std::make_pair(mid, mid + 1);
+        } else {
+            if(mid == first)
+                return std::make_pair(last, last);
+            return std::make_pair(mid - 1, mid);
+        }
+    }
+
+    template<class RdmaccIt, typename T>
+    RdmaccIt binary_search_close_less(RdmaccIt beg, RdmaccIt end, const T &val)
+    {
+        if(beg == end)
+            return end;
+        if(*(end - 1) <= val)
+            return end - 1;
+
+        RdmaccIt first = beg, last = end;
+        RdmaccIt mid = beg + (end - beg)/2;
+        while(mid != end)
+        {
+            if(*mid == val)
+                return mid;
+            if(*mid > val)
+                end = mid;
+            else
+                beg = mid + 1;
+            mid = beg + (end - beg)/2;
         }
 
-        return std::make_pair(mid, mid);
+        if(*mid < val) {
+            return mid;
+        } else {
+            if(mid == first)
+                return last;
+            return mid - 1;
+        }
     }
 };
 

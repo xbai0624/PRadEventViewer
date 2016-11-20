@@ -119,7 +119,12 @@ void PRadDataHandler::ReadFromDST(const std::string &path, unsigned int mode)
             switch(dst_parser.EventType())
             {
             case PRad_DST_Event:
+                // fill histogram
                 FillHistograms(dst_parser.GetEvent());
+                // count occupancy
+                if(hycal_sys)
+                    hycal_sys->Sparsify(dst_parser.GetEvent());
+                // save data
                 event_data.emplace_back(std::move(dst_parser.event));
                 break;
             case PRad_DST_Epics:

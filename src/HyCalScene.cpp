@@ -38,7 +38,8 @@ void HyCalScene::drawForeground(QPainter *painter, const QRectF &rect)
     if(console->GetAnnoType() == ShowTDC)
         drawTDCBoxes(painter);
 
-    drawHitsMarks(painter);
+    if(console->GetViewMode() == EnergyView)
+        drawHitsMarks(painter);
 
     painter->restore();
 }

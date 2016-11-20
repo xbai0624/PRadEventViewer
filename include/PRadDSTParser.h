@@ -36,13 +36,13 @@ enum PRadDSTHeader
 enum PRadDSTMode
 {
     // by default it updates all info
-    DST_UPDATE_ALL = 0,
-    NO_GEM_PED_UPDATE = 1 << 0,
-    NO_HYCAL_PED_UPDATE = 1 << 1,
-    NO_HYCAL_CAL_UPDATE = 1 << 2,
-    NO_RUN_INFO_UPDATE = 1 << 3,
-    NO_EPICS_MAP_UPDATE = 1 << 4,
-    DST_UPDATE_NONE = 0xffffffff,
+    DST_Update_All = 0,
+    No_GEM_Ped_Update = 1 << 0,
+    No_HyCal_Ped_Update = 1 << 1,
+    No_HyCal_Cal_Update = 1 << 2,
+    No_Run_Info_Update = 1 << 3,
+    No_Epics_Map_Update = 1 << 4,
+    DST_Update_None = 0xffffffff,
 };
 //============================================================================//
 
@@ -83,6 +83,8 @@ public:
 
     // write information
     void WriteRunInfo() throw(PRadException);
+    void WriteEvent() throw(PRadException);
+    void WriteEPICS() throw(PRadException);
     void WriteEvent(const EventData &data) throw(PRadException);
     void WriteEPICS(const EPICS_Data &data) throw(PRadException);
     void WriteEPICSMap(const PRadEPICSystem *epics) throw(PRadException);

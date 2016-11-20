@@ -116,6 +116,8 @@ struct EPICS_Data
 
     bool operator <(const int &evt) const {return event_number < evt;};
     bool operator >(const int &evt) const {return event_number > evt;};
+    bool operator <=(const int &evt) const {return event_number <= evt;};
+    bool operator >=(const int &evt) const {return event_number >= evt;};
     bool operator ==(const int &evt) const {return event_number == evt;};
     bool operator !=(const int &evt) const {return event_number != evt;};
 };

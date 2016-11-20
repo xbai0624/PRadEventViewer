@@ -56,7 +56,8 @@ public:
     void Reset();
 
     // check if adc passed threshold
-    bool Sparsify(const unsigned short &adcVal);
+    void Sparsify() {occupancy++;};
+    bool Sparsify (const unsigned short &adcVal);
     int GetOccupancy() const {return occupancy;};
     unsigned short GetValue() const {return adc_value;};
     double GetReducedValue() const {return (double)adc_value - pedestal.mean;};

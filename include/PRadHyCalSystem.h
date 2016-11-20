@@ -70,7 +70,7 @@ public:
     void SetDetector(PRadHyCalDetector *h);
     void RemoveDetector();
     void DisconnectDetector(bool force_disconn = false);
-    double GetEnergy(const EventData &event);
+    double GetEnergy(const EventData &event) const;
     PRadHyCalModule *GetModule(const int &id) const;
     PRadHyCalModule *GetModule(const std::string &name) const;
     std::vector<PRadHyCalModule*> GetModuleList() const;
@@ -89,6 +89,7 @@ public:
     PRadTDCChannel *GetTDCChannel(const ChannelAddress &addr) const;
     const std::vector<PRadADCChannel*> &GetADCList() const {return adc_list;};
     const std::vector<PRadTDCChannel*> &GetTDCList() const {return tdc_list;};
+    void Sparsify(const EventData &event);
 
     // clustering method related
     bool AddClusterMethod(const std::string &name, PRadHyCalCluster *c);

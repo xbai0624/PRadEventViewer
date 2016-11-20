@@ -159,12 +159,12 @@ const
 
     uint32_t channel_id = it->second;
 
-    auto interval = cana::binary_search_interval(epics_data.begin(), epics_data.end(), evt);
+    auto ev_it = cana::binary_search_close_less(epics_data.begin(), epics_data.end(), evt);
 
     // found the epics event that just before evt, and it has that channel
-    if((interval.first != epics_data.end()) &&
-       (interval.first->values.size() > channel_id)) {
-        result = interval.first->values.at(channel_id);
+    if((ev_it != epics_data.end()) &&
+       (ev_it->values.size() > channel_id)) {
+        result = ev_it->values.at(channel_id);
     }
 
     return result;
@@ -227,11 +227,11 @@ throw(PRadException)
 int PRadEPICSystem::FindEvent(int evt)
 const
 {
-    auto interval = cana::binary_search_interval(epics_data.begin(), epics_data.end(), evt);
+    auto it = cana::binary_search_close_less(epics_data.begin(), epics_data.end(), evt);
 
     // found the epics event that just before evt, and it has that channel
-    if(interval.first != epics_data.end())
-        return (interval.first - epics_data.begin());
+    if(it != epics_data.end())
+        return (it - epics_data.begin());
 
     return -1;
 }

@@ -1,9 +1,8 @@
 //============================================================================//
-// An application of replay raw data file and save the replayed data into DST //
-// file. This is the 1st-level replay, it only discards the pedestal data     //
+// An example showing how to use DST Parser to read and save selected events  //
 //                                                                            //
 // Chao Peng                                                                  //
-// 10/04/2016                                                                 //
+// 11/20/2016                                                                 //
 //============================================================================//
 
 #include "PRadDataHandler.h"
@@ -34,16 +33,43 @@ int main()
     handler->SetGEMSystem(gem);
 
     PRadBenchMark timer;
-    handler->ReadFromDST("test.dst");
 
-    cout << "TIMER: Finished, took " << timer.GetElapsedTime() << " ms" << endl;
-    cout << "Read " << handler->GetEventCount() << " events and "
-         << epics->GetEventCount() << " EPICS events from file."
-         << endl;
-    cout << PRadInfoCenter::GetBeamCharge() << endl;
-    cout << PRadInfoCenter::GetLiveTime() << endl;
+    PRadDSTParser *dst_parser = new PRadDSTParser(handler);
+    dst_parser->OpenInput("/work/hallb/prad/replay/prad_001288.dst");
+    dst_parser->OpenOutput("test.dst");
+    int count = 0;
 
-    handler->WriteToDST("test.dst");
+    // uncomment next line, it will not update calibration factor from dst file
+
+    while(dst_parser->Read())
+    {
+        if(dst_parser->EventType() == PRad_DST_Event) {
+            ++count;
+            // you can push this event into data handler
+            // handler->GetEventData().push_back(dst_parser->GetEvent()
+            // or you can just do something with this event and discard it
+            auto event = dst_parser->GetEvent();
+            if(!event.is_physics_event())
+                continue;
+
+            hycal->Reconstruct(event);
+
+            // only save the event with only 1 cluster and 1000+ MeV energy
+            bool save = false;
+            if((hycal->GetDetector()->GetCluster().size() == 1) &&
+               (hycal->GetDetector()->GetCluster().at(0).E > 1000.))
+                save = true;
+
+            if(save)
+                dst_parser->WriteEvent();
+
+        } else if (dst_parser->EventType() == PRad_DST_Epics) {
+            dst_parser->WriteEPICS();
+        }
+    }
+
+    dst_parser->CloseInput();
+    dst_parser->CloseOutput();
     return 0;
 }
 

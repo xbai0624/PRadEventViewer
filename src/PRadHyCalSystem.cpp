@@ -615,7 +615,17 @@ const
     return nullptr;
 }
 
+void PRadHyCalSystem::Sparsify(const EventData &event)
+{
+    for(auto &adc : event.adc_data)
+    {
+       if(adc.channel_id < adc_list.size())
+           adc_list[adc.channel_id]->Sparsify();
+    }
+}
+
 double PRadHyCalSystem::GetEnergy(const EventData &event)
+const
 {
     double energy = 0.;
     for(auto &adc : event.adc_data)
@@ -659,7 +669,6 @@ void PRadHyCalSystem::FillHists(const EventData &event)
         PRadTDCChannel *channel = tdc_list.at(tdc.channel_id);
         channel->FillHist(tdc.value);
     }
-
 }
 
 void PRadHyCalSystem::FillEnergyHist()

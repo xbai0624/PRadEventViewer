@@ -21,7 +21,7 @@ using namespace std;
 
 // constructor
 PRadDSTParser::PRadDSTParser(PRadDataHandler *h)
-: handler(h), input_length(0), type(PRad_DST_Undefined), update_mode(DST_UPDATE_NONE)
+: handler(h), input_length(0), type(PRad_DST_Undefined), update_mode(0)
 {
     // place holder
 }
@@ -91,6 +91,16 @@ void PRadDSTParser::OpenInput(const string &path, ios::openmode mode)
 void PRadDSTParser::CloseInput()
 {
     dst_in.close();
+}
+
+void PRadDSTParser::WriteEvent()
+throw(PRadException)
+{
+    try {
+        WriteEvent(event);
+    } catch(PRadException &e) {
+        throw e;
+    }
 }
 
 void PRadDSTParser::WriteEvent(const EventData &data)
@@ -195,6 +205,16 @@ throw(PRadException)
     }
 }
 
+void PRadDSTParser::WriteEPICS()
+throw(PRadException)
+{
+    try {
+        WriteEPICS(epics_event);
+    } catch(PRadException &e) {
+        throw e;
+    }
+}
+
 void PRadDSTParser::WriteEPICS(const EPICS_Data &data)
 throw(PRadException)
 {
@@ -259,7 +279,7 @@ throw(PRadException)
 
     dst_in.read((char*) &runInfo, sizeof(runInfo));
 
-    if(!(update_mode & NO_RUN_INFO_UPDATE))
+    if(!(update_mode & No_Run_Info_Update))
         PRadInfoCenter::Instance().SetRunInfo(runInfo);
 }
 
@@ -315,7 +335,7 @@ throw(PRadException)
         dst_in.read((char*) &id, sizeof(id));
         dst_in.read((char*) &value, sizeof(value));
 
-        if(epics && !(update_mode & NO_EPICS_MAP_UPDATE))
+        if(epics && !(update_mode & No_Epics_Map_Update))
             epics->AddChannel(str, id, value);
     }
 }
@@ -386,9 +406,9 @@ throw(PRadException)
 
         PRadADCChannel *adc = hycal->GetADCChannel(i);
 
-        if(!(update_mode & NO_HYCAL_PED_UPDATE))
+        if(!(update_mode & No_HyCal_Ped_Update))
             adc->SetPedestal(ped);
-        if(adc->GetModule() && !(update_mode & NO_HYCAL_CAL_UPDATE))
+        if(adc->GetModule() && !(update_mode & No_HyCal_Cal_Update))
             adc->GetModule()->SetCalibConst(cal);
     }
 }
@@ -448,7 +468,7 @@ throw(PRadException)
         {
             PRadGEMAPV::Pedestal ped;
             dst_in.read((char*) &ped, sizeof(ped));
-            if(apv && !(update_mode & NO_GEM_PED_UPDATE))
+            if(apv && !(update_mode & No_GEM_Ped_Update))
                 apv->UpdatePedestal(ped, j);
         }
     }

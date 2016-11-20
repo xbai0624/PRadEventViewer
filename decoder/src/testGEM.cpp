@@ -88,7 +88,7 @@ int main(int /*argc*/, char * /*argv*/ [])
         }
     }
 
-    dst_parser->OpenInput("/work/hallb/prad/replay/prad_001287.dst");
+    dst_parser->OpenInput("/work/hallb/prad/replay/prad_001288.dst");
 
     int count = 0;
     // uncomment next line, it will not update calibration factor from dst file

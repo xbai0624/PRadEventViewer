@@ -7,8 +7,11 @@
 
 #include "PRadDataHandler.h"
 #include "PRadDSTParser.h"
+#include "PRadInfoCenter.h"
 #include "PRadBenchMark.h"
-#include "PRadDAQUnit.h"
+#include "PRadEPICSystem.h"
+#include "PRadTaggerSystem.h"
+#include "PRadHyCalSystem.h"
 #include "PRadGEMSystem.h"
 #include "PRadCoordSystem.h"
 #include "PRadDetMatch.h"
@@ -21,27 +24,23 @@ using namespace std;
 int main(int /*argc*/, char * /*argv*/ [])
 {
 
-    PRadDataHandler *handler = new PRadDataHandler();
-    PRadDSTParser *dst_parser = new PRadDSTParser(handler);
-    // read configuration files
-    handler->ReadConfig("config.txt");
+    PRadEPICSystem *epics = new PRadEPICSystem("config/epics_channels.conf");
+    PRadHyCalSystem *hycal = new PRadHyCalSystem("config/hycal.conf");
+    PRadGEMSystem *gem = new PRadGEMSystem("config/gem.conf");
+
+    PRadDSTParser *dst_parser = new PRadDSTParser();
 
     // coordinate system and detector match system
-    PRadCoordSystem *coord_sys = new PRadCoordSystem("config/coordinates.dat");
+    PRadCoordSystem *coord_sys = new PRadCoordSystem("database/coordinates.dat");
     PRadDetMatch *det_match = new PRadDetMatch("config/det_match.conf");
 
     PRadBenchMark timer;
 
     // here shows an example how to read DST file while not saving all the events
     // in memory
-    dst_parser->OpenInput("/work/hallb/prad/replay/prad_001287.dst");
+    dst_parser->OpenInput("/work/hallb/prad/replay/prad_001288.dst");
 
     int count = 0;
-
-    // uncomment next line, it will not update calibration factor from dst file
-    //dst_parser->SetMode(NO_HYCAL_CAL_UPDATE);
-    PRadGEMSystem *gem_srs = handler->GetSRS();
-
     while(dst_parser->Read() && count < 50000)
     {
         if(dst_parser->EventType() == PRad_DST_Event) {
@@ -55,28 +54,30 @@ int main(int /*argc*/, char * /*argv*/ [])
             if(!event.is_physics_event())
                 continue;
 
+            // update run information
+            PRadInfoCenter::Instance().UpdateInfo(event);
+
             // reconstruct
-            handler->HyCalReconstruct(event);
-            gem_srs->Reconstruct(event);
+            hycal->Reconstruct(event);
+            gem->Reconstruct(event);
 
             // get reconstructed clusters
-            int n, n1, n2;
-            HyCalHit *hycal_hit = handler->GetHyCalCluster(n);
-            GEMHit *gem1_hit = gem_srs->GetDetector("PRadGEM1")->GetCluster(n1);
-            GEMHit *gem2_hit = gem_srs->GetDetector("PRadGEM2")->GetCluster(n2);
+            auto hycal_hit = hycal->GetDetector()->GetCluster();
+            auto gem1_hit = gem->GetDetector("PRadGEM1")->GetCluster();
+            auto gem2_hit = gem->GetDetector("PRadGEM2")->GetCluster();
 
             // coordinates transform, projection
             // you can either pass iterators
-            coord_sys->Transform(&hycal_hit[0], &hycal_hit[n]);
-            coord_sys->Transform(&gem1_hit[0], &gem1_hit[n1]);
-            coord_sys->Transform(&gem2_hit[0], &gem2_hit[n2]);
+            coord_sys->Transform(hycal_hit.begin(), hycal_hit.end());
+            coord_sys->Transform(gem1_hit.begin(), gem1_hit.end());
+            coord_sys->Transform(gem2_hit.begin(), gem2_hit.end());
             // or arrays
-            coord_sys->Projection(hycal_hit, n);
-            coord_sys->Projection(gem1_hit, n1);
-            coord_sys->Projection(gem2_hit, n2);
+            coord_sys->Projection(hycal_hit.begin(), hycal_hit.end());
+            coord_sys->Projection(gem1_hit.begin(), gem1_hit.end());
+            coord_sys->Projection(gem2_hit.begin(), gem2_hit.end());
 
             // hits matching, return matched index
-            auto matched = det_match->Match(hycal_hit, n, gem1_hit, n1, gem2_hit, n2);
+            auto matched = det_match->Match(hycal_hit, gem1_hit, gem2_hit);
 
             cout << event.event_number << "  ";
             if(matched.empty())
@@ -103,18 +104,18 @@ int main(int /*argc*/, char * /*argv*/ [])
 
         } else if(dst_parser->EventType() == PRad_DST_Epics) {
             // save epics into handler, otherwise get epicsvalue won't work
-            handler->GetEPICSData().push_back(dst_parser->GetEPICSEvent());
+            epics->AddEvent(dst_parser->GetEPICSEvent());
         }
     }
 
     dst_parser->CloseInput();
 
     cout << "TIMER: Finished, took " << timer.GetElapsedTime() << " ms" << endl;
-    cout << "Read " << handler->GetEventCount() << " events and "
-         << handler->GetEPICSEventCount() << " EPICS events from file."
+    cout << "Read " << count << " events and "
+         << epics->GetEventCount() << " EPICS events from file."
          << endl;
-    cout << handler->GetBeamCharge() << endl;
-    cout << handler->GetLiveTime() << endl;
+    cout << PRadInfoCenter::GetBeamCharge() << endl;
+    cout << PRadInfoCenter::GetLiveTime() << endl;
 
 //    handler->WriteToDST("prad_001323_0-10.dst");
     //handler->PrintOutEPICS();

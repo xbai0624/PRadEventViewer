@@ -91,13 +91,13 @@ EXAMPLE_DIR   = .
 EXAMPLE       = testGEM \
                 testHyCal \
 				testDST \
+                testLMS \
+                testEPICS \
+                testMatch \
                 getAvgGain \
                 replay
-#                testLMS
-#                testEPICS
 #                testIsland
 #                testCombine
-#                testMatch
 #                testSim
 
 EXAMPLE_BINS  = $(addprefix $(EXAMPLE_DIR)/, $(EXAMPLE))

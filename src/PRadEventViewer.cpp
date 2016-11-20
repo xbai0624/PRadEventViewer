@@ -123,6 +123,9 @@ void PRadEventViewer::initView()
     hycal_sys->Configure("config/hycal.conf");
     gem_sys->Configure("config/gem.conf");
 
+    // TDC Group Box
+    setTDCGroupBox();
+
     // Default setting
     selection = nullptr; //(HyCalModule*) HyCal->GetModuleList().at(0);
     annoType = NoAnnotation;
@@ -495,8 +498,8 @@ void PRadEventViewer::setTDCGroupBox()
         }
 
         // get the tdc group box size
-        double xmax = -600., xmin = 600.;
-        double ymax = -600., ymin = 600.;
+        double xmax = -1000., xmin = 1000.;
+        double ymax = -1000., ymin = 1000.;
         bool has_module = false;
         for(auto &channel : ch_list)
         {
@@ -511,7 +514,7 @@ void PRadEventViewer::setTDCGroupBox()
             ymax = std::max(geo.y + geo.size_y/2., ymax);
             ymin = std::min(geo.y - geo.size_y/2., ymin);
         }
-        QRectF groupBox = QRectF(CARTESIAN_TO_HYCALSCENE(xmin, ymin), xmax-xmin, ymax-ymin);
+        QRectF groupBox = QRectF(CARTESIAN_TO_HYCALSCENE(xmin, ymax), xmax-xmin, ymax-ymin);
         if(has_module)
             HyCal->AddTDCBox(tdcGroupName, Qt::black, groupBox, bkgColor);
     }
