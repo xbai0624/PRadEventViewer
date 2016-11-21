@@ -10,7 +10,7 @@ public:
     virtual ~PRadSquareCluster();
     PRadHyCalCluster *Clone();
 
-    void Configure(const std::string &path = "");
+    void Configure(const std::string &path);
     void Reconstruct(PRadHyCalDetector *det);
 
 protected:

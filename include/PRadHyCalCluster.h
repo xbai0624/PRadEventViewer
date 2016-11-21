@@ -9,6 +9,22 @@
 class PRadHyCalCluster : public ConfigObject
 {
 public:
+    struct ModuleHit
+    {
+        PRadHyCalModule *module;    // participated module
+        int addr;                   // assigned address for this module
+        float energy;               // participated energy, may be splitted
+
+        ModuleHit() : module(nullptr), addr(0), energy(0) {};
+        ModuleHit(PRadHyCalModule *m, int a, float e)
+        : module(m), addr(a), energy(e)
+        {};
+
+        bool operator <(const ModuleHit &rhs) const {return addr < rhs.addr;};
+        int operator -(const ModuleHit &rhs) const {return addr - rhs.addr;};
+    };
+
+public:
     virtual ~PRadHyCalCluster();
     virtual PRadHyCalCluster *Clone();
     virtual void Configure(const std::string &path);

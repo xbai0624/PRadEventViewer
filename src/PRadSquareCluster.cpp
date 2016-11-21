@@ -1,14 +1,12 @@
 //============================================================================//
 // PRad Cluster Reconstruction Method                                         //
-// Reconstruct the cluster within a square 5x5 area                           //
+// Reconstruct the cluster within a square area                               //
 //                                                                            //
 // Weizhi Xiong, Chao Peng                                                    //
 // 06/10/2016                                                                 //
 //============================================================================//
 
 #include <cmath>
-#include <iostream>
-#include <iomanip>
 #include "PRadSquareCluster.h"
 #include "PRadHyCalDetector.h"
 #include "PRadADCChannel.h"
