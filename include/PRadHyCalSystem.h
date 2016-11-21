@@ -7,6 +7,8 @@
 #include "PRadHyCalDetector.h"
 #include "PRadHyCalCluster.h"
 #include "PRadSquareCluster.h"
+#include "PRadIslandCluster.h"
+#include "PRadClusterProfile.h"
 #include "PRadTDCChannel.h"
 #include "PRadADCChannel.h"
 #include "ConfigObject.h"

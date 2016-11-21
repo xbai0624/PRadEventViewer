@@ -67,6 +67,7 @@ LIB_CLASSES   = PRadDAQChannel \
                 PRadHyCalDetector \
                 PRadHyCalModule \
                 PRadHyCalCluster \
+                PRadClusterProfile \
                 PRadSquareCluster \
                 PRadIslandCluster \
                 PRadGEMSystem \

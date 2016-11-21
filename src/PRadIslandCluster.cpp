@@ -10,7 +10,6 @@
 //============================================================================//
 
 #include <cmath>
-#include <list>
 #include <algorithm>
 #include <iostream>
 #include "PRadIslandCluster.h"
@@ -20,14 +19,11 @@
 
 // reserve space to store sector hits
 #define MAX_SECTOR_HITS 1000
-// to separate different col, increase if there are more modules in a column
-#define COL_SEP 100
 
 
 
 PRadIslandCluster::PRadIslandCluster(const std::string &path)
 {
-    // a container to store the hits by sector
     sector_hits.resize(PRadHyCalModule::Max_HyCalSector);
     // reserve enough space for each sector
     for(auto &sector : sector_hits)
@@ -78,6 +74,7 @@ void PRadIslandCluster::Reconstruct(PRadHyCalDetector *det)
     for(auto &sector : sector_hits)
     {
         groupSectorHits(sector);
+        splitSectorClusters();
     }
 }
 
@@ -92,44 +89,95 @@ void PRadIslandCluster::fillSectorHits(PRadHyCalDetector *det)
     // fill sectors
     for(auto &module : det->GetModuleList())
     {
-        float energy = module->GetEnergy();
-
         // too small energy, don't allow it to participate in reconstruction
-        if(energy <= min_module_energy)
+        if(module->GetEnergy() <= min_module_energy)
             continue;
 
-        // fill into sector
         auto &sector = sector_hits.at(module->GetSectorID());
-        int sector_addr = module->GetColumn()*COL_SEP + module->GetRow();
-        sector.emplace_back(module, sector_addr, energy);
-    }
 
-    // sort sectors
-    for(auto &sector: sector_hits)
-    {
-        std::sort(sector.begin(), sector.end());
+        // fill into sector
+        sector.emplace_back(module);
     }
 }
 
-void PRadIslandCluster::groupSectorHits(const std::vector<ModuleHit> &sector)
+void PRadIslandCluster::groupSectorHits(const std::vector<PRadHyCalModule*> &sector)
 {
-    if(sector.empty())
-        return;
+    // erase container
+    clusters.clear();
 
-    std::list<std::list<ModuleHit>> clusters;
-    std::list<ModuleHit> this_cluster;
-
-    this_cluster.push_back(sector.at(0));
-
-    for(size_t i = 1; i < sector.size(); ++i)
+    // roughly combine all contiguous hits
+    for(auto &module : sector)
     {
-        // contiguous modules in a column
-        if(sector.at(i) - sector.at(i-1) <= 1) {
-            this_cluster.push_back(sector.at(i));
-        } else {
-            clusters.emplace_back(std::move(this_cluster));
-            this_cluster.clear();
+        // not belong to any existing cluster
+        if(!fillCluster(module)) {
+            std::list<PRadHyCalModule*> new_cluster;
+            new_cluster.push_back(module);
+            clusters.emplace_back(std::move(new_cluster));
+        }
+    }
+
+    // merge contiguous clusters
+    if(clusters.size() > 1) {
+        auto it = clusters.begin();
+        it++;
+        for(; it != clusters.end(); ++it)
+        {
+            for(auto it_prev = clusters.begin(); it_prev != it; ++it_prev)
+            {
+                if(!checkContiguous(*it, *it_prev))
+                    continue;
+
+                (*it_prev).splice((*it_prev).end(), *it);
+                clusters.erase(it);
+                it--;
+                break;
+            }
         }
     }
 }
 
+bool PRadIslandCluster::fillCluster(PRadHyCalModule *m)
+{
+    for(auto &cluster : clusters)
+    {
+        for(auto &prev_m : cluster)
+        {
+            // it belongs to a existing cluster
+            if(checkContiguous(m, prev_m)) {
+                cluster.push_back(m);
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
+inline bool PRadIslandCluster::checkContiguous(const PRadHyCalModule* m1,
+                                               const PRadHyCalModule* m2)
+const
+{
+    int diff =  abs(m1->GetColumn() - m2->GetColumn())
+              + abs(m1->GetRow() - m2->GetRow());
+    if(diff < 2)
+        return true;
+    else
+        return false;
+}
+
+inline bool PRadIslandCluster::checkContiguous(const std::list<PRadHyCalModule*> &c1,
+                                               const std::list<PRadHyCalModule*> &c2)
+const
+{
+    for(auto &m1 : c1)
+        for(auto &m2 : c2)
+            if(checkContiguous(m1, m2))
+                return true;
+
+    return false;
+}
+
+void PRadIslandCluster::splitSectorClusters()
+{
+
+}

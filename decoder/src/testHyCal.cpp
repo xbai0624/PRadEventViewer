@@ -18,9 +18,6 @@ using namespace std;
 
 int main(int /*argc*/, char * /*argv*/ [])
 {
-    PRadBenchMark timer;
-
-
     PRadDataHandler *handler = new PRadDataHandler();
     PRadHyCalSystem *sys = new PRadHyCalSystem("config/hycal.conf");
     handler->SetHyCalSystem(sys);
@@ -69,14 +66,15 @@ int main(int /*argc*/, char * /*argv*/ [])
     ofstream output("hycal_module.txt");
     hycal->OutputModuleList(output);
     */
-    dst_parser->OpenInput("/work/hallb/prad/replay/prad_001288.dst");
-    int count = 0;
+//    dst_parser->OpenInput("/work/hallb/prad/replay/prad_001288.dst");
+    PRadBenchMark timer;
+
+    dst_parser->OpenInput("prad_1291.dst");
     // uncomment next line, it will not update calibration factor from dst file
 
-    while(dst_parser->Read() && count < 30000)
+    while(dst_parser->Read())
     {
         if(dst_parser->EventType() == PRad_DST_Event) {
-            ++count;
             // you can push this event into data handler
             // handler->GetEventData().push_back(dst_parser->GetEvent()
             // or you can just do something with this event and discard it
@@ -85,11 +83,12 @@ int main(int /*argc*/, char * /*argv*/ [])
                 continue;
 
             sys->Reconstruct(event);
-
+/*
             for(auto cluster : sys->GetDetector()->GetCluster())
             {
                 cout << cluster.E << ", " << cluster.x << ", " << cluster.y << endl;
             }
+*/
         }
     }
 

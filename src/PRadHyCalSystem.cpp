@@ -33,6 +33,7 @@ PRadHyCalSystem::PRadHyCalSystem(const std::string &path)
 
     // hycal clustering methods
     AddClusterMethod("Square", new PRadSquareCluster());
+    AddClusterMethod("Island", new PRadIslandCluster());
 
     if(!path.empty())
         Configure(path);
@@ -178,6 +179,11 @@ void PRadHyCalSystem::Configure(const std::string &path)
     if(recon)
         recon->Configure(GetConfig<std::string>("Cluster Configuration"));
 
+    std::string prof;
+    prof = GetConfig<std::string>("Lead Tungstate Profile");
+    PRadClusterProfile::Instance().LoadProfile((int)PRadHyCalModule::PbWO4, prof);
+    prof = GetConfig<std::string>("Lead Glass Profile");
+    PRadClusterProfile::Instance().LoadProfile((int)PRadHyCalModule::PbGlass, prof);
 }
 
 // read DAQ channel list
@@ -411,9 +417,14 @@ void PRadHyCalSystem::ChooseEvent(const EventData &event)
 // reconstruct the event to clusters
 void PRadHyCalSystem::Reconstruct(const EventData &event)
 {
+    // no need to reconstruct non-physics event
+    if(!event.is_physics_event())
+        return;
+
     // updat the information first
     ChooseEvent(event);
-    Reconstruct();
+
+     Reconstruct();
 }
 
 void PRadHyCalSystem::Reconstruct()
