@@ -92,7 +92,7 @@ void PRadHyCalCluster::NonLinearCorr(PRadHyCalModule *center, float &E)
 }
 
 // check if the cluster is good enough
-bool PRadHyCalCluster::CheckCluster(const HyCalHit &hit)
+bool PRadHyCalCluster::CheckCluster(const HyCalCluster &hit)
 {
     if((hit.E < min_cluster_energy) ||
        (hit.nblocks < min_cluster_size))

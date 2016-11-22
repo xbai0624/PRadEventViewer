@@ -50,9 +50,9 @@ void PRadDetMatch::Configure(const std::string &path)
     overlapSigma = getDefConfig<float>("GEM_Overlap_Factor", 10, verbose);
 }
 
-std::vector<MatchedIndex> PRadDetMatch::Match(std::vector<HyCalHit> &hycal,
-                                              std::vector<GEMHit> &gem1,
-                                              std::vector<GEMHit> &gem2)
+std::vector<MatchedIndex> PRadDetMatch::Match(std::vector<HyCalCluster> &hycal,
+                                              std::vector<GEMCluster> &gem1,
+                                              std::vector<GEMCluster> &gem2)
 const
 {
     std::vector<MatchedIndex> result;
@@ -88,7 +88,7 @@ const
 // projected to the furthest z
 // return true if they are within certain range (depends on HyCal resolution)
 // return false if they are not
-bool PRadDetMatch::PreMatch(const HyCalHit &hycal, const GEMHit &gem)
+bool PRadDetMatch::PreMatch(const HyCalCluster &hycal, const GEMCluster &gem)
 const
 {
     // lead glass (largest) value as default
@@ -108,7 +108,10 @@ const
         return true;
 }
 
-bool PRadDetMatch::PostMatch(MatchedIndex &index, HyCalHit &hycal, GEMHit *gem1, GEMHit *gem2)
+bool PRadDetMatch::PostMatch(MatchedIndex &index,
+                             HyCalCluster &hycal,
+                             GEMCluster *gem1,
+                             GEMCluster *gem2)
 const
 {
     // no candidates

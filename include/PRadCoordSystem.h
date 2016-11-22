@@ -9,6 +9,10 @@
 #include "PRadDetector.h"
 #include "PRadEventStruct.h"
 
+
+class PRadHyCalDetector;
+class PRadGEMDetector;
+
 class PRadCoordSystem
 {
 public:
@@ -37,13 +41,16 @@ public:
         float theta_z;  // tilting angle on z axis
 
         DetCoord()
-        : run_number(0), det_enum(0), x_ori(0), y_ori(0), z_ori(0), theta_x(0), theta_y(0), theta_z(0)
+        : run_number(0), det_enum(0),
+          x_ori(0), y_ori(0), z_ori(0), theta_x(0), theta_y(0), theta_z(0)
         {};
         DetCoord(int r, int i, float x, float y, float z)
-        : run_number(r), det_enum(i), x_ori(x), y_ori(y), z_ori(z), theta_x(0), theta_y(0), theta_z(0)
+        : run_number(r), det_enum(i),
+          x_ori(x), y_ori(y), z_ori(z), theta_x(0), theta_y(0), theta_z(0)
         {};
         DetCoord(int r, int i, float x, float y, float z, float tx, float ty, float tz)
-        : run_number(r), det_enum(i), x_ori(x), y_ori(y), z_ori(z), theta_x(tx), theta_y(ty), theta_z(tz)
+        : run_number(r), det_enum(i),
+          x_ori(x), y_ori(y), z_ori(z), theta_x(tx), theta_y(ty), theta_z(tz)
         {};
 
         // these functions help to retrieve values in array or set values in array
@@ -88,6 +95,10 @@ public:
     // basic transform functions
     void Transform(int det_id, float &x, float &y, float &z) const;
 
+    // functions for PRadDetectors
+    void Transform(PRadHyCalDetector *det) const;
+    void Transform(PRadGEMDetector *det) const;
+
 public:
     // template functions
     // transform for clusters with det_id
@@ -97,34 +108,13 @@ public:
     {
         Transform(t.det_id, t.x, t.y, t.z);
     }
-    template<class T>
 
     // transform for clusters with specified det_id
+    template<class T>
     void Transform(int det_id, T &t)
     const
     {
         Transform(det_id, t.x, t.y, t.z);
-    }
-
-    // transform for clusters, accepts array
-    template<class T>
-    void Transform(T *t, int NClusters)
-    const
-    {
-        for(int i = 0; i < NClusters; ++i)
-        {
-            Transform(t[i].det_id, t[i].x, t[i].y, t[i].z);
-        }
-    }
-
-    template<class T_it>
-    void Transform(T_it first, T_it last)
-    const
-    {
-        for(T_it it = first; it != last; ++it)
-        {
-            Transform((*it).det_id, (*it).x, (*it).y, (*it).z);
-        }
     }
 
     template<class T>

@@ -59,15 +59,15 @@ public:
     PRadHyCalModule *GetModule(const std::string &module_name) const;
     double GetEnergy() const;
     const std::vector<PRadHyCalModule*> &GetModuleList() const {return module_list;};
-    std::vector<HyCalHit> &GetCluster() {return hycal_clusters;};
-    const std::vector<HyCalHit> &GetCluster() const {return hycal_clusters;};
+    std::vector<HyCalCluster> &GetCluster() {return hycal_clusters;};
+    const std::vector<HyCalCluster> &GetCluster() const {return hycal_clusters;};
 
 protected:
     PRadHyCalSystem *system;
     std::vector<PRadHyCalModule*> module_list;
     std::unordered_map<int, PRadHyCalModule*> id_map;
     std::unordered_map<std::string, PRadHyCalModule*> name_map;
-    std::vector<HyCalHit> hycal_clusters;
+    std::vector<HyCalCluster> hycal_clusters;
 };
 
 #endif

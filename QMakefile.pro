@@ -87,6 +87,7 @@ HEADERS += include/PRadEventViewer.h \
            include/PRadDAQChannel.h \
            include/PRadADCChannel.h \
            include/PRadTDCChannel.h \
+           include/PRadClusterProfile.h \
            include/PRadHyCalCluster.h \
            include/PRadSquareCluster.h \
            include/PRadIslandCluster.h \
@@ -131,6 +132,7 @@ SOURCES += src/main.cpp \
            src/PRadDAQChannel.cpp \
            src/PRadADCChannel.cpp \
            src/PRadTDCChannel.cpp \
+           src/PRadClusterProfile.cpp \
            src/PRadHyCalCluster.cpp \
            src/PRadSquareCluster.cpp \
            src/PRadIslandCluster.cpp \

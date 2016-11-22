@@ -1338,16 +1338,18 @@ void PRadEventViewer::showReconEvent()
     // reconstruction
     hycal_sys->Reconstruct();
     gem_sys->Reconstruct();
+    PRadGEMDetector *gem1 = gem_sys->GetDetector(PRadDetector::PRadGEM1);
+    PRadGEMDetector *gem2 = gem_sys->GetDetector(PRadDetector::PRadGEM2);
 
     // get reconstructed clusters
     auto &hycal_hit = HyCal->GetCluster();
-    auto &gem1_hit = gem_sys->GetDetector(PRadDetector::PRadGEM1)->GetCluster();
-    auto &gem2_hit = gem_sys->GetDetector(PRadDetector::PRadGEM2)->GetCluster();
+    auto &gem1_hit = gem1->GetCluster();
+    auto &gem2_hit = gem2->GetCluster();
 
     // coordinates transform, projection
-    coordSystem->Transform(hycal_hit.begin(), hycal_hit.end());
-    coordSystem->Transform(gem1_hit.begin(), gem1_hit.end());
-    coordSystem->Transform(gem2_hit.begin(), gem2_hit.end());
+    coordSystem->Transform((PRadHyCalDetector *)HyCal);
+    coordSystem->Transform(gem1);
+    coordSystem->Transform(gem2);
 
     coordSystem->Projection(hycal_hit.begin(), hycal_hit.end());
     coordSystem->Projection(gem1_hit.begin(), gem1_hit.end());

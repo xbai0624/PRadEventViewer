@@ -11,11 +11,21 @@ class PRadHyCalCluster : public ConfigObject
 public:
     struct ModuleHit
     {
-        int id;         // module id
-        float energy;   // participated energy, may be splitted
+        int id;                         // module id
+        float x;                        // x in detector frame
+        float y;                        // y in detector frame
+        float energy;                   // participated energy, may be splitted
 
         ModuleHit() : id(0), energy(0) {};
         ModuleHit(int a, float e) : id(a), energy(e) {};
+    };
+
+    struct ModuleCluster
+    {
+        int cid;                        // center module id
+        int det_id;                     // detector id
+        unsigned int flag;              // cluster status flag
+        std::vector<ModuleHit> hits;    // hits group
     };
 
 public:
@@ -26,7 +36,7 @@ public:
     virtual float GetWeight(const float &E, const float &E0);
     virtual float GetShowerDepth(int module_type, const float &E);
     virtual void NonLinearCorr(PRadHyCalModule *center, float &E);
-    virtual bool CheckCluster(const HyCalHit &hit);
+    virtual bool CheckCluster(const HyCalCluster &hit);
 
 protected:
     PRadHyCalCluster();

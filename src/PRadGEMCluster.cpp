@@ -247,9 +247,6 @@ void PRadGEMCluster::reconstructCluster_sub(GEMPlaneCluster &c, PRadGEMPlane *pl
 // it return the number of clusters
 void PRadGEMCluster::FormClusters(PRadGEMDetector *det)
 {
-    // det id will be useful to identify the detector type later
-    int det_id = det->GetDetID();
-
     PRadGEMPlane *x_plane = det->GetPlane(PRadGEMPlane::Plane_X);
     PRadGEMPlane *y_plane = det->GetPlane(PRadGEMPlane::Plane_Y);
 
@@ -277,9 +274,9 @@ void PRadGEMCluster::FormClusters(PRadGEMDetector *det)
     {
         for(auto &yc : y_cluster)
         {
-            container.emplace_back(det_id, xc.position, yc.position, 0., // by default z = 0
+            container.emplace_back(xc.position, yc.position, 0.,    // by default z = 0
                                    xc.total_charge, yc.total_charge,
-                                   xc.peak_charge, yc.peak_charge, // fill in peak charge
+                                   xc.peak_charge, yc.peak_charge,  // fill in peak charge
                                    xc.hits.size(), yc.hits.size()); // number of hits
         }
     }

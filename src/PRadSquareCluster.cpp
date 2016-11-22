@@ -49,7 +49,7 @@ void PRadSquareCluster::Reconstruct(PRadHyCalDetector *det)
 
     for(auto &center : centers)
     {
-        HyCalHit hit = formCluster(center, det);
+        HyCalCluster hit = formCluster(center, det);
 
         // if the cluster is good
         if(CheckCluster(hit))
@@ -94,13 +94,12 @@ std::vector<PRadHyCalModule*> PRadSquareCluster::findCenters(const PRadHyCalDete
     return center_modules;
 }
 
-HyCalHit PRadSquareCluster::formCluster(PRadHyCalModule *center, const PRadHyCalDetector *det)
+HyCalCluster PRadSquareCluster::formCluster(PRadHyCalModule *center, const PRadHyCalDetector *det)
 {
     // initialize the hit
-    HyCalHit hit(det->GetDetID(),                       // det id
-                 center->GetID(),                       // center id
-                 center->GetGeometryFlag(),             // module flag
-                 center->GetTDC()->GetTimeMeasure());   // timing
+    HyCalCluster hit(center->GetID(),                       // center id
+                     center->GetGeometryFlag(),             // module flag
+                     center->GetTDC()->GetTimeMeasure());   // timing
 
     std::vector<PRadHyCalModule *> group;
 

@@ -15,7 +15,7 @@ public:
 
 protected:
     std::vector<PRadHyCalModule*> findCenters(const PRadHyCalDetector *det);
-    HyCalHit formCluster(PRadHyCalModule *center, const PRadHyCalDetector *det);
+    HyCalCluster formCluster(PRadHyCalModule *center, const PRadHyCalDetector *det);
 
 protected:
     // parameters for reconstruction

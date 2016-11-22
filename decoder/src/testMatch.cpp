@@ -40,6 +40,10 @@ int main(int /*argc*/, char * /*argv*/ [])
     // in memory
     dst_parser->OpenInput("/work/hallb/prad/replay/prad_001288.dst");
 
+    PRadHyCalDetector *hycal_det = hycal->GetDetector();
+    PRadGEMDetector *gem_det1 = gem->GetDetector("PRadGEM1");
+    PRadGEMDetector *gem_det2 = gem->GetDetector("PRadGEM2");
+
     int count = 0;
     while(dst_parser->Read() && count < 50000)
     {
@@ -68,9 +72,9 @@ int main(int /*argc*/, char * /*argv*/ [])
 
             // coordinates transform, projection
             // you can either pass iterators
-            coord_sys->Transform(hycal_hit.begin(), hycal_hit.end());
-            coord_sys->Transform(gem1_hit.begin(), gem1_hit.end());
-            coord_sys->Transform(gem2_hit.begin(), gem2_hit.end());
+            coord_sys->Transform(hycal_det);
+            coord_sys->Transform(gem_det1);
+            coord_sys->Transform(gem_det2);
             // or arrays
             coord_sys->Projection(hycal_hit.begin(), hycal_hit.end());
             coord_sys->Projection(gem1_hit.begin(), gem1_hit.end());

@@ -377,8 +377,25 @@ struct EventData
 //============================================================================//
 
 //============================================================================//
-// *BEGIN* HYCAL HIT STRUCTURE                                                //
+// *BEGIN* CLUSTER STRUCTURE                                                  //
 //============================================================================//
+
+// common part between gem and hycal cluster
+class BaseCluster
+{
+public:
+    float x;            // Cluster's x-position (mm)
+    float y;            // Cluster's y-position (mm)
+    float z;            // Cluster's z-position (mm)
+
+    BaseCluster() : x(0), y(0), z(0)
+    {};
+    BaseCluster(float xi, float yi, float zi)
+    : x(xi), y(yi), z(zi)
+    {};
+};
+
+// hycal cluster status
 enum HyCalClusterStatus
 {
 // this enum is for bitwise manipulation
@@ -388,68 +405,45 @@ enum HyCalClusterStatus
 #define CLEAR_BIT(n,i)  ( (n) &= ~(1ULL << i) )
 #define TEST_BIT(n,i)  ( (bool)( n & (1ULL << i) ) )
 
-    kPWO = 0,     //cluster center at PWO region
-    kLG,          //cluster center at LG region
-    kTransition,  //cluster center at LG region
-    kSplit,       //cluster after splitting
-    kDeadModule,  //cluster near dead module
-    kInnerBound,  //cluster near the inner hole of HyCal
-    kOuterBound,  //cluster near the outer boundary of HyCal
-    kGEM1Match,   //cluster found a match GEM hit on GEM 1
-    kGEM2Match,   //cluster found a match GEM hit on GEM 2
-    kOverlapMatch,//cluster found a match on both GEM
+    kPWO = 0,           //cluster center at PWO region
+    kLG,                //cluster center at LG region
+    kTransition,        //cluster center at LG region
+    kSplit,             //cluster after splitting
+    kDeadModule,        //cluster near dead module
+    kInnerBound,        //cluster near the inner hole of HyCal
+    kOuterBound,        //cluster near the outer boundary of HyCal
+    kGEM1Match,         //cluster found a match GEM hit on GEM 1
+    kGEM2Match,         //cluster found a match GEM hit on GEM 2
+    kOverlapMatch,      //cluster found a match on both GEM
 };
 
-struct HyCalHit
+// hycal cluster
+class HyCalCluster : public BaseCluster
 {
+public:
 #define TIME_MEASURE_SIZE 3
     unsigned int flag;  // overall status of the cluster
-    int det_id;         // detector id
     short type;         // Cluster types: 0,1,2,3,4;-1
     short status;       // Spliting status
     short nblocks;      // Number of blocks in a cluster
     short cid;          // Cluster's central cell ID
     float E;            // Cluster's energy (MeV)
-    float x;            // Cluster's x-position (mm)
-    float y;            // Cluster's y-position (mm)
-    float z;            // Cluster's z-position (mm)
     float chi2;         // chi2 comparing to shower profile
     float sigma_E;
     unsigned short time[TIME_MEASURE_SIZE];      // time information from central TDC group
 
-    HyCalHit()
-    : flag(0), det_id(0), type(0), status(0), nblocks(0), cid(0),
-      E(0), x(0), y(0), z(0), chi2(0), sigma_E(0)
+    HyCalCluster()
+    : flag(0), type(0), status(0), nblocks(0), cid(0),
+      E(0), chi2(0), sigma_E(0)
     {
         clear_time();
     }
 
-    HyCalHit(int det, short id, unsigned int f, const std::vector<unsigned short> &t)
-    : flag(f), det_id(det), type(0), status(0), nblocks(0), cid(id),
-      E(0), x(0), y(0), z(0), chi2(0), sigma_E(0)
+    HyCalCluster(short id, unsigned int f, const std::vector<unsigned short> &t)
+    : BaseCluster(0, 0, 0), flag(f), type(0), status(0), nblocks(0), cid(id),
+      E(0), chi2(0), sigma_E(0)
     {
         set_time(t);
-    }
-
-    HyCalHit(float cx, float cy, float cE)
-    : flag(0), det_id(0), type(0), status(0), nblocks(0), cid(0), E(cE), x(cx),
-      y(cy), chi2(0), sigma_E(0)
-    {
-        clear_time();
-    }
-
-    HyCalHit(float cx, float cy, float cE, const std::vector<unsigned short> &t)
-    : flag(0), det_id(0), type(0), status(0), nblocks(0), cid(0), E(cE), x(cx), y(cy),
-      chi2(0), sigma_E(0)
-    {
-        set_time(t);
-    }
-
-    HyCalHit(short t, short s, short n, float cx, float cy, float cE, float ch)
-    : flag(0), det_id(0), type(t), status(s), nblocks(n), cid(0), E(cE), x(cx), y(cy),
-      chi2(ch), sigma_E(0)
-    {
-        clear_time();
     }
 
     void clear_time()
@@ -469,19 +463,11 @@ struct HyCalHit
         }
     }
 };
-//============================================================================//
-// *END* HYCAL HIT STRUCTURE                                                  //
-//============================================================================//
 
-//============================================================================//
-// *BEGIN* GEM HIT STRUCTURE                                                  //
-//============================================================================//
-struct GEMHit
+// gem cluster
+class GEMCluster : public BaseCluster
 {
-    int det_id;       // detector id
-    float x;          // x position
-    float y;          // y position
-    float z;          // z position
+public:
     float x_charge;   // x charge
     float y_charge;   // y charge
     float x_peak;     // x peak charge
@@ -489,18 +475,18 @@ struct GEMHit
     int x_size;       // x hits size
     int y_size;       // y hits size
 
-    GEMHit()
-    : det_id(0), x(0.), y(0.), z(0.), x_charge(0.), y_charge(0.), x_size(0), y_size(0)
+    GEMCluster()
+    : x_charge(0.), y_charge(0.), x_size(0), y_size(0)
     {};
 
-    GEMHit(int id, float xx, float yy, float zz,
-           float xc, float yc, float xp, float yp, int xs, int ys)
-    : det_id(id), x(xx), y(yy), z(zz),
+    GEMCluster(float x, float y, float z,
+               float xc, float yc, float xp, float yp, int xs, int ys)
+    : BaseCluster(x, y, z),
       x_charge(xc), y_charge(yc), x_peak(xp), y_peak(yp), x_size(xs), y_size(ys)
     {};
 };
 //============================================================================//
-// *END* GEM HIT STRUCTURE                                                    //
+// *END* CLUSTER STRUCTURE                                                    //
 //============================================================================//
 
 #endif

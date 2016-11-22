@@ -9,24 +9,39 @@
 //============================================================================//
 
 #include "PRadCoordSystem.h"
+#include "PRadHyCalDetector.h"
+#include "PRadGEMDetector.h"
 #include "ConfigParser.h"
 #include <fstream>
 #include <iomanip>
 
+
+
+//============================================================================//
+// Constructor, Destructor                                                    //
+//============================================================================//
+
+// constructor
 PRadCoordSystem::PRadCoordSystem(const std::string &path, const int &run)
 {
     if(!path.empty())
         LoadCoordData(path, run);
 }
 
+// destructor
 PRadCoordSystem::~PRadCoordSystem()
 {
     // place holder
 }
 
+
+
+//============================================================================//
+// Public Member Functions                                                    //
+//============================================================================//
+
 // load coordinates data, the format should be
-// run_number, detector_name, origin_x, origin_y, origin_z, theta_x, theta_y, theta_z
-// it reads the coordinates of the origin in the detector frame and its tilting angles
+// run_number, det_name, origin_x, origin_y, origin_z, theta_x, theta_y, theta_z
 void PRadCoordSystem::LoadCoordData(const std::string &path, const int &chosen_run)
 {
     ConfigParser c_parser;
@@ -84,13 +99,15 @@ void PRadCoordSystem::LoadCoordData(const std::string &path, const int &chosen_r
     ChooseCoord(chosen_run);
 }
 
+// save the data
 void PRadCoordSystem::SaveCoordData(const std::string &path)
 {
     std::ofstream output(path);
 
     // output headers
     output << "# The least run will be chosen as the default offset" << std::endl
-           << "# Lists the origin offsets of detectors to beam center and the tilting angles" << std::endl
+           << "# Lists the origin offsets of detectors to beam center "
+           << "and the tilting angles" << std::endl
            << "# Units are in mm and mradian" << std::endl
            << "#" << std::setw(7) << "run"
            << std::setw(10) << "detector"
@@ -141,6 +158,7 @@ void PRadCoordSystem::ChooseCoord(int run_number)
     }
 }
 
+// choose coordinates
 void PRadCoordSystem::SetCurrentCoord(const std::vector<PRadCoordSystem::DetCoord> &coords)
 {
     current_coord = coords;
@@ -181,6 +199,23 @@ const
     x += coord.x_ori;
     y += coord.y_ori;
     z += coord.z_ori;
+}
+
+// transform the clusters in detector to beam frame
+void PRadCoordSystem::Transform(PRadHyCalDetector *det)
+const
+{
+    auto &clusters = det->GetCluster();
+    for(auto &cluster : clusters)
+        Transform(det->GetDetID(), cluster.x, cluster.y, cluster.z);
+}
+
+void PRadCoordSystem::Transform(PRadGEMDetector *det)
+const
+{
+    auto &clusters = det->GetCluster();
+    for(auto &cluster : clusters)
+        Transform(det->GetDetID(), cluster.x, cluster.y, cluster.z);
 }
 
 // projection from (xi, yi, zi) to zf
@@ -241,7 +276,7 @@ PRadCoordSystem::Point PRadCoordSystem::origin()
     return Point(0, 0, 0);
 }
 
-std::ostream &operator << (std::ostream &os, const PRadCoordSystem::DetCoord &det)
+std::ostream &operator <<(std::ostream &os, const PRadCoordSystem::DetCoord &det)
 {
     return os << std::setw(8)  << det.run_number
               << std::setw(12) << PRadDetector::getName(det.det_enum)
