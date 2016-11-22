@@ -439,6 +439,13 @@ public:
         clear_time();
     }
 
+    HyCalCluster(short id, unsigned int f, float ene)
+    : BaseCluster(0, 0, 0), flag(f), type(0), status(0), nblocks(0), cid(id),
+      E(ene), chi2(0), sigma_E(0)
+    {
+        clear_time();
+    }
+
     HyCalCluster(short id, unsigned int f, const std::vector<unsigned short> &t)
     : BaseCluster(0, 0, 0), flag(f), type(0), status(0), nblocks(0), cid(id),
       E(0), chi2(0), sigma_E(0)

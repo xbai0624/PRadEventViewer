@@ -101,3 +101,35 @@ bool PRadHyCalCluster::CheckCluster(const HyCalCluster &hit)
     return true;
 }
 
+// reconstruct cluster
+HyCalCluster PRadHyCalCluster::Reconstruct(const ModuleCluster &cluster)
+{
+    // initialize the hit
+    HyCalCluster hit(cluster.center.id,         // center id
+                     cluster.center.geo.flag,   // module flag
+                     cluster.energy);           // total energy
+
+    float weight_x = 0, weight_y = 0, weight_total = 0;
+
+    // count modules
+    hit.nblocks = cluster.hits.size();
+
+    // reconstruct position
+    for(auto &hit : cluster.hits)
+    {
+        float weight = GetWeight(hit.energy, cluster.energy);
+        weight_x += hit.geo.x*weight;
+        weight_y += hit.geo.y*weight;
+        weight_total += weight;
+    }
+
+    hit.x = weight_x/weight_total;
+    hit.y = weight_y/weight_total;
+
+    // z position will need a depth correction, defined in PRadHyCalCluster
+    hit.z = cluster.center.geo.z + GetShowerDepth(cluster.center.geo.type, hit.E);
+    // correct the non-linear response to the energy, defined in PRadHyCalCluster
+    //NonLinearCorr(center, hit.E);
+
+    return hit;
+}
