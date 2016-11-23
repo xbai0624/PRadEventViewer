@@ -41,15 +41,18 @@ void PRadHyCalCluster::Configure(const std::string &path)
     log_weight_thres = getDefConfig<float>("Log Weight Threshold", 3.6, verbose);
     min_cluster_energy = getDefConfig<float>("Minimum Cluster Energy", 50., verbose);
     min_center_energy = getDefConfig<float>("Minimum Center Energy", 10., verbose);
-    min_cluster_size = getDefConfig<int>("Minimum Cluster Size", 1, verbose);
+    min_cluster_size = getDefConfig<unsigned int>("Minimum Cluster Size", 1, verbose);
 }
 
-void PRadHyCalCluster::Reconstruct(PRadHyCalDetector * /*det*/)
+std::vector<ModuleCluster> PRadHyCalCluster::Reconstruct(std::list<ModuleHit> &)
+const
 {
     // to be implemented by methods
+    return std::vector<ModuleCluster>();
 }
 
 float PRadHyCalCluster::GetWeight(const float &E, const float &E0)
+const
 {
     float w = log_weight_thres + log(E/E0);
     if(w < 0.)
@@ -59,6 +62,7 @@ float PRadHyCalCluster::GetWeight(const float &E, const float &E0)
 
 // get shower depth, unit is in MeV
 float PRadHyCalCluster::GetShowerDepth(int module_type, const float &E)
+const
 {
     if(depth_corr && E > 0.) {
         // here all the values are hard coded, because they are all physical
@@ -78,6 +82,7 @@ float PRadHyCalCluster::GetShowerDepth(int module_type, const float &E)
 
 // correct the non linear energy response in HyCal, unit is in MeV
 void PRadHyCalCluster::NonLinearCorr(PRadHyCalModule *center, float &E)
+const
 {
     if(!non_linear_corr)
         return;
@@ -92,22 +97,24 @@ void PRadHyCalCluster::NonLinearCorr(PRadHyCalModule *center, float &E)
 }
 
 // check if the cluster is good enough
-bool PRadHyCalCluster::CheckCluster(const HyCalCluster &hit)
+bool PRadHyCalCluster::CheckCluster(const ModuleCluster &cluster)
+const
 {
-    if((hit.E < min_cluster_energy) ||
-       (hit.nblocks < min_cluster_size))
+    if((cluster.energy < min_cluster_energy) ||
+       (cluster.hits.size() < min_cluster_size))
             return false;
 
     return true;
 }
 
 // reconstruct cluster
-HyCalCluster PRadHyCalCluster::Reconstruct(const ModuleCluster &cluster)
+HyCalHit PRadHyCalCluster::ReconstructHit(const ModuleCluster &cluster)
+const
 {
     // initialize the hit
-    HyCalCluster hit(cluster.center.id,         // center id
-                     cluster.center.geo.flag,   // module flag
-                     cluster.energy);           // total energy
+    HyCalHit hit(cluster.center.id,         // center id
+                 cluster.center.geo.flag,   // module flag
+                 cluster.energy);           // total energy
 
     float weight_x = 0, weight_y = 0, weight_total = 0;
 
@@ -128,8 +135,6 @@ HyCalCluster PRadHyCalCluster::Reconstruct(const ModuleCluster &cluster)
 
     // z position will need a depth correction, defined in PRadHyCalCluster
     hit.z = cluster.center.geo.z + GetShowerDepth(cluster.center.geo.type, hit.E);
-    // correct the non-linear response to the energy, defined in PRadHyCalCluster
-    //NonLinearCorr(center, hit.E);
 
     return hit;
 }

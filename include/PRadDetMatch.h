@@ -36,11 +36,11 @@ public:
 
     void Configure(const std::string& path);
 
-    std::vector<MatchedIndex> Match(std::vector<HyCalCluster> &hycal,
-                                    std::vector<GEMCluster> &gem1,
-                                    std::vector<GEMCluster> &gem2) const;
-    bool PreMatch(const HyCalCluster &h, const GEMCluster &g) const;
-    bool PostMatch(MatchedIndex &idx, HyCalCluster &h, GEMCluster *g1, GEMCluster *g2) const;
+    std::vector<MatchedIndex> Match(std::vector<HyCalHit> &hycal,
+                                    std::vector<GEMHit> &gem1,
+                                    std::vector<GEMHit> &gem2) const;
+    bool PreMatch(const HyCalHit &h, const GEMHit &g) const;
+    bool PostMatch(MatchedIndex &idx, HyCalHit &h, GEMHit *g1, GEMHit *g2) const;
 
 private:
     float gemRes;

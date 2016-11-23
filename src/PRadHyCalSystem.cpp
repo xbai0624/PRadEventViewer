@@ -417,14 +417,35 @@ void PRadHyCalSystem::ChooseEvent(const EventData &event)
 // reconstruct the event to clusters
 void PRadHyCalSystem::Reconstruct(const EventData &event)
 {
+    // cannot reconstruct without necessary objects
+    if(!hycal || !recon)
+        return;
+
     // no need to reconstruct non-physics event
     if(!event.is_physics_event())
         return;
 
-    // updat the information first
-    ChooseEvent(event);
+    // collect hits from eventdata
+    auto &hits = hycal->hycal_hits;
 
-     Reconstruct();
+    hits.clear();
+
+    for(auto adc : event.get_adc_data())
+    {
+        if(adc.channel_id >= adc_list.size())
+            continue;
+
+        PRadHyCalModule *module = adc_list.at(adc.channel_id)->GetModule();
+        if(!module)
+            continue;
+
+        double val = adc.value - adc_list.at(adc.channel_id)->GetPedestal().mean;
+
+        hits.emplace_back(module->GetID(), module->GetGeometry(), module->GetEnergy(val));
+    }
+
+    // reoncsturct
+    hycal->Reconstruct(recon);
 }
 
 void PRadHyCalSystem::Reconstruct()
@@ -433,7 +454,11 @@ void PRadHyCalSystem::Reconstruct()
     if(!hycal || !recon)
         return;
 
-    recon->Reconstruct(hycal);
+    // collect current hits
+    hycal->CollectHits();
+
+    // reconstruct
+    hycal->Reconstruct(recon);
 }
 
 void PRadHyCalSystem::Reset()

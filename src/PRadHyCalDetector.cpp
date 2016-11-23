@@ -355,6 +355,49 @@ void PRadHyCalDetector::Reset()
     hycal_clusters.clear();
 }
 
+// hits/clusters reconstruction
+void PRadHyCalDetector::Reconstruct(PRadHyCalCluster *method)
+{
+    hycal_clusters.clear();
+
+    raw_clusters = std::move(method->Reconstruct(hycal_hits));
+
+    // add timing information for the hycal_clusters
+    for(auto &cluster : raw_clusters)
+    {
+        if(!method->CheckCluster(cluster))
+            continue;
+
+        HyCalHit hit = method->ReconstructHit(cluster);
+
+        PRadTDCChannel *tdc = GetModule(hit.cid)->GetTDC();
+
+        if(tdc)
+            hit.set_time(tdc->GetTimeMeasure());
+
+        hycal_clusters.emplace_back(std::move(hit));
+    }
+}
+
+// collect hits from modules
+void PRadHyCalDetector::CollectHits()
+{
+    hycal_hits.clear();
+
+    for(auto &module : module_list)
+    {
+        float energy = module->GetEnergy();
+        if(energy > 0)
+            hycal_hits.emplace_back(module->GetID(), module->GetGeometry(), energy);
+    }
+}
+
+// clear existing hits
+void PRadHyCalDetector::ClearHits()
+{
+    hycal_hits.clear();
+}
+
 PRadHyCalModule *PRadHyCalDetector::GetModule(const int &id)
 const
 {

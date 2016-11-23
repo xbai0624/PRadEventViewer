@@ -381,22 +381,22 @@ struct EventData
 //============================================================================//
 
 // common part between gem and hycal cluster
-class BaseCluster
+class BaseHit
 {
 public:
     float x;            // Cluster's x-position (mm)
     float y;            // Cluster's y-position (mm)
     float z;            // Cluster's z-position (mm)
 
-    BaseCluster() : x(0), y(0), z(0)
+    BaseHit() : x(0), y(0), z(0)
     {};
-    BaseCluster(float xi, float yi, float zi)
+    BaseHit(float xi, float yi, float zi)
     : x(xi), y(yi), z(zi)
     {};
 };
 
 // hycal cluster status
-enum HyCalClusterStatus
+enum HyCalHitStatus
 {
 // this enum is for bitwise manipulation
 // the following defintions are from Rtypes.h in root (cern)
@@ -418,7 +418,7 @@ enum HyCalClusterStatus
 };
 
 // hycal cluster
-class HyCalCluster : public BaseCluster
+class HyCalHit : public BaseHit
 {
 public:
 #define TIME_MEASURE_SIZE 3
@@ -432,22 +432,22 @@ public:
     float sigma_E;
     unsigned short time[TIME_MEASURE_SIZE];      // time information from central TDC group
 
-    HyCalCluster()
+    HyCalHit()
     : flag(0), type(0), status(0), nblocks(0), cid(0),
       E(0), chi2(0), sigma_E(0)
     {
         clear_time();
     }
 
-    HyCalCluster(short id, unsigned int f, float ene)
-    : BaseCluster(0, 0, 0), flag(f), type(0), status(0), nblocks(0), cid(id),
+    HyCalHit(short id, unsigned int f, float ene)
+    : BaseHit(0, 0, 0), flag(f), type(0), status(0), nblocks(0), cid(id),
       E(ene), chi2(0), sigma_E(0)
     {
         clear_time();
     }
 
-    HyCalCluster(short id, unsigned int f, const std::vector<unsigned short> &t)
-    : BaseCluster(0, 0, 0), flag(f), type(0), status(0), nblocks(0), cid(id),
+    HyCalHit(short id, unsigned int f, const std::vector<unsigned short> &t)
+    : BaseHit(0, 0, 0), flag(f), type(0), status(0), nblocks(0), cid(id),
       E(0), chi2(0), sigma_E(0)
     {
         set_time(t);
@@ -472,7 +472,7 @@ public:
 };
 
 // gem cluster
-class GEMCluster : public BaseCluster
+class GEMHit : public BaseHit
 {
 public:
     float x_charge;   // x charge
@@ -482,13 +482,13 @@ public:
     int x_size;       // x hits size
     int y_size;       // y hits size
 
-    GEMCluster()
+    GEMHit()
     : x_charge(0.), y_charge(0.), x_size(0), y_size(0)
     {};
 
-    GEMCluster(float x, float y, float z,
+    GEMHit(float x, float y, float z,
                float xc, float yc, float xp, float yp, int xs, int ys)
-    : BaseCluster(x, y, z),
+    : BaseHit(x, y, z),
       x_charge(xc), y_charge(yc), x_peak(xp), y_peak(yp), x_size(xs), y_size(ys)
     {};
 };

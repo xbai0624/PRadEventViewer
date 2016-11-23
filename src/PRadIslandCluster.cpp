@@ -61,8 +61,9 @@ void PRadIslandCluster::Configure(const std::string &path)
     }
 }
 
-void PRadIslandCluster::Reconstruct(PRadHyCalDetector *det)
+void PRadIslandCluster::Reconstruct(PRadHyCalDetector * /*det*/)
 {
+/*
     if(det == nullptr)
         return;
 
@@ -76,6 +77,7 @@ void PRadIslandCluster::Reconstruct(PRadHyCalDetector *det)
         groupSectorHits(sector);
         splitSectorClusters();
     }
+*/
 }
 
 void PRadIslandCluster::fillSectorHits(PRadHyCalDetector *det)

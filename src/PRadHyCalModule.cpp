@@ -169,6 +169,15 @@ const
     return cal_const.Calibration(daq_ch->GetReducedValue());
 }
 
+double PRadHyCalModule::GetEnergy(const double &value)
+const
+{
+    if(value > 0.)
+        return cal_const.Calibration(value);
+
+    return 0.;
+}
+
 //============================================================================//
 // Public Static Member Functions                                             //
 //============================================================================//

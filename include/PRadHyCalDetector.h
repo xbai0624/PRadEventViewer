@@ -1,6 +1,7 @@
 #ifndef PRAD_HYCAL_DETECTOR_H
 #define PRAD_HYCAL_DETECTOR_H
 
+#include <list>
 #include <vector>
 #include <string>
 #include <iostream>
@@ -11,13 +12,15 @@
 #include "PRadEventStruct.h"
 
 class PRadHyCalSystem;
+class PRadHyCalCluster;
+// these two structure will be used for cluster reconstruction, defined at the end
+struct ModuleHit;
+struct ModuleCluster;
 
 class PRadHyCalDetector : public PRadDetector
 {
 public:
-    friend class PRadHyCalCluster;
-    friend class PRadSquareCluster;
-    friend class PRadIslandCluster;
+    friend class PRadHyCalSystem;
 
 public:
     // constructor
@@ -53,21 +56,55 @@ public:
     void OutputModuleList(std::ostream &os) const;
     void Reset();
 
+    // hits/clusters reconstruction
+    void Reconstruct(PRadHyCalCluster *method);
+    void CollectHits();
+    void ClearHits();
+
     // get parameters
     PRadHyCalSystem *GetSystem() const {return system;};
     PRadHyCalModule *GetModule(const int &primex_id) const;
     PRadHyCalModule *GetModule(const std::string &module_name) const;
     double GetEnergy() const;
     const std::vector<PRadHyCalModule*> &GetModuleList() const {return module_list;};
-    std::vector<HyCalCluster> &GetCluster() {return hycal_clusters;};
-    const std::vector<HyCalCluster> &GetCluster() const {return hycal_clusters;};
+    std::vector<HyCalHit> &GetCluster() {return hycal_clusters;};
+    const std::vector<HyCalHit> &GetCluster() const {return hycal_clusters;};
 
 protected:
     PRadHyCalSystem *system;
     std::vector<PRadHyCalModule*> module_list;
     std::unordered_map<int, PRadHyCalModule*> id_map;
     std::unordered_map<std::string, PRadHyCalModule*> name_map;
-    std::vector<HyCalCluster> hycal_clusters;
+    std::list<ModuleHit> hycal_hits;
+    std::vector<ModuleCluster> raw_clusters;
+    std::vector<HyCalHit> hycal_clusters;
+};
+
+struct ModuleHit
+{
+    int id;                         // module id
+    PRadHyCalModule::Geometry geo;  // geometry
+    float energy;                   // participated energy, may be splitted
+
+    ModuleHit() : id(0), energy(0) {};
+    ModuleHit(int i, const PRadHyCalModule::Geometry &g, float e)
+    : id(i), geo(g), energy(e)
+    {};
+};
+
+struct ModuleCluster
+{
+    ModuleHit center;
+    std::vector<ModuleHit> hits;    // hits group
+    float energy;
+
+    ModuleCluster(const ModuleHit &hit) : center(hit), energy(0) {};
+
+    void AddHit(const ModuleHit &hit)
+    {
+        hits.emplace_back(hit);
+        energy += hit.energy;
+    }
 };
 
 #endif

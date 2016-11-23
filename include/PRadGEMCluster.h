@@ -23,13 +23,13 @@ public:
     virtual void FormClusters(PRadGEMDetector *det);
 
 protected:
-    void clusterHits(std::vector<GEMPlaneHit> &h, std::list<GEMPlaneCluster> &c);
-    void splitCluster(std::list<GEMPlaneCluster> &c);
-    void filterCluster(std::list<GEMPlaneCluster> &c);
-    void reconstructCluster(std::list<GEMPlaneCluster> &c, PRadGEMPlane *p);
-    bool filterCluster_sub(const GEMPlaneCluster &c);
-    bool splitCluster_sub(GEMPlaneCluster &c, GEMPlaneCluster &c1);
-    void reconstructCluster_sub(GEMPlaneCluster &c, PRadGEMPlane *p);
+    void clusterHits(std::vector<StripHit> &h, std::list<StripCluster> &c);
+    void splitCluster(std::list<StripCluster> &c);
+    void filterCluster(std::list<StripCluster> &c);
+    void reconstructCluster(std::list<StripCluster> &c, PRadGEMPlane *p);
+    bool filterCluster_sub(const StripCluster &c);
+    bool splitCluster_sub(StripCluster &c, StripCluster &c1);
+    void reconstructCluster_sub(StripCluster &c, PRadGEMPlane *p);
 
 protected:
     // parameters

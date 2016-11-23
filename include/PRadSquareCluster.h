@@ -1,7 +1,6 @@
 #ifndef PRAD_SQUARE_CLUSTER_H
 #define PRAD_SQUARE_CLUSTER_H
 
-#include <list>
 #include "PRadHyCalCluster.h"
 
 class PRadSquareCluster : public PRadHyCalCluster
@@ -12,14 +11,12 @@ public:
     PRadHyCalCluster *Clone();
 
     void Configure(const std::string &path);
-    void Reconstruct(PRadHyCalDetector *det);
+    std::vector<ModuleCluster> Reconstruct(std::list<ModuleHit> &hits) const;
 
 protected:
-    std::vector<ModuleCluster> groupHits(std::list<ModuleHit> &hits);
-/*
-    std::vector<PRadHyCalModule*> findCenters(const PRadHyCalDetector *det);
-    HyCalCluster formCluster(PRadHyCalModule *center, const PRadHyCalDetector *det);
-*/
+    void findCenters(std::list<ModuleHit> &h, std::vector<ModuleCluster> &c) const;
+    void fillClusters(std::list<ModuleHit> &h, std::vector<ModuleCluster> &c) const;
+
 
 protected:
     // parameters for reconstruction

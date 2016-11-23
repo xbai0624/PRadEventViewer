@@ -75,13 +75,13 @@ void PRadGEMCluster::Reconstruct(PRadGEMPlane *plane)
 }
 
 // group consecutive hits
-void PRadGEMCluster::clusterHits(std::vector<GEMPlaneHit> &hit_list,
-                                 std::list<GEMPlaneCluster> &cluster_list)
+void PRadGEMCluster::clusterHits(std::vector<StripHit> &hit_list,
+                                 std::list<StripCluster> &cluster_list)
 {
     // sort the hits by its strip number
     std::sort(hit_list.begin(), hit_list.end(),
               // lamda expr, compare hit by their strip numbers
-              [](const GEMPlaneHit &h1, const GEMPlaneHit &h2)
+              [](const StripHit &h1, const StripHit &h2)
               {
                   return h1.strip < h2.strip;
               });
@@ -94,20 +94,20 @@ void PRadGEMCluster::clusterHits(std::vector<GEMPlaneHit> &hit_list,
 
         // end of list, group the last cluster
         if(next == hit_list.end()) {
-            cluster_list.emplace_back(std::vector<GEMPlaneHit>(cluster_begin, next));
+            cluster_list.emplace_back(std::vector<StripHit>(cluster_begin, next));
             break;
         }
 
         // check consecutivity
         if(next->strip - it->strip > 1) {
-            cluster_list.emplace_back(std::vector<GEMPlaneHit>(cluster_begin, next));
+            cluster_list.emplace_back(std::vector<StripHit>(cluster_begin, next));
             cluster_begin = next;
         }
     }
 }
 
 // split cluster at valley
-void PRadGEMCluster::splitCluster(std::list<GEMPlaneCluster> &cluster_list)
+void PRadGEMCluster::splitCluster(std::list<StripCluster> &cluster_list)
 {
     // We are trying to find the valley that satisfies certain critieria,
     // i.e., less than a sigma comparing to neighbor strips on both sides.
@@ -123,7 +123,7 @@ void PRadGEMCluster::splitCluster(std::list<GEMPlaneCluster> &cluster_list)
             continue;
 
         // new cluster for the latter part after split
-        GEMPlaneCluster split_cluster;
+        StripCluster split_cluster;
 
         // insert the splited cluster if there is one
         if(splitCluster_sub(*c_it, split_cluster))
@@ -137,7 +137,7 @@ void PRadGEMCluster::splitCluster(std::list<GEMPlaneCluster> &cluster_list)
 // and split clusters.
 // It returns true if a cluster is split, and vice versa
 // The split part of the original cluster c will be removed, and filled in c1
-bool PRadGEMCluster::splitCluster_sub(GEMPlaneCluster &c, GEMPlaneCluster &c1)
+bool PRadGEMCluster::splitCluster_sub(StripCluster &c, StripCluster &c1)
 {
     // we use 2 consecutive iterator
     auto it = c.hits.begin();
@@ -174,7 +174,7 @@ bool PRadGEMCluster::splitCluster_sub(GEMPlaneCluster &c, GEMPlaneCluster &c1)
         minimum->charge /= 2.;
 
         // new split cluster
-        c1 = GEMPlaneCluster(std::vector<GEMPlaneHit>(minimum, c.hits.end()));
+        c1 = StripCluster(std::vector<StripHit>(minimum, c.hits.end()));
 
         // remove the hits that are moved into new cluster, but keep the minimum
         c.hits.erase(std::next(minimum, 1), c.hits.end());
@@ -184,7 +184,7 @@ bool PRadGEMCluster::splitCluster_sub(GEMPlaneCluster &c, GEMPlaneCluster &c1)
 }
 
 // filter out bad clusters
-void PRadGEMCluster::filterCluster(std::list<GEMPlaneCluster> &cluster_list)
+void PRadGEMCluster::filterCluster(std::list<StripCluster> &cluster_list)
 {
     for(auto it = cluster_list.begin(); it != cluster_list.end(); ++it)
     {
@@ -196,7 +196,7 @@ void PRadGEMCluster::filterCluster(std::list<GEMPlaneCluster> &cluster_list)
 
 // this function helps filterCluster, it returns true if the cluster is good
 // and return false if the cluster is bad
-bool PRadGEMCluster::filterCluster_sub(const GEMPlaneCluster &c)
+bool PRadGEMCluster::filterCluster_sub(const StripCluster &c)
 {
     // only check size for now
     if((c.hits.size() < min_cluster_hits) ||
@@ -209,7 +209,7 @@ bool PRadGEMCluster::filterCluster_sub(const GEMPlaneCluster &c)
 
 // reconstruct cluster, calculate the cluster position
 // it needs GEM plane as input to get the position of that strip on the plane
-void PRadGEMCluster::reconstructCluster(std::list<GEMPlaneCluster> &cluster_list, PRadGEMPlane *plane)
+void PRadGEMCluster::reconstructCluster(std::list<StripCluster> &cluster_list, PRadGEMPlane *plane)
 {
     for(auto &cluster : cluster_list)
     {
@@ -219,7 +219,7 @@ void PRadGEMCluster::reconstructCluster(std::list<GEMPlaneCluster> &cluster_list
 
 // this function helps reconstructCluster
 // it reconstruct the position of cluster using linear weight of charge portion
-void PRadGEMCluster::reconstructCluster_sub(GEMPlaneCluster &c, PRadGEMPlane *plane)
+void PRadGEMCluster::reconstructCluster_sub(StripCluster &c, PRadGEMPlane *plane)
 {
     // here determine position, peak charge and total charge of the cluster
     c.total_charge = 0.;

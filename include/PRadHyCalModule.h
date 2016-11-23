@@ -96,6 +96,7 @@ public:
     // energy related
     double Calibration(const unsigned short &adcVal) const;
     double GetEnergy() const;
+    double GetEnergy(const double &value) const;
 
     // check type
     bool IsHyCalModule() const {return (geometry.type == PbGlass) || (geometry.type == PbWO4);};

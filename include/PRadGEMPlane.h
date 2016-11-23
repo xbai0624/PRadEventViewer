@@ -14,10 +14,9 @@
 
 class PRadGEMDetector;
 class PRadGEMAPV;
-// these two structure will be used as data type
-// defined at the end
-struct GEMPlaneHit;
-struct GEMPlaneCluster;
+// these two structure will be used for cluster reconstruction, defined at the end
+struct StripHit;
+struct StripCluster;
 
 class PRadGEMPlane
 {
@@ -77,10 +76,10 @@ public:
     int GetCapacity() const {return apv_list.size();};
     int GetOrientation() const {return orient;};
     std::vector<PRadGEMAPV*> GetAPVList() const;
-    std::vector<GEMPlaneHit> &GetPlaneHits() {return hit_list;};
-    const std::vector<GEMPlaneHit> &GetPlaneHits() const {return hit_list;};
-    std::list<GEMPlaneCluster> &GetPlaneClusters() {return cluster_list;};
-    const std::list<GEMPlaneCluster> &GetPlaneClusters() const {return cluster_list;};
+    std::vector<StripHit> &GetPlaneHits() {return hit_list;};
+    const std::vector<StripHit> &GetPlaneHits() const {return hit_list;};
+    std::list<StripCluster> &GetPlaneClusters() {return cluster_list;};
+    const std::list<StripCluster> &GetPlaneClusters() const {return cluster_list;};
 
 private:
     PRadGEMDetector *detector;
@@ -93,38 +92,38 @@ private:
     std::vector<PRadGEMAPV*> apv_list;
 
     // plane data
-    std::vector<GEMPlaneHit> hit_list;
+    std::vector<StripHit> hit_list;
     // there will be requent remove, split operations for clusters in the middle
     // thus use list instead of vector
-    std::list<GEMPlaneCluster> cluster_list;
+    std::list<StripCluster> cluster_list;
 };
 
-struct GEMPlaneHit
+struct StripHit
 {
     int strip;
     float charge;
 
-    GEMPlaneHit() : strip(0), charge(0.) {};
-    GEMPlaneHit(const int &s, const float &c)
+    StripHit() : strip(0), charge(0.) {};
+    StripHit(const int &s, const float &c)
     : strip(s), charge(c) {};
 };
 
-struct GEMPlaneCluster
+struct StripCluster
 {
     float position;
     float peak_charge;
     float total_charge;
-    std::vector<GEMPlaneHit> hits;
+    std::vector<StripHit> hits;
 
-    GEMPlaneCluster()
+    StripCluster()
     : position(0.), peak_charge(0.), total_charge(0.)
     {};
 
-    GEMPlaneCluster(const std::vector<GEMPlaneHit> &p)
+    StripCluster(const std::vector<StripHit> &p)
     : position(0.), peak_charge(0.), total_charge(0.), hits(p)
     {};
 
-    GEMPlaneCluster(std::vector<GEMPlaneHit> &&p)
+    StripCluster(std::vector<StripHit> &&p)
     : position(0.), peak_charge(0.), total_charge(0.), hits(std::move(p))
     {};
 };
