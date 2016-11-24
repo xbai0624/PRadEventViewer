@@ -217,30 +217,26 @@ void PRadGEMDetector::ConnectPlanes()
 }
 
 // reconstruct hits on planes, need PRadGEMCluster as an input
-void PRadGEMDetector::ReconstructHits(PRadGEMCluster *gem_recon)
+void PRadGEMDetector::Reconstruct(PRadGEMCluster *gem_recon)
 {
+    // group strip hits into clusters
     for(auto &plane : planes)
     {
         if(plane == nullptr)
             continue;
-        gem_recon->Reconstruct(plane);
+        plane->FormClusters(gem_recon);
     }
 
-    gem_recon->FormClusters(this);
-}
-
-// reconstruct hits on planes, get the cluster method from GEM system
-void PRadGEMDetector::ReconstructHits()
-{
-    if(gem_srs == nullptr) {
-        std::cerr << "PRad GEM Detector Error: Detector is not connecting "
-                  << "to a GEM system, cannot reconstruct hits."
-                  << std::endl;
+    // Cartesian reconstruction method
+    // reconstruct event hits from clusters
+    PRadGEMPlane *plane_x = GetPlane(PRadGEMPlane::Plane_X);
+    PRadGEMPlane *plane_y = GetPlane(PRadGEMPlane::Plane_Y);
+    // do not have these two planes, cannot reconstruct
+    if(!plane_x || !plane_y)
         return;
-    }
-
-    PRadGEMCluster *gem_recon = gem_srs->GetClusterMethod();
-    ReconstructHits(gem_recon);
+    gem_recon->CartesianReconstruct(plane_x->GetStripClusters(),
+                                    plane_y->GetStripClusters(),
+                                    gem_hits);
 }
 
 // collect all the hits from APVs

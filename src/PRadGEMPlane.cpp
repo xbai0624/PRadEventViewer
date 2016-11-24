@@ -13,6 +13,7 @@
 
 #include "PRadGEMPlane.h"
 #include "PRadGEMDetector.h"
+#include "PRadGEMCluster.h"
 #include "PRadGEMAPV.h"
 #include <iostream>
 #include <iterator>
@@ -274,7 +275,7 @@ void PRadGEMPlane::AddStripHit(const int &plane_strip, const std::vector<float> 
        ((plane_strip < 16) || (plane_strip > 1391)))
        return;
 
-    strip_hits.emplace_back(plane_strip, GetMaxCharge(charges));
+    strip_hits.emplace_back(plane_strip, GetMaxCharge(charges), GetStripPosition(plane_strip));
 }
 
 // collect hits from the connected APVs
@@ -287,6 +288,12 @@ void PRadGEMPlane::CollectAPVHits()
         if(apv != nullptr)
             apv->CollectZeroSupHits();
     }
+}
+
+// form clusters by the clustering method
+void PRadGEMPlane::FormClusters(PRadGEMCluster *method)
+{
+    strip_clusters = std::move(method->FormClusters(strip_hits));
 }
 
 //============================================================================//

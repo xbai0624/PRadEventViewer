@@ -13,6 +13,7 @@
 
 
 class PRadGEMDetector;
+class PRadGEMCluster;
 class PRadGEMAPV;
 // these two structure will be used for cluster reconstruction, defined at the end
 struct StripHit;
@@ -58,6 +59,7 @@ public:
     float GetStripPosition(const int &plane_strip) const;
     float GetMaxCharge(const std::vector<float> &charges) const;
     float GetIntegratedCharge(const std::vector<float> &charges) const;
+    void FormClusters(PRadGEMCluster *method);
 
     // set parameter
     void SetDetector(PRadGEMDetector *det, bool force_set = false);
@@ -102,10 +104,11 @@ struct StripHit
 {
     int strip;
     float charge;
+    float position;
 
-    StripHit() : strip(0), charge(0.) {};
-    StripHit(const int &s, const float &c)
-    : strip(s), charge(c) {};
+    StripHit() : strip(0), charge(0.), position(0.) {};
+    StripHit(const int &s, const float &c, const float &p)
+    : strip(s), charge(c), position(p) {};
 };
 
 struct StripCluster

@@ -18,18 +18,18 @@ public:
     // functions that to be overloaded
     void Configure(const std::string &path = "");
 
-    virtual void Reconstruct(PRadGEMDetector *det);
-    virtual void Reconstruct(PRadGEMPlane *plane);
-    virtual void FormClusters(PRadGEMDetector *det);
+    std::list<StripCluster> FormClusters(std::vector<StripHit> &hits);
+    void CartesianReconstruct(const std::list<StripCluster> &x_cluster,
+                              const std::list<StripCluster> &y_cluster,
+                              std::vector<GEMHit> &container);
 
 protected:
-    void clusterHits(std::vector<StripHit> &h, std::list<StripCluster> &c);
+    void groupHits(std::vector<StripHit> &h, std::list<StripCluster> &c);
     void splitCluster(std::list<StripCluster> &c);
-    void filterCluster(std::list<StripCluster> &c);
-    void reconstructCluster(std::list<StripCluster> &c, PRadGEMPlane *p);
-    bool filterCluster_sub(const StripCluster &c);
     bool splitCluster_sub(StripCluster &c, StripCluster &c1);
-    void reconstructCluster_sub(StripCluster &c, PRadGEMPlane *p);
+    void filterCluster(std::list<StripCluster> &c);
+    bool filterCluster_sub(const StripCluster &c);
+    void reconstructCluster(std::list<StripCluster> &c);
 
 protected:
     // parameters

@@ -684,7 +684,7 @@ void PRadGEMSystem::Reconstruct()
 {
     for(auto &det : det_list)
     {
-        det->ReconstructHits(gem_recon);
+        det->Reconstruct(gem_recon);
     }
 }
 

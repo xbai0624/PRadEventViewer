@@ -43,43 +43,32 @@ void PRadGEMCluster::Configure(const std::string &path)
     split_cluster_diff = getDefConfig<float>("Split Threshold", 14, verbose);
 }
 
-// reconstruct, accepts GEM detector
-void PRadGEMCluster::Reconstruct(PRadGEMDetector *det)
+// group hits into clusters
+std::list<StripCluster> PRadGEMCluster::FormClusters(std::vector<StripHit> &hits)
 {
-    for(auto &plane : det->GetPlaneList())
-        Reconstruct(plane);
+    std::list<StripCluster> clusters;
 
-    FormClusters(det);
-}
-
-// reconstruct accepts GEM plane
-void PRadGEMCluster::Reconstruct(PRadGEMPlane *plane)
-{
-    auto &cluster_list = plane->GetStripClusters();
-
-    // clear existing clusters
-    cluster_list.clear();
-
-    auto &hits_list = plane->GetStripHits();
     // group consecutive hits as the preliminary clusters
-    clusterHits(hits_list, cluster_list);
+    groupHits(hits, clusters);
 
     // split the clusters that may contain multiple physical hits
-    splitCluster(cluster_list);
+    splitCluster(clusters);
 
     // remove the clusters that does not pass certain criteria
-    filterCluster(cluster_list);
+    filterCluster(clusters);
 
-    // reconstruct position and charge for the cluster
-    reconstructCluster(cluster_list, plane);
+    // reconstruct the cluster position
+    reconstructCluster(clusters);
+
+    return clusters;
 }
 
 // group consecutive hits
-void PRadGEMCluster::clusterHits(std::vector<StripHit> &hit_list,
-                                 std::list<StripCluster> &cluster_list)
+void PRadGEMCluster::groupHits(std::vector<StripHit> &hits,
+                               std::list<StripCluster> &clusters)
 {
     // sort the hits by its strip number
-    std::sort(hit_list.begin(), hit_list.end(),
+    std::sort(hits.begin(), hits.end(),
               // lamda expr, compare hit by their strip numbers
               [](const StripHit &h1, const StripHit &h2)
               {
@@ -87,27 +76,27 @@ void PRadGEMCluster::clusterHits(std::vector<StripHit> &hit_list,
               });
 
     // group the hits that have consecutive strip number
-    auto cluster_begin = hit_list.begin();
-    for(auto it = hit_list.begin(); it != hit_list.end(); ++it)
+    auto cluster_begin = hits.begin();
+    for(auto it = hits.begin(); it != hits.end(); ++it)
     {
         auto next = it + 1;
 
         // end of list, group the last cluster
-        if(next == hit_list.end()) {
-            cluster_list.emplace_back(std::vector<StripHit>(cluster_begin, next));
+        if(next == hits.end()) {
+            clusters.emplace_back(std::vector<StripHit>(cluster_begin, next));
             break;
         }
 
         // check consecutivity
         if(next->strip - it->strip > 1) {
-            cluster_list.emplace_back(std::vector<StripHit>(cluster_begin, next));
+            clusters.emplace_back(std::vector<StripHit>(cluster_begin, next));
             cluster_begin = next;
         }
     }
 }
 
 // split cluster at valley
-void PRadGEMCluster::splitCluster(std::list<StripCluster> &cluster_list)
+void PRadGEMCluster::splitCluster(std::list<StripCluster> &clusters)
 {
     // We are trying to find the valley that satisfies certain critieria,
     // i.e., less than a sigma comparing to neighbor strips on both sides.
@@ -116,7 +105,7 @@ void PRadGEMCluster::splitCluster(std::list<StripCluster> &cluster_list)
     // strip.
 
     // loop over the cluster list
-    for(auto c_it = cluster_list.begin(); c_it != cluster_list.end(); ++c_it)
+    for(auto c_it = clusters.begin(); c_it != clusters.end(); ++c_it)
     {
         // no need to do separation if less than 3 hits
         if(c_it->hits.size() < 3)
@@ -127,7 +116,7 @@ void PRadGEMCluster::splitCluster(std::list<StripCluster> &cluster_list)
 
         // insert the splited cluster if there is one
         if(splitCluster_sub(*c_it, split_cluster))
-            cluster_list.insert(std::next(c_it, 1), split_cluster);
+            clusters.insert(std::next(c_it, 1), split_cluster);
     }
 }
 
@@ -184,13 +173,13 @@ bool PRadGEMCluster::splitCluster_sub(StripCluster &c, StripCluster &c1)
 }
 
 // filter out bad clusters
-void PRadGEMCluster::filterCluster(std::list<StripCluster> &cluster_list)
+void PRadGEMCluster::filterCluster(std::list<StripCluster> &clusters)
 {
-    for(auto it = cluster_list.begin(); it != cluster_list.end(); ++it)
+    for(auto it = clusters.begin(); it != clusters.end(); ++it)
     {
         // did not pass the filter, carefully remove element inside the loop
         if(!filterCluster_sub(*it))
-            cluster_list.erase(it--);
+            clusters.erase(it--);
     }
 }
 
@@ -207,64 +196,41 @@ bool PRadGEMCluster::filterCluster_sub(const StripCluster &c)
     return true;
 }
 
-// reconstruct cluster, calculate the cluster position
-// it needs GEM plane as input to get the position of that strip on the plane
-void PRadGEMCluster::reconstructCluster(std::list<StripCluster> &cluster_list, PRadGEMPlane *plane)
-{
-    for(auto &cluster : cluster_list)
-    {
-        reconstructCluster_sub(cluster, plane);
-    }
-}
-
-// this function helps reconstructCluster
+// calculate the cluster position
 // it reconstruct the position of cluster using linear weight of charge portion
-void PRadGEMCluster::reconstructCluster_sub(StripCluster &c, PRadGEMPlane *plane)
+void PRadGEMCluster::reconstructCluster(std::list<StripCluster> &clusters)
 {
-    // here determine position, peak charge and total charge of the cluster
-    c.total_charge = 0.;
-    c.peak_charge = 0.;
-    float weight_pos = 0.;
-
-    // no hits
-    if(!c.hits.size())
-        return;
-
-    for(auto &hit : c.hits)
+    for(auto &c : clusters)
     {
-        if(c.peak_charge < hit.charge)
-            c.peak_charge = hit.charge;
+        // here determine position, peak charge and total charge of the cluster
+        c.total_charge = 0.;
+        c.peak_charge = 0.;
+        float weight_pos = 0.;
 
-        c.total_charge += hit.charge;
+        // no hits
+        if(!c.hits.size())
+            continue;
 
-        weight_pos += plane->GetStripPosition(hit.strip)*hit.charge;
+        for(auto &hit : c.hits)
+        {
+            if(c.peak_charge < hit.charge)
+                c.peak_charge = hit.charge;
+
+            c.total_charge += hit.charge;
+
+            weight_pos +=  hit.position*hit.charge;
+        }
+
+        c.position = weight_pos/c.total_charge;
     }
-
-    c.position = weight_pos/c.total_charge;
 }
 
 // this function accepts x, y clusters from detectors and then form GEM Cluster
 // it return the number of clusters
-void PRadGEMCluster::FormClusters(PRadGEMDetector *det)
+void PRadGEMCluster::CartesianReconstruct(const std::list<StripCluster> &x_cluster,
+                                          const std::list<StripCluster> &y_cluster,
+                                          std::vector<GEMHit> &container)
 {
-    PRadGEMPlane *x_plane = det->GetPlane(PRadGEMPlane::Plane_X);
-    PRadGEMPlane *y_plane = det->GetPlane(PRadGEMPlane::Plane_Y);
-
-    // sanity check
-    if(x_plane == nullptr || y_plane == nullptr) {
-        std::cerr << "PRad GEM Cluster Error: Input plane is not instantiated, cannot "
-                  << "form clusters"
-                  << std::endl;
-        return;
-    }
-
-    // get x, y plane clusters
-    auto x_cluster = x_plane->GetStripClusters();
-    auto y_cluster = y_plane->GetStripClusters();
-
-    // get contianer and fill the hits
-    auto &container = det->gem_hits;
-
     // empty first
     container.clear();
 

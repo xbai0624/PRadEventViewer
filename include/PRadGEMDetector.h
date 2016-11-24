@@ -48,8 +48,7 @@ public:
     void RemovePlane(const int &type);
     void DisconnectPlane(const int &type, bool false_disconn = false);
     void ConnectPlanes();
-    void ReconstructHits(PRadGEMCluster *c);
-    void ReconstructHits();
+    void Reconstruct(PRadGEMCluster *c);
     void CollectHits();
     void ClearHits();
     void Reset();
