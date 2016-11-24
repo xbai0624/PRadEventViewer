@@ -56,8 +56,8 @@ int main()
 
             // only save the event with only 1 cluster and 1000+ MeV energy
             bool save = false;
-            if((hycal->GetDetector()->GetCluster().size() == 1) &&
-               (hycal->GetDetector()->GetCluster().at(0).E > 1000.))
+            if((hycal->GetDetector()->GetHits().size() == 1) &&
+               (hycal->GetDetector()->GetHits().at(0).E > 1000.))
                 save = true;
 
             if(save)

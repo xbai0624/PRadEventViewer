@@ -674,7 +674,7 @@ void PRadGEMSystem::Reconstruct(const EventData &data)
             continue;
         }
 
-        plane->AddPlaneHit(apv->GetPlaneStripNb(hit.addr.strip), hit.values);
+        plane->AddStripHit(apv->GetPlaneStripNb(hit.addr.strip), hit.values);
     }
 
     Reconstruct();

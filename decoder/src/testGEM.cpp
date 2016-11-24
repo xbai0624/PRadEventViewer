@@ -115,7 +115,7 @@ int main(int /*argc*/, char * /*argv*/ [])
                 {
                     cout << "    " << "Plane: " << plane->GetName() << endl;
                     // clusters from a plane
-                    for(auto &cluster : plane->GetPlaneClusters())
+                    for(auto &cluster : plane->GetStripClusters())
                     {
                         cout << "    " << "    "
                              << "Cluster: "

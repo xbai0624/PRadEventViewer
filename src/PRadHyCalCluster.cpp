@@ -12,7 +12,7 @@
 #include "PRadHyCalCluster.h"
 
 PRadHyCalCluster::PRadHyCalCluster()
-: depth_corr(true), non_linear_corr(true), log_weight_thres(3.6)
+: depth_corr(true), log_weight_thres(3.6)
 {
 
 }
@@ -37,7 +37,6 @@ void PRadHyCalCluster::Configure(const std::string &path)
     }
 
     depth_corr = getDefConfig<bool>("Shower Depth Correction", true, verbose);
-    non_linear_corr = getDefConfig<bool>("Non Linear Energy Correction", true, verbose);
     log_weight_thres = getDefConfig<float>("Log Weight Threshold", 3.6, verbose);
     min_cluster_energy = getDefConfig<float>("Minimum Cluster Energy", 50., verbose);
     min_center_energy = getDefConfig<float>("Minimum Center Energy", 10., verbose);
@@ -78,22 +77,6 @@ const
     }
 
     return 0.;
-}
-
-// correct the non linear energy response in HyCal, unit is in MeV
-void PRadHyCalCluster::NonLinearCorr(PRadHyCalModule *center, float &E)
-const
-{
-    if(!non_linear_corr)
-        return;
-
-    float alpha = center->GetNonLinearConst();
-    float Ecal = center->GetCalibrationEnergy();
-    float ecorr = 1. + alpha*(E - Ecal)/1000.;
-
-    // prevent unreasonably correction
-    if(fabs(ecorr - 1.) < 0.6)
-        E /= ecorr;
 }
 
 // check if the cluster is good enough

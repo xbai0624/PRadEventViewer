@@ -1342,9 +1342,9 @@ void PRadEventViewer::showReconEvent()
     PRadGEMDetector *gem2 = gem_sys->GetDetector(PRadDetector::PRadGEM2);
 
     // get reconstructed clusters
-    auto &hycal_hit = HyCal->GetCluster();
-    auto &gem1_hit = gem1->GetCluster();
-    auto &gem2_hit = gem2->GetCluster();
+    auto &hycal_hit = HyCal->GetHits();
+    auto &gem1_hit = gem1->GetHits();
+    auto &gem2_hit = gem2->GetHits();
 
     // coordinates transform, projection
     coordSystem->Transform((PRadHyCalDetector *)HyCal);

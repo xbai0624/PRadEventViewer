@@ -426,7 +426,7 @@ void PRadHyCalSystem::Reconstruct(const EventData &event)
         return;
 
     // collect hits from eventdata
-    auto &hits = hycal->hycal_hits;
+    auto &hits = hycal->module_hits;
 
     hits.clear();
 

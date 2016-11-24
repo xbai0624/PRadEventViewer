@@ -9,7 +9,7 @@
 
 #include "PRadCalibConst.h"
 #include <iomanip>
-
+#include <cmath>
 
 //============================================================================//
 // Constructors, Destructor                                                   //
@@ -88,6 +88,26 @@ const
         return adc_val*factor;
 
     return 0.;
+}
+
+// correct the non linear energy response in HyCal, unit is in MeV
+void PRadCalibConst::NonLinearCorr(double &E)
+const
+{
+    double ecorr = non_linear*(E - base_energy)/1000.;
+
+    // prevent unreasonably correction
+    if(std::abs(ecorr) < 0.6)
+        E /= (1. + ecorr);
+}
+
+void PRadCalibConst::NonLinearCorr(float &E)
+const
+{
+    float ecorr = non_linear*(E - base_energy)/1000.;
+
+    if(fabs(ecorr) < 0.6)
+        E /= (1. + ecorr);
 }
 
 std::ostream &operator <<(std::ostream &os, const PRadCalibConst &cal)

@@ -55,12 +55,12 @@ void PRadGEMCluster::Reconstruct(PRadGEMDetector *det)
 // reconstruct accepts GEM plane
 void PRadGEMCluster::Reconstruct(PRadGEMPlane *plane)
 {
-    auto &cluster_list = plane->GetPlaneClusters();
+    auto &cluster_list = plane->GetStripClusters();
 
     // clear existing clusters
     cluster_list.clear();
 
-    auto &hits_list = plane->GetPlaneHits();
+    auto &hits_list = plane->GetStripHits();
     // group consecutive hits as the preliminary clusters
     clusterHits(hits_list, cluster_list);
 
@@ -259,11 +259,11 @@ void PRadGEMCluster::FormClusters(PRadGEMDetector *det)
     }
 
     // get x, y plane clusters
-    auto x_cluster = x_plane->GetPlaneClusters();
-    auto y_cluster = y_plane->GetPlaneClusters();
+    auto x_cluster = x_plane->GetStripClusters();
+    auto y_cluster = y_plane->GetStripClusters();
 
     // get contianer and fill the hits
-    auto &container = det->gem_clusters;
+    auto &container = det->gem_hits;
 
     // empty first
     container.clear();

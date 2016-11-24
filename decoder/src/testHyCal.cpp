@@ -84,7 +84,7 @@ int main(int /*argc*/, char * /*argv*/ [])
 
             sys->Reconstruct(event);
 /*
-            for(auto cluster : sys->GetDetector()->GetCluster())
+            for(auto cluster : sys->GetDetector()->GetHits())
             {
                 cout << cluster.E << ", " << cluster.x << ", " << cluster.y << endl;
             }

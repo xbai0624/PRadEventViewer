@@ -62,15 +62,15 @@ public:
     PRadGEMPlane *GetPlane(const std::string &type) const;
     std::vector<PRadGEMPlane*> GetPlaneList() const;
     std::vector<PRadGEMAPV*> GetAPVList(const int &type) const;
-    std::vector<GEMHit> &GetCluster() {return gem_clusters;};
-    const std::vector<GEMHit> &GetCluster() const {return gem_clusters;};
+    std::vector<GEMHit> &GetHits() {return gem_hits;};
+    const std::vector<GEMHit> &GetHits() const {return gem_hits;};
 
 private:
     PRadGEMSystem *gem_srs;
     std::string type;
     std::string readout_board;
     std::vector<PRadGEMPlane*> planes;
-    std::vector<GEMHit> gem_clusters;
+    std::vector<GEMHit> gem_hits;
 };
 
 #endif

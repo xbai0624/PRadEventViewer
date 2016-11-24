@@ -66,9 +66,9 @@ int main(int /*argc*/, char * /*argv*/ [])
             gem->Reconstruct(event);
 
             // get reconstructed clusters
-            auto hycal_hit = hycal->GetDetector()->GetCluster();
-            auto gem1_hit = gem->GetDetector("PRadGEM1")->GetCluster();
-            auto gem2_hit = gem->GetDetector("PRadGEM2")->GetCluster();
+            auto hycal_hit = hycal->GetDetector()->GetHits();
+            auto gem1_hit = gem->GetDetector("PRadGEM1")->GetHits();
+            auto gem2_hit = gem->GetDetector("PRadGEM2")->GetHits();
 
             // coordinates transform, projection
             // you can either pass iterators

@@ -580,7 +580,7 @@ void PRadGEMAPV::CollectZeroSupHits()
         {
             charges.push_back(raw_data[i + ts_index + j*TIME_SAMPLE_DIFF]);
         }
-        plane->AddPlaneHit(strip_map[i].plane, charges);
+        plane->AddStripHit(strip_map[i].plane, charges);
     }
 }
 

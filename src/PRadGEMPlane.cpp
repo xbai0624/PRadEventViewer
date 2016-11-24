@@ -45,7 +45,7 @@ PRadGEMPlane::PRadGEMPlane(const std::string &n, const int &t, const float &s,
 // connections between it and apv/detector won't be copied
 PRadGEMPlane::PRadGEMPlane(const PRadGEMPlane &that)
 : detector(nullptr), name(that.name), type(that.type), size(that.size), orient(that.orient),
-  direction(that.direction), hit_list(that.hit_list), cluster_list(that.cluster_list)
+  direction(that.direction), strip_hits(that.strip_hits), strip_clusters(that.strip_clusters)
 {
     apv_list.resize(that.apv_list.size(), nullptr);
 }
@@ -53,8 +53,8 @@ PRadGEMPlane::PRadGEMPlane(const PRadGEMPlane &that)
 // move constructor
 PRadGEMPlane::PRadGEMPlane(PRadGEMPlane &&that)
 : detector(nullptr), name(std::move(that.name)), type(that.type), size(that.size),
-  orient(that.orient), direction(that.direction), hit_list(std::move(hit_list)),
-  cluster_list(std::move(that.cluster_list))
+  orient(that.orient), direction(that.direction), strip_hits(std::move(strip_hits)),
+  strip_clusters(std::move(that.strip_clusters))
 {
     apv_list.resize(that.apv_list.size(), nullptr);
 }
@@ -82,8 +82,8 @@ PRadGEMPlane &PRadGEMPlane::operator =(PRadGEMPlane &&rhs)
     orient = rhs.orient;
     direction = rhs.direction;
 
-    hit_list = std::move(rhs.hit_list);
-    cluster_list = std::move(rhs.cluster_list);
+    strip_hits = std::move(rhs.strip_hits);
+    strip_clusters = std::move(rhs.strip_clusters);
     return *this;
 }
 
@@ -260,27 +260,27 @@ const
 }
 
 // clear the stored plane hits
-void PRadGEMPlane::ClearPlaneHits()
+void PRadGEMPlane::ClearStripHits()
 {
-    hit_list.clear();
+    strip_hits.clear();
 }
 
 // add a plane hit
 // X plane needs to remove 16 strips at both ends, because they are floating
 // This is a special setup for PRad GEMs, so not configurable
-void PRadGEMPlane::AddPlaneHit(const int &plane_strip, const std::vector<float> &charges)
+void PRadGEMPlane::AddStripHit(const int &plane_strip, const std::vector<float> &charges)
 {
     if((type == Plane_X) &&
        ((plane_strip < 16) || (plane_strip > 1391)))
        return;
 
-    hit_list.emplace_back(plane_strip, GetMaxCharge(charges));
+    strip_hits.emplace_back(plane_strip, GetMaxCharge(charges));
 }
 
 // collect hits from the connected APVs
 void PRadGEMPlane::CollectAPVHits()
 {
-    ClearPlaneHits();
+    ClearStripHits();
 
     for(auto &apv : apv_list)
     {

@@ -201,21 +201,21 @@ const
     z += coord.z_ori;
 }
 
-// transform the clusters in detector to beam frame
+// transform the reconstructed hits in detector to beam frame
 void PRadCoordSystem::Transform(PRadHyCalDetector *det)
 const
 {
-    auto &clusters = det->GetCluster();
-    for(auto &cluster : clusters)
-        Transform(det->GetDetID(), cluster.x, cluster.y, cluster.z);
+    auto &hits = det->GetHits();
+    for(auto &hit : hits)
+        Transform(det->GetDetID(), hit.x, hit.y, hit.z);
 }
 
 void PRadCoordSystem::Transform(PRadGEMDetector *det)
 const
 {
-    auto &clusters = det->GetCluster();
-    for(auto &cluster : clusters)
-        Transform(det->GetDetID(), cluster.x, cluster.y, cluster.z);
+    auto &hits = det->GetHits();
+    for(auto &hit : hits)
+        Transform(det->GetDetID(), hit.x, hit.y, hit.z);
 }
 
 // projection from (xi, yi, zi) to zf

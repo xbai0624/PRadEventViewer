@@ -352,50 +352,59 @@ const
 
 void PRadHyCalDetector::Reset()
 {
-    hycal_clusters.clear();
+    hycal_hits.clear();
 }
 
 // hits/clusters reconstruction
 void PRadHyCalDetector::Reconstruct(PRadHyCalCluster *method)
 {
-    hycal_clusters.clear();
+    // clear containers
+    hycal_hits.clear();
 
-    raw_clusters = std::move(method->Reconstruct(hycal_hits));
+    module_clusters = std::move(method->Reconstruct(module_hits));
 
-    // add timing information for the hycal_clusters
-    for(auto &cluster : raw_clusters)
+    for(auto &cluster : module_clusters)
     {
         if(!method->CheckCluster(cluster))
             continue;
 
+        // reconstruct hit the position based on the cluster
         HyCalHit hit = method->ReconstructHit(cluster);
 
-        PRadTDCChannel *tdc = GetModule(hit.cid)->GetTDC();
+        // the center module does not exist should be a fatal problem, thus no
+        // safety check here
+        PRadHyCalModule *module = GetModule(hit.cid);
 
+        // do non-linear correction
+        module->GetCalibConst().NonLinearCorr(hit.E);
+
+        // add timing information
+        PRadTDCChannel *tdc = GetModule(hit.cid)->GetTDC();
         if(tdc)
             hit.set_time(tdc->GetTimeMeasure());
 
-        hycal_clusters.emplace_back(std::move(hit));
+        // final hit reconstructed
+        hycal_hits.emplace_back(std::move(hit));
     }
 }
 
 // collect hits from modules
 void PRadHyCalDetector::CollectHits()
 {
-    hycal_hits.clear();
+    module_hits.clear();
 
     for(auto &module : module_list)
     {
         float energy = module->GetEnergy();
         if(energy > 0)
-            hycal_hits.emplace_back(module->GetID(), module->GetGeometry(), energy);
+            module_hits.emplace_back(module->GetID(), module->GetGeometry(), energy);
     }
 }
 
 // clear existing hits
 void PRadHyCalDetector::ClearHits()
 {
-    hycal_hits.clear();
+    module_hits.clear();
 }
 
 PRadHyCalModule *PRadHyCalDetector::GetModule(const int &id)

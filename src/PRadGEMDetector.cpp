@@ -31,7 +31,7 @@ PRadGEMDetector::PRadGEMDetector(const std::string &readoutBoard,
 {
     planes.resize(PRadGEMPlane::Plane_Max, nullptr);
 
-    gem_clusters.reserve(GEM_CLUSTERS_BUFFER);
+    gem_hits.reserve(GEM_CLUSTERS_BUFFER);
 }
 
 // copy and move assignment will copy or move the planes because planes are 
@@ -40,7 +40,7 @@ PRadGEMDetector::PRadGEMDetector(const std::string &readoutBoard,
 // copy constructor
 PRadGEMDetector::PRadGEMDetector(const PRadGEMDetector &that)
 : PRadDetector(that), gem_srs(nullptr), type(that.type),
-  readout_board(that.readout_board), gem_clusters(that.gem_clusters)
+  readout_board(that.readout_board), gem_hits(that.gem_hits)
 {
     for(auto &plane : that.planes)
     {
@@ -57,7 +57,7 @@ PRadGEMDetector::PRadGEMDetector(const PRadGEMDetector &that)
 PRadGEMDetector::PRadGEMDetector(PRadGEMDetector &&that)
 : PRadDetector(that), gem_srs(nullptr), type(std::move(that.type)),
   readout_board(std::move(that.readout_board)), planes(std::move(that.planes)),
-  gem_clusters(std::move(gem_clusters))
+  gem_hits(std::move(gem_hits))
 {
     // reset the planes' detector
     ConnectPlanes();
@@ -92,7 +92,7 @@ PRadGEMDetector &PRadGEMDetector::operator =(PRadGEMDetector &&rhs)
     type = std::move(rhs.type);
     readout_board = std::move(rhs.readout_board);
     planes = std::move(rhs.planes);
-    gem_clusters = std::move(gem_clusters);
+    gem_hits = std::move(gem_hits);
 
     ConnectPlanes();
 
@@ -259,7 +259,7 @@ void PRadGEMDetector::ClearHits()
     for(auto &plane : planes)
     {
         if(plane != nullptr)
-            plane->ClearPlaneHits();
+            plane->ClearStripHits();
     }
 }
 
@@ -267,7 +267,7 @@ void PRadGEMDetector::ClearHits()
 void PRadGEMDetector::Reset()
 {
     ClearHits();
-    gem_clusters.clear();
+    gem_hits.clear();
 }
 
 PRadGEMPlane *PRadGEMDetector::GetPlane(const std::string &type)

@@ -52,8 +52,8 @@ public:
     void ConnectAPV(PRadGEMAPV *apv, const int &index);
     void DisconnectAPV(const size_t &plane_index, bool force_disconn);
     void DisconnectAPVs();
-    void AddPlaneHit(const int &plane_strip, const std::vector<float> &charges);
-    void ClearPlaneHits();
+    void AddStripHit(const int &plane_strip, const std::vector<float> &charges);
+    void ClearStripHits();
     void CollectAPVHits();
     float GetStripPosition(const int &plane_strip) const;
     float GetMaxCharge(const std::vector<float> &charges) const;
@@ -76,10 +76,10 @@ public:
     int GetCapacity() const {return apv_list.size();};
     int GetOrientation() const {return orient;};
     std::vector<PRadGEMAPV*> GetAPVList() const;
-    std::vector<StripHit> &GetPlaneHits() {return hit_list;};
-    const std::vector<StripHit> &GetPlaneHits() const {return hit_list;};
-    std::list<StripCluster> &GetPlaneClusters() {return cluster_list;};
-    const std::list<StripCluster> &GetPlaneClusters() const {return cluster_list;};
+    std::vector<StripHit> &GetStripHits() {return strip_hits;};
+    const std::vector<StripHit> &GetStripHits() const {return strip_hits;};
+    std::list<StripCluster> &GetStripClusters() {return strip_clusters;};
+    const std::list<StripCluster> &GetStripClusters() const {return strip_clusters;};
 
 private:
     PRadGEMDetector *detector;
@@ -92,10 +92,10 @@ private:
     std::vector<PRadGEMAPV*> apv_list;
 
     // plane data
-    std::vector<StripHit> hit_list;
+    std::vector<StripHit> strip_hits;
     // there will be requent remove, split operations for clusters in the middle
     // thus use list instead of vector
-    std::list<StripCluster> cluster_list;
+    std::list<StripCluster> strip_clusters;
 };
 
 struct StripHit
