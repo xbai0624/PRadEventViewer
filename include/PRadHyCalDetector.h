@@ -1,7 +1,6 @@
 #ifndef PRAD_HYCAL_DETECTOR_H
 #define PRAD_HYCAL_DETECTOR_H
 
-#include <list>
 #include <vector>
 #include <string>
 #include <iostream>
@@ -67,7 +66,7 @@ public:
     PRadHyCalModule *GetModule(const std::string &module_name) const;
     double GetEnergy() const;
     const std::vector<PRadHyCalModule*> &GetModuleList() const {return module_list;};
-    const std::list<ModuleHit> &GetModuleHits() const {return module_hits;};
+    const std::vector<ModuleHit> &GetModuleHits() const {return module_hits;};
     const std::vector<ModuleCluster> &GetModuleClusters() const {return module_clusters;};
     std::vector<HyCalHit> &GetHits() {return hycal_hits;};
     const std::vector<HyCalHit> &GetHits() const {return hycal_hits;};
@@ -77,7 +76,7 @@ protected:
     std::vector<PRadHyCalModule*> module_list;
     std::unordered_map<int, PRadHyCalModule*> id_map;
     std::unordered_map<std::string, PRadHyCalModule*> name_map;
-    std::list<ModuleHit> module_hits;
+    std::vector<ModuleHit> module_hits;
     std::vector<ModuleCluster> module_clusters;
     std::vector<HyCalHit> hycal_hits;
 };

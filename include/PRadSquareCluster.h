@@ -11,11 +11,11 @@ public:
     PRadHyCalCluster *Clone();
 
     void Configure(const std::string &path);
-    std::vector<ModuleCluster> Reconstruct(std::list<ModuleHit> &hits) const;
+    std::vector<ModuleCluster> Reconstruct(std::vector<ModuleHit> &hits) const;
 
 protected:
-    void findCenters(std::list<ModuleHit> &h, std::vector<ModuleCluster> &c) const;
-    void fillClusters(std::list<ModuleHit> &h, std::vector<ModuleCluster> &c) const;
+    void findCenters(std::vector<ModuleHit> &h, std::vector<ModuleCluster> &c) const;
+    void fillClusters(std::vector<ModuleHit> &h, std::vector<ModuleCluster> &c) const;
 
 
 protected:

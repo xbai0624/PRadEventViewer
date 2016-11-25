@@ -18,16 +18,11 @@ using namespace std;
 
 int main(int /*argc*/, char * /*argv*/ [])
 {
-    PRadDataHandler *handler = new PRadDataHandler();
     PRadHyCalSystem *sys = new PRadHyCalSystem("config/hycal.conf");
-    handler->SetHyCalSystem(sys);
-    PRadDSTParser *dst_parser = new PRadDSTParser(handler);
+    PRadDSTParser *dst_parser = new PRadDSTParser();
 
-    //sys->ClearADCChannel();
-    //sys->ClearTDCChannel();
+    // show adc and tdc channels
     /*
-    cout << sys->GetTDCList().size() << endl;
-    cout << sys->GetADCList().size() << endl;
     for(auto adc : sys->GetADCList())
     {
         cout << "ADC: "
@@ -49,7 +44,8 @@ int main(int /*argc*/, char * /*argv*/ [])
         cout << endl;
     }
     */
-/*
+    // show the modules
+    /*
     PRadHyCalDetector *hycal = sys->GetDetector();
     for(auto module : hycal->GetModuleList())
     {
@@ -59,25 +55,18 @@ int main(int /*argc*/, char * /*argv*/ [])
             cout << module->GetChannel()->GetAddress();
         cout << endl;
     }
-    cout << hycal->GetModuleList().size() << endl;
-*/
-    /*
-    hycal->SortModuleList();
-    ofstream output("hycal_module.txt");
-    hycal->OutputModuleList(output);
     */
-//    dst_parser->OpenInput("/work/hallb/prad/replay/prad_001288.dst");
-    PRadBenchMark timer;
 
-    dst_parser->OpenInput("prad_1291.dst");
-    // uncomment next line, it will not update calibration factor from dst file
+    // test reconstruction performance
+//    dst_parser->OpenInput("/work/hallb/prad/replay/prad_001288.dst");
+    dst_parser->OpenInput("prad_1310.dst");
+
+    PRadBenchMark timer;
 
     while(dst_parser->Read())
     {
         if(dst_parser->EventType() == PRad_DST_Event) {
-            // you can push this event into data handler
-            // handler->GetEventData().push_back(dst_parser->GetEvent()
-            // or you can just do something with this event and discard it
+
             auto event = dst_parser->GetEvent();
             if(!event.is_physics_event())
                 continue;

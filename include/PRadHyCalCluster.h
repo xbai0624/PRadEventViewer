@@ -13,7 +13,7 @@ public:
     virtual ~PRadHyCalCluster();
     virtual PRadHyCalCluster *Clone();
     virtual void Configure(const std::string &path);
-    virtual std::vector<ModuleCluster> Reconstruct(std::list<ModuleHit> &hits) const;
+    virtual std::vector<ModuleCluster> Reconstruct(std::vector<ModuleHit> &hits) const;
     float GetWeight(const float &E, const float &E0) const;
     float GetShowerDepth(int module_type, const float &E) const;
     bool CheckCluster(const ModuleCluster &hit) const;

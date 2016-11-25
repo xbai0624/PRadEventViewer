@@ -43,7 +43,7 @@ void PRadHyCalCluster::Configure(const std::string &path)
     min_cluster_size = getDefConfig<unsigned int>("Minimum Cluster Size", 1, verbose);
 }
 
-std::vector<ModuleCluster> PRadHyCalCluster::Reconstruct(std::list<ModuleHit> &)
+std::vector<ModuleCluster> PRadHyCalCluster::Reconstruct(std::vector<ModuleHit> &)
 const
 {
     // to be implemented by methods

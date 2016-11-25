@@ -38,7 +38,7 @@ void PRadSquareCluster::Configure(const std::string &path)
     square_size = getDefConfig<unsigned int>("Square Size", 5, verbose);
 }
 
-std::vector<ModuleCluster> PRadSquareCluster::Reconstruct(std::list<ModuleHit> &hits)
+std::vector<ModuleCluster> PRadSquareCluster::Reconstruct(std::vector<ModuleHit> &hits)
 const
 {
     std::vector<ModuleCluster> clusters;
@@ -52,7 +52,7 @@ const
     return clusters;
 }
 
-void PRadSquareCluster::findCenters(std::list<ModuleHit> &hits,
+void PRadSquareCluster::findCenters(std::vector<ModuleHit> &hits,
                                     std::vector<ModuleCluster> &clusters)
 const
 {
@@ -91,7 +91,7 @@ const
     }
 }
 
-void PRadSquareCluster::fillClusters(std::list<ModuleHit> &hits,
+void PRadSquareCluster::fillClusters(std::vector<ModuleHit> &hits,
                                      std::vector<ModuleCluster> &clusters)
 const
 {

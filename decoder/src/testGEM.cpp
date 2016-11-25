@@ -20,34 +20,10 @@ using namespace std;
 int main(int /*argc*/, char * /*argv*/ [])
 {
 
-    PRadDataHandler *handler = new PRadDataHandler();
     PRadGEMSystem *gem_srs = new PRadGEMSystem("config/gem.conf");
-    handler->SetGEMSystem(gem_srs);
     PRadDSTParser *dst_parser = new PRadDSTParser();
 
-    // read configuration files
-    // handler->ReadConfig("config.txt");
-
-    PRadBenchMark timer;
-
-    /* some test on connections constructors and assignment operators
-    gem_srs->GetAPV(1, 5)->UnsetFEC();
-    gem_srs->GetFEC(1)->RemoveAPV(6);
-
-    PRadGEMSystem gem(*gem_srs);
-    PRadGEMSystem gem2(move(gem));
-    delete gem_srs;
-    PRadGEMSystem gem3 = move(gem2);
-    gem_srs = &gem3;
-    */
-
-    /* save gem pedestal
-    gem_srs->SetPedestalMode(true);
-    handler->InitializeByData("prad_001287.evio.0");
-    gem_srs->SavePedestal("gem_ped.dat");
-    gem_srs->SetPedestalMode(false);
-    */
-
+    // show the FECs and APVs
     for(auto &fec : gem_srs->GetFECList())
     {
         cout << "FEC " << fec->GetID() << ": " << endl;
@@ -56,10 +32,10 @@ int main(int /*argc*/, char * /*argv*/ [])
             cout << "     APV: " << apv->GetFECID() << ", " << apv->GetADCChannel() << endl;
         }
     }
-// show the APVs and their strip numbers on planes
-    // show the plane list
+
     auto det_list = gem_srs->GetDetectorList();
 
+    // show the planes and the strips that connected to APVs
     for(auto &detector: det_list)
     {
         cout << "Detector: " << detector->GetName() << endl;
@@ -88,25 +64,23 @@ int main(int /*argc*/, char * /*argv*/ [])
         }
     }
 
-    dst_parser->OpenInput("/work/hallb/prad/replay/prad_001288.dst");
+    //dst_parser->OpenInput("/work/hallb/prad/replay/prad_001288.dst");
+    dst_parser->OpenInput("prad_1310.dst");
 
-    int count = 0;
-    // uncomment next line, it will not update calibration factor from dst file
+    // test reconstruction performance
+    PRadBenchMark timer;
 
-    while(dst_parser->Read() && count < 30000)
+    while(dst_parser->Read())
     {
         if(dst_parser->EventType() == PRad_DST_Event) {
-            ++count;
-            // you can push this event into data handler
-            // handler->GetEventData().push_back(dst_parser->GetEvent()
-            // or you can just do something with this event and discard it
             auto event = dst_parser->GetEvent();
             if(!event.is_physics_event())
                 continue;
 
             gem_srs->Reconstruct(event);
-
+            // show strip clusters
             // detectors from GEM system
+            /*
             for(auto &detector: gem_srs->GetDetectorList())
             {
                 cout << "Detector: " << detector->GetName() << endl;
@@ -131,16 +105,13 @@ int main(int /*argc*/, char * /*argv*/ [])
                     }
                 }
             }
+            */
         }
     }
 
     dst_parser->CloseInput();
 
     cout << "TIMER: Finished, took " << timer.GetElapsedTime() << " ms" << endl;
-    cout << "Read " << handler->GetEventCount() << " events "
-         << endl;
-    cout << PRadInfoCenter::GetBeamCharge() << endl;
-    cout << PRadInfoCenter::GetLiveTime() << endl;
 
     return 0;
 }
