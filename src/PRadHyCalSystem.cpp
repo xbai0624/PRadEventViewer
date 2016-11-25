@@ -8,11 +8,12 @@
 
 #include "PRadHyCalSystem.h"
 #include "PRadHyCalCluster.h"
+#include <iostream>
+#include <iomanip>
+#include <algorithm>
 #include "TFile.h"
 #include "TF1.h"
 #include "TH1D.h"
-#include <iostream>
-#include <iomanip>
 
 
 

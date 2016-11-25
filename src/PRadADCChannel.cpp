@@ -8,6 +8,7 @@
 #include "PRadADCChannel.h"
 #include "PRadTDCChannel.h"
 #include "PRadHyCalModule.h"
+#include <iomanip>
 #include <utility>
 
 
