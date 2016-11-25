@@ -1,7 +1,6 @@
 #ifndef PRAD_GEM_PLANE_H
 #define PRAD_GEM_PLANE_H
 
-#include <list>
 #include <vector>
 #include <string>
 
@@ -80,8 +79,8 @@ public:
     std::vector<PRadGEMAPV*> GetAPVList() const;
     std::vector<StripHit> &GetStripHits() {return strip_hits;};
     const std::vector<StripHit> &GetStripHits() const {return strip_hits;};
-    std::list<StripCluster> &GetStripClusters() {return strip_clusters;};
-    const std::list<StripCluster> &GetStripClusters() const {return strip_clusters;};
+    std::vector<StripCluster> &GetStripClusters() {return strip_clusters;};
+    const std::vector<StripCluster> &GetStripClusters() const {return strip_clusters;};
 
 private:
     PRadGEMDetector *detector;
@@ -93,11 +92,9 @@ private:
     int direction;
     std::vector<PRadGEMAPV*> apv_list;
 
-    // plane data
+    // plane raw hits and clusters
     std::vector<StripHit> strip_hits;
-    // there will be requent remove, split operations for clusters in the middle
-    // thus use list instead of vector
-    std::list<StripCluster> strip_clusters;
+    std::vector<StripCluster> strip_clusters;
 };
 
 struct StripHit

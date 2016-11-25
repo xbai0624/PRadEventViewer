@@ -11,7 +11,8 @@ public:
     PRadHyCalCluster *Clone();
 
     void Configure(const std::string &path);
-    std::vector<ModuleCluster> Reconstruct(std::vector<ModuleHit> &hits) const;
+    void FormCluster(std::vector<ModuleHit> &hits,
+                     std::vector<ModuleCluster> &clusters) const;
 
 protected:
     void findCenters(std::vector<ModuleHit> &h, std::vector<ModuleCluster> &c) const;

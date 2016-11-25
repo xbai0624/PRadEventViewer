@@ -18,18 +18,19 @@ public:
     // functions that to be overloaded
     void Configure(const std::string &path = "");
 
-    std::list<StripCluster> FormClusters(std::vector<StripHit> &hits);
-    void CartesianReconstruct(const std::list<StripCluster> &x_cluster,
-                              const std::list<StripCluster> &y_cluster,
-                              std::vector<GEMHit> &container);
+    void FormClusters(std::vector<StripHit> &hits,
+                      std::vector<StripCluster> &clusters) const;
+    void CartesianReconstruct(const std::vector<StripCluster> &x_cluster,
+                              const std::vector<StripCluster> &y_cluster,
+                              std::vector<GEMHit> &container) const;
 
 protected:
-    void groupHits(std::vector<StripHit> &h, std::list<StripCluster> &c);
-    void splitCluster(std::list<StripCluster> &c);
-    bool splitCluster_sub(StripCluster &c, StripCluster &c1);
-    void filterCluster(std::list<StripCluster> &c);
-    bool filterCluster_sub(const StripCluster &c);
-    void reconstructCluster(std::list<StripCluster> &c);
+    void groupHits(std::vector<StripHit> &h, std::vector<StripCluster> &c) const;
+    void splitCluster(std::vector<StripCluster> &c) const;
+    bool splitCluster_sub(StripCluster &c, StripCluster &c1) const;
+    void filterCluster(std::vector<StripCluster> &c) const;
+    bool filterCluster_sub(const StripCluster &c) const;
+    void reconstructCluster(std::vector<StripCluster> &c) const;
 
 protected:
     // parameters

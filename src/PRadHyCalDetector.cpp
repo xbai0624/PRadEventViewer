@@ -361,7 +361,8 @@ void PRadHyCalDetector::Reconstruct(PRadHyCalCluster *method)
     // clear containers
     hycal_hits.clear();
 
-    module_clusters = std::move(method->Reconstruct(module_hits));
+    // group module hits into clusters
+    method->FormCluster(module_hits, module_clusters);
 
     for(auto &cluster : module_clusters)
     {
@@ -369,7 +370,7 @@ void PRadHyCalDetector::Reconstruct(PRadHyCalCluster *method)
             continue;
 
         // reconstruct hit the position based on the cluster
-        HyCalHit hit = method->ReconstructHit(cluster);
+        HyCalHit hit = method->Reconstruct(cluster);
 
         // the center module does not exist should be a fatal problem, thus no
         // safety check here

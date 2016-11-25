@@ -43,11 +43,11 @@ void PRadHyCalCluster::Configure(const std::string &path)
     min_cluster_size = getDefConfig<unsigned int>("Minimum Cluster Size", 1, verbose);
 }
 
-std::vector<ModuleCluster> PRadHyCalCluster::Reconstruct(std::vector<ModuleHit> &)
+void PRadHyCalCluster::FormCluster(std::vector<ModuleHit> &,
+                                   std::vector<ModuleCluster> &)
 const
 {
     // to be implemented by methods
-    return std::vector<ModuleCluster>();
 }
 
 float PRadHyCalCluster::GetWeight(const float &E, const float &E0)
@@ -91,7 +91,7 @@ const
 }
 
 // reconstruct cluster
-HyCalHit PRadHyCalCluster::ReconstructHit(const ModuleCluster &cluster)
+HyCalHit PRadHyCalCluster::Reconstruct(const ModuleCluster &cluster)
 const
 {
     // initialize the hit

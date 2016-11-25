@@ -44,9 +44,12 @@ void PRadGEMCluster::Configure(const std::string &path)
 }
 
 // group hits into clusters
-std::list<StripCluster> PRadGEMCluster::FormClusters(std::vector<StripHit> &hits)
+void PRadGEMCluster::FormClusters(std::vector<StripHit> &hits,
+                                  std::vector<StripCluster> &clusters)
+const
 {
-    std::list<StripCluster> clusters;
+    // clean container first
+    clusters.clear();
 
     // group consecutive hits as the preliminary clusters
     groupHits(hits, clusters);
@@ -59,13 +62,12 @@ std::list<StripCluster> PRadGEMCluster::FormClusters(std::vector<StripHit> &hits
 
     // reconstruct the cluster position
     reconstructCluster(clusters);
-
-    return clusters;
 }
 
 // group consecutive hits
 void PRadGEMCluster::groupHits(std::vector<StripHit> &hits,
-                               std::list<StripCluster> &clusters)
+                               std::vector<StripCluster> &clusters)
+const
 {
     // sort the hits by its strip number
     std::sort(hits.begin(), hits.end(),
@@ -96,7 +98,8 @@ void PRadGEMCluster::groupHits(std::vector<StripHit> &hits,
 }
 
 // split cluster at valley
-void PRadGEMCluster::splitCluster(std::list<StripCluster> &clusters)
+void PRadGEMCluster::splitCluster(std::vector<StripCluster> &clusters)
+const
 {
     // We are trying to find the valley that satisfies certain critieria,
     // i.e., less than a sigma comparing to neighbor strips on both sides.
@@ -105,18 +108,21 @@ void PRadGEMCluster::splitCluster(std::list<StripCluster> &clusters)
     // strip.
 
     // loop over the cluster list
-    for(auto c_it = clusters.begin(); c_it != clusters.end(); ++c_it)
+    // since the vector size is changing, it cannot use iterator
+    for(size_t i = 0; i < clusters.size(); ++i)
     {
         // no need to do separation if less than 3 hits
-        if(c_it->hits.size() < 3)
+        if(clusters[i].hits.size() < 3)
             continue;
 
         // new cluster for the latter part after split
         StripCluster split_cluster;
 
         // insert the splited cluster if there is one
-        if(splitCluster_sub(*c_it, split_cluster))
-            clusters.insert(std::next(c_it, 1), split_cluster);
+        if(splitCluster_sub(clusters[i], split_cluster)) {
+            // insert keeps the original order, but has a worse performance
+            clusters.insert(clusters.begin()+i+1, split_cluster);
+        }
     }
 }
 
@@ -127,6 +133,7 @@ void PRadGEMCluster::splitCluster(std::list<StripCluster> &clusters)
 // It returns true if a cluster is split, and vice versa
 // The split part of the original cluster c will be removed, and filled in c1
 bool PRadGEMCluster::splitCluster_sub(StripCluster &c, StripCluster &c1)
+const
 {
     // we use 2 consecutive iterator
     auto it = c.hits.begin();
@@ -135,7 +142,6 @@ bool PRadGEMCluster::splitCluster_sub(StripCluster &c, StripCluster &c1)
     // loop to find the local minimum
     bool descending = false, extremum = false;
     auto minimum = it;
-
     for(; it_next != c.hits.end(); ++it, ++it_next)
     {
         if(descending) {
@@ -173,7 +179,8 @@ bool PRadGEMCluster::splitCluster_sub(StripCluster &c, StripCluster &c1)
 }
 
 // filter out bad clusters
-void PRadGEMCluster::filterCluster(std::list<StripCluster> &clusters)
+void PRadGEMCluster::filterCluster(std::vector<StripCluster> &clusters)
+const
 {
     for(auto it = clusters.begin(); it != clusters.end(); ++it)
     {
@@ -186,6 +193,7 @@ void PRadGEMCluster::filterCluster(std::list<StripCluster> &clusters)
 // this function helps filterCluster, it returns true if the cluster is good
 // and return false if the cluster is bad
 bool PRadGEMCluster::filterCluster_sub(const StripCluster &c)
+const
 {
     // only check size for now
     if((c.hits.size() < min_cluster_hits) ||
@@ -198,7 +206,8 @@ bool PRadGEMCluster::filterCluster_sub(const StripCluster &c)
 
 // calculate the cluster position
 // it reconstruct the position of cluster using linear weight of charge portion
-void PRadGEMCluster::reconstructCluster(std::list<StripCluster> &clusters)
+void PRadGEMCluster::reconstructCluster(std::vector<StripCluster> &clusters)
+const
 {
     for(auto &c : clusters)
     {
@@ -227,9 +236,10 @@ void PRadGEMCluster::reconstructCluster(std::list<StripCluster> &clusters)
 
 // this function accepts x, y clusters from detectors and then form GEM Cluster
 // it return the number of clusters
-void PRadGEMCluster::CartesianReconstruct(const std::list<StripCluster> &x_cluster,
-                                          const std::list<StripCluster> &y_cluster,
+void PRadGEMCluster::CartesianReconstruct(const std::vector<StripCluster> &x_cluster,
+                                          const std::vector<StripCluster> &y_cluster,
                                           std::vector<GEMHit> &container)
+const
 {
     // empty first
     container.clear();

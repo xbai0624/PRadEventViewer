@@ -293,7 +293,7 @@ void PRadGEMPlane::CollectAPVHits()
 // form clusters by the clustering method
 void PRadGEMPlane::FormClusters(PRadGEMCluster *method)
 {
-    strip_clusters = std::move(method->FormClusters(strip_hits));
+    method->FormClusters(strip_hits, strip_clusters);
 }
 
 //============================================================================//
