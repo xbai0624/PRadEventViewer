@@ -96,7 +96,8 @@ EXAMPLE       = testGEM \
                 testEPICS \
                 testMatch \
                 getAvgGain \
-                replay
+                replay \
+				mollerCenter
 #                testIsland
 #                testCombine
 #                testSim
