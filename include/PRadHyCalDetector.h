@@ -99,12 +99,24 @@ struct ModuleCluster
     std::vector<ModuleHit> hits;    // hits group
     float energy;
 
+    ModuleCluster() : energy(0) {};
     ModuleCluster(const ModuleHit &hit) : center(hit), energy(0) {};
 
     void AddHit(const ModuleHit &hit)
     {
         hits.emplace_back(hit);
         energy += hit.energy;
+    }
+
+    void Merge(const ModuleCluster &that)
+    {
+        hits.reserve(hits.size() + that.hits.size());
+        for(auto &hit : that.hits)
+        {
+            AddHit(hit);
+        }
+        if(center.energy < that.center.energy)
+            center = that.center;
     }
 };
 

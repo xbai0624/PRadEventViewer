@@ -24,13 +24,6 @@
 
 PRadIslandCluster::PRadIslandCluster(const std::string &path)
 {
-    sector_hits.resize(PRadHyCalModule::Max_HyCalSector);
-    // reserve enough space for each sector
-    for(auto &sector : sector_hits)
-    {
-        sector.reserve(MAX_SECTOR_HITS);
-    }
-
     // configuration
     Configure(path);
 }
@@ -49,104 +42,92 @@ void PRadIslandCluster::Configure(const std::string &path)
 {
     PRadHyCalCluster::Configure(path);
 
-    // if no configuration file specified, load the default value quietly
-    bool verbose = (!path.empty());
+    // set the min module energy for all the module type
+    float univ_min_energy = getDefConfig<float>("Min Module Energy", 0., false);
+    min_module_energy.resize(PRadHyCalModule::Max_ModuleType, univ_min_energy);
 
-    min_module_energy = getDefConfig<float>("Min Module Energy", 1., verbose);
-    if(min_module_energy < 0.) {
-        std::cout << "PRad Island Cluster Warning: Min Module Energy cannot be "
-                  << "less than 0, automatically changed to 0."
-                  << std::endl;
-        min_module_energy = 0.;
+    // update the min module energy if some type is specified
+    // the key is "Min Module Energy [typename]"
+    for(size_t i = 0; i < min_module_energy.size(); ++i)
+    {
+        // determine key name
+        std::string type = PRadHyCalModule::get_module_type_name(i);
+        std::string key = "Min Module Energy [" + type + "]";
+        auto value = GetConfigValue(key);
+        if(!value.IsEmpty())
+            min_module_energy[i] = value.Float();
     }
 }
 
-void PRadIslandCluster::Reconstruct(PRadHyCalDetector * /*det*/)
+void PRadIslandCluster::FormCluster(std::vector<ModuleHit> &hits,
+                                    std::vector<ModuleCluster> &clusters)
+const
 {
-/*
-    if(det == nullptr)
-        return;
-
-    // clear the cluster container
-    det->hycal_clusters.clear();
-
-    fillSectorHits(det);
-
-    for(auto &sector : sector_hits)
-    {
-        groupSectorHits(sector);
-        splitSectorClusters();
-    }
-*/
-}
-
-void PRadIslandCluster::fillSectorHits(PRadHyCalDetector *det)
-{
-    // clear sector storage
-    for(auto &sector : sector_hits)
-    {
-        sector.clear();
-    }
-
-    // fill sectors
-    for(auto &module : det->GetModuleList())
-    {
-        // too small energy, don't allow it to participate in reconstruction
-        if(module->GetEnergy() <= min_module_energy)
-            continue;
-
-        auto &sector = sector_hits.at(module->GetSectorID());
-
-        // fill into sector
-        sector.emplace_back(module);
-    }
-}
-
-void PRadIslandCluster::groupSectorHits(const std::vector<PRadHyCalModule*> &sector)
-{
-    // erase container
+    // clear container first
     clusters.clear();
 
+    // regroup hits in sector
+    groupSectorHits(hits, clusters);
+}
+
+void PRadIslandCluster::groupSectorHits(std::vector<ModuleHit> &hits,
+                                        std::vector<ModuleCluster> &clusters)
+const
+{
     // roughly combine all contiguous hits
-    for(auto &module : sector)
+    for(auto &hit : hits)
     {
         // not belong to any existing cluster
-        if(!fillCluster(module)) {
-            std::list<PRadHyCalModule*> new_cluster;
-            new_cluster.push_back(module);
+        if(!fillCluster(hit, clusters)) {
+            ModuleCluster new_cluster;
+            new_cluster.AddHit(hit);
             clusters.emplace_back(std::move(new_cluster));
         }
     }
 
     // merge contiguous clusters
-    if(clusters.size() > 1) {
-        auto it = clusters.begin();
-        it++;
-        for(; it != clusters.end(); ++it)
+    for(size_t i = 1; i < clusters.size(); ++i)
+    {
+        for(size_t j = 0; j < i; ++j)
         {
-            for(auto it_prev = clusters.begin(); it_prev != it; ++it_prev)
-            {
-                if(!checkContiguous(*it, *it_prev))
-                    continue;
+            // not contiguous
+            if(!checkContiguous(clusters.at(i), clusters.at(j)))
+                continue;
 
-                (*it_prev).splice((*it_prev).end(), *it);
-                clusters.erase(it);
-                it--;
-                break;
+            // merge it to previous cluster and erase it
+            clusters.at(j).Merge(clusters.at(i));
+            clusters.erase(clusters.begin() + i);
+            i--;
+            break;
+        }
+    }
+
+    // clusters are formed, set the energy center
+    for(auto &cluster : clusters)
+    {
+        size_t c_hit = 0;
+        float energy = 0;
+        for(size_t i = 0; i < cluster.hits.size(); ++i)
+        {
+            if(energy < cluster.hits.at(i).energy) {
+                energy = cluster.hits.at(i).energy;
+                c_hit = i;
             }
         }
+        cluster.center = cluster.hits.at(c_hit);
     }
 }
 
-bool PRadIslandCluster::fillCluster(PRadHyCalModule *m)
+bool PRadIslandCluster::fillCluster(ModuleHit &hit, std::vector<ModuleCluster> &clusters)
+const
 {
     for(auto &cluster : clusters)
     {
-        for(auto &prev_m : cluster)
+        for(auto &prev_hit : cluster.hits)
         {
             // it belongs to a existing cluster
-            if(checkContiguous(m, prev_m)) {
-                cluster.push_back(m);
+            if(checkContiguous(hit, prev_hit)) {
+                cluster.AddHit(hit);
                 return true;
             }
         }
@@ -155,24 +136,26 @@ bool PRadIslandCluster::fillCluster(PRadHyCalModule *m)
     return false;
 }
 
-inline bool PRadIslandCluster::checkContiguous(const PRadHyCalModule* m1,
-                                               const PRadHyCalModule* m2)
+inline bool PRadIslandCluster::checkContiguous(const ModuleHit &m1, const ModuleHit &m2)
 const
 {
-    int diff =  abs(m1->GetColumn() - m2->GetColumn())
-              + abs(m1->GetRow() - m2->GetRow());
+    if(m1.geo.sector != m2.geo.sector)
+        return false;
+
+    int diff = abs(m1.geo.column - m2.geo.column) + abs(m1.geo.row - m2.geo.row);
+
     if(diff < 2)
         return true;
     else
         return false;
 }
 
-inline bool PRadIslandCluster::checkContiguous(const std::list<PRadHyCalModule*> &c1,
-                                               const std::list<PRadHyCalModule*> &c2)
+inline bool PRadIslandCluster::checkContiguous(const ModuleCluster &c1,
+                                               const ModuleCluster &c2)
 const
 {
-    for(auto &m1 : c1)
-        for(auto &m2 : c2)
+    for(auto &m1 : c1.hits)
+        for(auto &m2 : c2.hits)
             if(checkContiguous(m1, m2))
                 return true;
 

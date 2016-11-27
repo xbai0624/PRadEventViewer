@@ -22,6 +22,7 @@ public:
         // max number of types
         Max_ModuleType,
     };
+
     enum HyCalSector
     {
         // undefined
