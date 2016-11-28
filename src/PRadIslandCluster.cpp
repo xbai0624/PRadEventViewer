@@ -74,92 +74,62 @@ void PRadIslandCluster::groupSectorHits(std::vector<ModuleHit> &hits,
                                         std::vector<ModuleCluster> &clusters)
 const
 {
-    // roughly combine all contiguous hits
-    for(auto &hit : hits)
-    {
-        // not belong to any existing cluster
-        if(!fillCluster(hit, clusters)) {
-            ModuleCluster new_cluster;
-            new_cluster.AddHit(hit);
-            clusters.emplace_back(std::move(new_cluster));
-        }
-    }
+    // sort hits by their energy
+    std::sort(hits.begin(), hits.end(),
+              [] (const ModuleHit &m1, const ModuleHit &m2)
+              {
+                  return m1.energy > m2.energy;
+              });
 
-    // merge contiguous clusters
-    for(size_t i = 1; i < clusters.size(); ++i)
+    // the cluster starts with a seed hit, and grows if there are adjacent its
+    // clustered hits will be removed, so the for loop needs to be this way
+    for(size_t i = 0; i < hits.size(); ++i)
     {
-        for(size_t j = 0; j < i; ++j)
+        ModuleCluster new_cluster(hits.at(i));
+        new_cluster.AddHit(hits.at(i));
+        hits.erase(hits.begin() + i);
+
+        // loop over the cluster until no new hit found
+        while(fillCluster(new_cluster, hits))
         {
-            // not contiguous
-            if(!checkContiguous(clusters.at(i), clusters.at(j)))
-                continue;
-
-            // merge it to previous cluster and erase it
-            clusters.at(j).Merge(clusters.at(i));
-            clusters.erase(clusters.begin() + i);
-            i--;
-            break;
+            ;
         }
-    }
-
-    // clusters are formed, set the energy center
-    for(auto &cluster : clusters)
-    {
-        size_t c_hit = 0;
-        float energy = 0;
-        for(size_t i = 0; i < cluster.hits.size(); ++i)
-        {
-            if(energy < cluster.hits.at(i).energy) {
-                energy = cluster.hits.at(i).energy;
-                c_hit = i;
-            }
-        }
-        cluster.center = cluster.hits.at(c_hit);
+        clusters.emplace_back(std::move(new_cluster));
     }
 }
 
-bool PRadIslandCluster::fillCluster(ModuleHit &hit, std::vector<ModuleCluster> &clusters)
+bool PRadIslandCluster::fillCluster(ModuleCluster &c, std::vector<ModuleHit> &hits)
 const
 {
-    for(auto &cluster : clusters)
+    bool changed = false;
+
+    for(size_t i = 0; i < hits.size(); ++i)
     {
-        for(auto &prev_hit : cluster.hits)
+        for(auto &prev_hit : c.hits)
         {
-            // it belongs to a existing cluster
-            if(checkContiguous(hit, prev_hit)) {
-                cluster.AddHit(hit);
-                return true;
+            if(checkContiguous(hits.at(i), prev_hit)) {
+                c.AddHit(hits.at(i));
+                hits.erase(hits.begin() + i);
+                changed = true;
+                break;
             }
         }
     }
 
-    return false;
+    return changed;
 }
 
 inline bool PRadIslandCluster::checkContiguous(const ModuleHit &m1, const ModuleHit &m2)
 const
 {
-    if(m1.geo.sector != m2.geo.sector)
+    double dist_x = std::abs(m1.geo.x - m2.geo.x);
+    double dist_y = std::abs(m1.geo.y - m2.geo.y);
+
+    if((dist_x > (m1.geo.size_x + m2.geo.size_x)/2.) ||
+      (dist_y > (m1.geo.size_y + m2.geo.size_y)/2.))
         return false;
 
-    int diff = abs(m1.geo.column - m2.geo.column) + abs(m1.geo.row - m2.geo.row);
-
-    if(diff < 2)
-        return true;
-    else
-        return false;
-}
-
-inline bool PRadIslandCluster::checkContiguous(const ModuleCluster &c1,
-                                               const ModuleCluster &c2)
-const
-{
-    for(auto &m1 : c1.hits)
-        for(auto &m2 : c2.hits)
-            if(checkContiguous(m1, m2))
-                return true;
-
-    return false;
+    return true;
 }
 
 void PRadIslandCluster::splitSectorClusters()
