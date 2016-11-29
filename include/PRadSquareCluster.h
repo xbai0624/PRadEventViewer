@@ -17,7 +17,7 @@ public:
 protected:
     void findCenters(std::vector<ModuleHit> &h, std::vector<ModuleCluster> &c) const;
     void fillClusters(std::vector<ModuleHit> &h, std::vector<ModuleCluster> &c) const;
-
+    bool checkBelongs(const ModuleHit &center, const ModuleHit &hit, float factor) const;
 
 protected:
     // parameters for reconstruction

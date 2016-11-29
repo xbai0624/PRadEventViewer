@@ -366,6 +366,7 @@ void PRadHyCalDetector::Reconstruct(PRadHyCalCluster *method)
 
     for(auto &cluster : module_clusters)
     {
+        // discard cluster that does not satisfy certain conditions
         if(!method->CheckCluster(cluster))
             continue;
 

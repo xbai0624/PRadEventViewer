@@ -18,7 +18,7 @@ public:
 protected:
     void groupSectorHits(std::vector<ModuleHit> &hits,
                          std::vector<ModuleCluster> &clusters) const;
-    bool fillCluster(ModuleCluster &c, std::vector<ModuleHit> &hits) const;
+    bool fillClusters(ModuleHit &hit, std::vector<ModuleCluster> &clusters) const;
     bool checkContiguous(const ModuleHit &m1, const ModuleHit &m2) const;
     void splitSectorClusters();
 

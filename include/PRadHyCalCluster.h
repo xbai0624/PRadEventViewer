@@ -15,10 +15,10 @@ public:
     virtual void Configure(const std::string &path);
     virtual void FormCluster(std::vector<ModuleHit> &hits,
                              std::vector<ModuleCluster> &clusters) const;
+    virtual bool CheckCluster(const ModuleCluster &hit) const;
 
     float GetWeight(const float &E, const float &E0) const;
     float GetShowerDepth(int module_type, const float &E) const;
-    bool CheckCluster(const ModuleCluster &hit) const;
     HyCalHit Reconstruct(const ModuleCluster &cluster) const;
 
 protected:

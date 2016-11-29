@@ -74,49 +74,41 @@ void PRadIslandCluster::groupSectorHits(std::vector<ModuleHit> &hits,
                                         std::vector<ModuleCluster> &clusters)
 const
 {
-    // sort hits by their energy
+    // sort hits by energy
     std::sort(hits.begin(), hits.end(),
               [] (const ModuleHit &m1, const ModuleHit &m2)
               {
                   return m1.energy > m2.energy;
               });
 
-    // the cluster starts with a seed hit, and grows if there are adjacent its
-    // clustered hits will be removed, so the for loop needs to be this way
-    for(size_t i = 0; i < hits.size(); ++i)
+    // loop over all hits
+    for(auto &hit : hits)
     {
-        ModuleCluster new_cluster(hits.at(i));
-        new_cluster.AddHit(hits.at(i));
-        hits.erase(hits.begin() + i);
-
-        // loop over the cluster until no new hit found
-        while(fillCluster(new_cluster, hits))
+        // not belongs to any cluster, and the energy is larger than center threshold
+        if(!fillClusters(hit, clusters) && (hit.energy > min_center_energy))
         {
-            ;
+            ModuleCluster new_cluster(hit);
+            new_cluster.AddHit(hit);
+            clusters.emplace_back(std::move(new_cluster));
         }
-        clusters.emplace_back(std::move(new_cluster));
     }
 }
 
-bool PRadIslandCluster::fillCluster(ModuleCluster &c, std::vector<ModuleHit> &hits)
+bool PRadIslandCluster::fillClusters(ModuleHit &hit, std::vector<ModuleCluster> &c)
 const
 {
-    bool changed = false;
-
-    for(size_t i = 0; i < hits.size(); ++i)
+    for(auto &cluster : c)
     {
-        for(auto &prev_hit : c.hits)
+        for(auto &prev_hit : cluster.hits)
         {
-            if(checkContiguous(hits.at(i), prev_hit)) {
-                c.AddHit(hits.at(i));
-                hits.erase(hits.begin() + i);
-                changed = true;
-                break;
+            if(checkContiguous(hit, prev_hit)) {
+                cluster.AddHit(hit);
+                return true;
             }
         }
     }
 
-    return changed;
+    return false;
 }
 
 inline bool PRadIslandCluster::checkContiguous(const ModuleHit &m1, const ModuleHit &m2)
@@ -125,8 +117,8 @@ const
     double dist_x = std::abs(m1.geo.x - m2.geo.x);
     double dist_y = std::abs(m1.geo.y - m2.geo.y);
 
-    if((dist_x > (m1.geo.size_x + m2.geo.size_x)/2.) ||
-      (dist_y > (m1.geo.size_y + m2.geo.size_y)/2.))
+    if((dist_x > (m1.geo.size_x + m2.geo.size_x)*1.1/2.) ||
+      (dist_y > (m1.geo.size_y + m2.geo.size_y)*1.1/2.))
         return false;
 
     return true;

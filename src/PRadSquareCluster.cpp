@@ -64,22 +64,20 @@ const
             continue;
 
         bool overlap = false;
-        float dist_x = float(square_size)*hit.geo.size_x;
-        float dist_y = float(square_size)*hit.geo.size_y;
 
         // merge the center if it belongs to other clusters
         for(auto &cluster : clusters)
         {
             // overlap with other modules, discarded this center
             // TODO, probably better to do splitting other than discarding
-            if((fabs(cluster.center.geo.x - hit.geo.x) <= dist_x) &&
-               (fabs(cluster.center.geo.y - hit.geo.y) <= dist_y)) {
+            if(checkBelongs(cluster.center, hit, square_size)) {
                 overlap = true;
 
                 // change this center if it has less energy
                 if(cluster.center.energy < hit.energy) {
                     cluster.center = hit;
                 }
+
                 break;
             }
         }
@@ -95,19 +93,30 @@ void PRadSquareCluster::fillClusters(std::vector<ModuleHit> &hits,
                                      std::vector<ModuleCluster> &clusters)
 const
 {
-    // claiming territory for the cluster
-    for(auto &cluster : clusters)
+    // group hits into clusters
+    for(auto &hit : hits)
     {
-        float dist_x = float(square_size)*cluster.center.geo.size_x/2.;
-        float dist_y = float(square_size)*cluster.center.geo.size_y/2.;
-        for(auto it = hits.begin(); it != hits.end(); ++it)
+        for(auto &cluster : clusters)
         {
-            // not belongs to the cluster
-            if((fabs(cluster.center.geo.x - (*it).geo.x) > dist_x) ||
-               (fabs(cluster.center.geo.y - (*it).geo.y) > dist_y))
-                continue;
-            cluster.AddHit(*it);
-            hits.erase(it--);
+            if(checkBelongs(cluster.center, hit, float(square_size)/2.)) {
+                cluster.AddHit(hit);
+                break;
+            }
         }
     }
+}
+
+inline bool PRadSquareCluster::checkBelongs(const ModuleHit &center,
+                                            const ModuleHit &hit,
+                                            float factor)
+const
+{
+    float dist_x = factor*center.geo.size_x;
+    float dist_y = factor*center.geo.size_y;
+
+    if((fabs(center.geo.x - hit.geo.x) > dist_x) ||
+       (fabs(center.geo.y - hit.geo.y) > dist_y))
+        return false;
+
+    return true;
 }
