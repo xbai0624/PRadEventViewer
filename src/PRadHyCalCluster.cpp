@@ -50,7 +50,19 @@ const
     // to be implemented by methods
 }
 
-float PRadHyCalCluster::GetWeight(const float &E, const float &E0)
+// quantize the distance between two modules by there sizes
+// by this way we can indiscriminately check modules with different size
+// only useful for adjacent module checking
+float PRadHyCalCluster::GetDistance(const ModuleHit &m1, const ModuleHit &m2)
+const
+{
+    float dx = (m1.geo.x - m2.geo.x)/(m1.geo.size_x + m2.geo.size_x);
+    float dy = (m1.geo.y - m2.geo.y)/(m1.geo.size_y + m2.geo.size_y);
+
+    return sqrt(dx*dx + dy*dy)*2.;
+}
+
+inline float PRadHyCalCluster::GetWeight(const float &E, const float &E0)
 const
 {
     float w = log_weight_thres + log(E/E0);
@@ -92,19 +104,41 @@ const
 
 // reconstruct cluster
 HyCalHit PRadHyCalCluster::Reconstruct(const ModuleCluster &cluster)
-const
 {
     // initialize the hit
-    HyCalHit hit(cluster.center.id,         // center id
-                 cluster.center.geo.flag,   // module flag
-                 cluster.energy);           // total energy
-
-    float weight_x = 0, weight_y = 0, weight_total = 0;
+    HyCalHit hycal_hit(cluster.center.id,       // center id
+                       cluster.center.geo.flag, // module flag
+                       cluster.energy);         // total energy
 
     // count modules
-    hit.nblocks = cluster.hits.size();
+    hycal_hit.nblocks = cluster.hits.size();
 
     // reconstruct position
+    // only use the center 3x3 to reconstruct the module position
+    int count = 0;
+    float energy = 0;
+    float weight_x = 0, weight_y = 0, weight_total = 0;
+
+    for(auto &hit : cluster.hits)
+    {
+        if(GetDistance(cluster.center, hit) < 1.6) {
+            cl_x[count] = hit.geo.x;
+            cl_y[count] = hit.geo.y;
+            cl_E[count] = hit.energy;
+            energy += hit.energy;
+            count++;
+        }
+    }
+
+    for(int i = 0; i < count; ++i)
+    {
+        float weight = GetWeight(cl_E[i], energy);
+        weight_x += cl_x[i]*weight;
+        weight_y += cl_y[i]*weight;
+        weight_total += weight;
+    }
+
+    /* all hits participate in position reconstruction
     for(auto &hit : cluster.hits)
     {
         float weight = GetWeight(hit.energy, cluster.energy);
@@ -112,12 +146,14 @@ const
         weight_y += hit.geo.y*weight;
         weight_total += weight;
     }
+    */
 
-    hit.x = weight_x/weight_total;
-    hit.y = weight_y/weight_total;
+    hycal_hit.x = weight_x/weight_total;
+    hycal_hit.y = weight_y/weight_total;
+    hycal_hit.z = cluster.center.geo.z;
 
-    // z position will need a depth correction, defined in PRadHyCalCluster
-    hit.z = cluster.center.geo.z + GetShowerDepth(cluster.center.geo.type, hit.E);
+    // z position will need a depth correction
+    hycal_hit.z += GetShowerDepth(cluster.center.geo.type, cluster.energy);
 
-    return hit;
+    return hycal_hit;
 }

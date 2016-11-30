@@ -375,13 +375,13 @@ void PRadHyCalDetector::Reconstruct(PRadHyCalCluster *method)
 
         // the center module does not exist should be a fatal problem, thus no
         // safety check here
-        PRadHyCalModule *module = GetModule(hit.cid);
+        PRadHyCalModule *center = GetModule(hit.cid);
 
         // do non-linear correction
-        module->GetCalibConst().NonLinearCorr(hit.E);
+        center->GetCalibConst().NonLinearCorr(hit.E);
 
         // add timing information
-        PRadTDCChannel *tdc = GetModule(hit.cid)->GetTDC();
+        PRadTDCChannel *tdc = center->GetTDC();
         if(tdc)
             hit.set_time(tdc->GetTimeMeasure());
 

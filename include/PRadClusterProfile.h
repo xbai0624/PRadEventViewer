@@ -38,9 +38,9 @@ public:
     void Resize(int type, int xsize, int ysize);
     void Clear();
     void LoadProfile(int type, const std::string &path);
-    static float GetFraction(int type, int x, int y);
-    static float GetError(int type, int x, int y);
-    static Profile &GetProfile(int type, int x, int y);
+    float GetFraction(int type, int x, int y) const;
+    float GetError(int type, int x, int y) const;
+    const Profile &GetProfile(int type, int x, int y) const;
 
 private:
     PRadClusterProfile(int type = 2, int xsize = 501, int ysize = 501);

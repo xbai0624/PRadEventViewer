@@ -17,9 +17,10 @@ public:
                              std::vector<ModuleCluster> &clusters) const;
     virtual bool CheckCluster(const ModuleCluster &hit) const;
 
+    HyCalHit Reconstruct(const ModuleCluster &cluster);
     float GetWeight(const float &E, const float &E0) const;
     float GetShowerDepth(int module_type, const float &E) const;
-    HyCalHit Reconstruct(const ModuleCluster &cluster) const;
+    float GetDistance(const ModuleHit &m1, const ModuleHit &m2) const;
 
 protected:
     PRadHyCalCluster();
@@ -29,6 +30,7 @@ protected:
     float min_cluster_energy;
     float min_center_energy;
     unsigned int min_cluster_size;
+    float cl_x[30], cl_y[30], cl_E[30];
 };
 
 #endif

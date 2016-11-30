@@ -4,6 +4,8 @@
 #include <vector>
 #include "PRadHyCalCluster.h"
 
+//#define PRIMEX_METHOD
+
 class PRadIslandCluster : public PRadHyCalCluster
 {
 public:
@@ -16,14 +18,18 @@ public:
                      std::vector<ModuleCluster> &clusters) const;
 
 protected:
-    void groupSectorHits(std::vector<ModuleHit> &hits,
-                         std::vector<ModuleCluster> &clusters) const;
+    void groupHits(std::vector<ModuleHit> &hits,
+                   std::vector<ModuleCluster> &clusters) const;
     bool fillClusters(ModuleHit &hit, std::vector<ModuleCluster> &clusters) const;
-    bool checkContiguous(const ModuleHit &m1, const ModuleHit &m2) const;
-    void splitSectorClusters();
+    void splitClusters(std::vector<ModuleCluster> &clusters) const;
+    void splitCluster(ModuleCluster &c1, ModuleCluster &c2) const;
+#ifdef PRIMEX_METHOD
+    bool checkAdjacent(const ModuleCluster &c1, const ModuleCluster &c2) const;
+#endif
 
 protected:
     // parameters for reconstruction
+    float adj_dist;
     std::vector<float> min_module_energy;
 };
 

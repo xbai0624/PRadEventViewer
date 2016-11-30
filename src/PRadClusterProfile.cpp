@@ -122,17 +122,25 @@ void PRadClusterProfile::LoadProfile(int type, const std::string &path)
 }
 
 float PRadClusterProfile::GetFraction(int type, int x, int y)
+const
 {
-    return Instance().profiles[type][x][y].frac;
+    if(x >= x_steps || y >= y_steps)
+        return 0.;
+    return profiles[type][x][y].frac;
 }
 
 float PRadClusterProfile::GetError(int type, int x, int y)
+const
 {
-    return Instance().profiles[type][x][y].err;
+    if(x >= x_steps || y >= y_steps)
+        return 0.;
+
+    return profiles[type][x][y].err;
 }
 
-PRadClusterProfile::Profile &PRadClusterProfile::GetProfile(int type, int x, int y)
+const PRadClusterProfile::Profile &PRadClusterProfile::GetProfile(int type, int x, int y)
+const
 {
-    return Instance().profiles[type][x][y];
+    return profiles[type][x][y];
 }
 
