@@ -310,3 +310,28 @@ void HyCalScene::ClearHitsMarks()
     hitsMarkList.clear();
 }
 
+void HyCalScene::ShowCluster(int index)
+{
+    if((size_t)index >= module_clusters.size())
+        ModuleAction(&HyCalModule::ShowEnergy);
+
+    ShowCluster(module_clusters.at(index));
+}
+
+void HyCalScene::ShowCluster(const ModuleCluster &cluster)
+{
+    // erase all the modules
+    for(auto module : module_list)
+    {
+        ((HyCalModule*)module)->ShowEnergy(0);
+    }
+
+    // show only the cluster info
+    for(auto hit : cluster.hits)
+    {
+        HyCalModule *module = (HyCalModule*)PRadHyCalDetector::GetModule(hit.id);
+        if(module)
+            module->ShowEnergy(hit.energy);
+    }
+}
+

@@ -292,7 +292,7 @@ const
     if(!module)
         return 0;
 
-    return module->GetCalibConst().Calibration((double)adc_value - pedestal.mean);
+    return module->GetEnergy((double)adc_value - pedestal.mean);
 }
 
 double PRadADCChannel::GetEnergy(const unsigned short &adcVal)
@@ -301,7 +301,7 @@ const
     if(!module)
         return 0;
 
-    return module->GetCalibConst().Calibration((double)adcVal - pedestal.mean);
+    return module->GetEnergy((double)adcVal - pedestal.mean);
 }
 
 std::ostream &operator <<(std::ostream &os, const PRadADCChannel::Pedestal &ped)

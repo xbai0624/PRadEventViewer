@@ -179,12 +179,13 @@ void HyCalModule::ShowOccupancy()
 
 void HyCalModule::ShowEnergy()
 {
-    double energy;
-    energy = PRadHyCalModule::GetEnergy();
+    ShowEnergy(PRadHyCalModule::GetEnergy());
+}
 
+void HyCalModule::ShowEnergy(const double &energy)
+{
     if(energy < 1.)
         color = Qt::white;
     else
         SetColor(energy);
 }
-

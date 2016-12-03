@@ -121,12 +121,17 @@ void PRadClusterProfile::LoadProfile(int type, const std::string &path)
     }
 }
 
+// x y is symmetric in profile
 float PRadClusterProfile::GetFraction(int type, int x, int y)
 const
 {
     if(x >= x_steps || y >= y_steps)
         return 0.;
-    return profiles[type][x][y].frac;
+
+    if(x < y)
+        return profiles[type][y][x].frac;
+    else
+        return profiles[type][x][y].frac;
 }
 
 float PRadClusterProfile::GetError(int type, int x, int y)
@@ -135,12 +140,18 @@ const
     if(x >= x_steps || y >= y_steps)
         return 0.;
 
-    return profiles[type][x][y].err;
+    if(x < y)
+        return profiles[type][y][x].err;
+    else
+        return profiles[type][x][y].err;
 }
 
 const PRadClusterProfile::Profile &PRadClusterProfile::GetProfile(int type, int x, int y)
 const
 {
-    return profiles[type][x][y];
+    if(x < y)
+        return profiles[type][y][x];
+    else
+        return profiles[type][x][y];
 }
 

@@ -162,11 +162,10 @@ const
 double PRadHyCalModule::GetEnergy()
 const
 {
-    // did not connect to a adc_channel
-    if(!daq_ch)
-        return 0.;
+    if(daq_ch)
+        return cal_const.Calibration(daq_ch->GetReducedValue());
 
-    return cal_const.Calibration(daq_ch->GetReducedValue());
+    return 0.;
 }
 
 double PRadHyCalModule::GetEnergy(const double &value)

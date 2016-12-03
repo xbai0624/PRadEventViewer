@@ -25,6 +25,7 @@ public:
     void ShowPedSigma();
     void ShowOccupancy();
     void ShowEnergy();
+    void ShowEnergy(const double &energy);
     void ShowCustomValue() {SetColor(custom_value);};
     void SetCustomValue(double val) {custom_value = val;};
     const double &GetCustomValue() const {return custom_value;};

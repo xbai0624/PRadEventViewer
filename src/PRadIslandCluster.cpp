@@ -263,8 +263,9 @@ const
         float frac2 = profile.GetFraction(c2.center.geo.type, abs(dx2), abs(dy2));
 
         // no need to split
-        if(frac2 == 0.)
+        if(frac2 == 0.) {
             continue;
+        }
 
         // calculate the ratio of splitting energy
         float ratio = frac1*c1.center.energy/(frac1*c1.center.energy + frac2*c2.center.energy);

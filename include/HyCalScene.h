@@ -90,6 +90,14 @@ public:
     void UpdateScalerBox(const QString &text, const int &group = 0);
     void UpdateScalerBox(const QStringList &texts);
     void ShowScalers(const bool &s = true) {showScalers = s;};
+    void ShowCluster(const ModuleCluster &cluster);
+    void ShowCluster(int index);
+    template<typename... Args>
+    void ModuleAction(void (HyCalModule::*act)(Args...), Args&&... args)
+    {
+        for(auto &module : module_list)
+            (((HyCalModule*)module)->*act)(std::forward<Args>(args)...);
+    }
     // overloaded
     void ReadModuleList(const std::string &path);
 

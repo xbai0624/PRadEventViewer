@@ -230,10 +230,8 @@ void PRadEventViewer::createMainMenu()
 
     menuBar()->addMenu(setupToolMenu());
 
+    menuBar()->addMenu(setupSettingMenu());
     // menu for optional components
-#ifdef RECON_DISPLAY
-    menuBar()->addMenu(setupReconMenu());
-#endif
 
 #ifdef USE_ONLINE_MODE
     menuBar()->addMenu(setupOnlineMenu());
@@ -324,6 +322,23 @@ QMenu *PRadEventViewer::setupToolMenu()
     return toolMenu;
 }
 
+QMenu *PRadEventViewer::setupSettingMenu()
+{
+    QMenu *reconMenu = new QMenu(tr("&Settings"));
+
+    QAction *setupSpectrum = reconMenu->addAction(tr("Spectrum Settings"));
+    setupSpectrum->setShortcut(QKeySequence(Qt::CTRL + Qt::ALT + Qt::Key_P));
+    connect(setupSpectrum, SIGNAL(triggered()), this, SLOT(changeSpectrumSetting()));
+
+#ifdef RECON_DISPLAY
+    QAction *setupRecon = reconMenu->addAction(tr("Reconstruction Settings"));
+    setupRecon->setShortcut(QKeySequence(Qt::CTRL + Qt::ALT + Qt::Key_R));
+    connect(setupRecon, SIGNAL(triggered()), this, SLOT(setupReconMethods()));
+#endif
+
+    return reconMenu;
+}
+
 // tool box
 void PRadEventViewer::createControlPanel()
 {
@@ -345,15 +360,15 @@ void PRadEventViewer::createControlPanel()
     annoTypeBox->addItem(tr("DAQ Info"));
     annoTypeBox->addItem(tr("Show TDC Group"));
     viewModeBox = new QComboBox();
-    viewModeBox->addItem(tr("Energy View"));
-    viewModeBox->addItem(tr("Occupancy View"));
-    viewModeBox->addItem(tr("Pedestal View"));
-    viewModeBox->addItem(tr("Ped. Sigma View"));
-    viewModeBox->addItem(tr("High Voltage View"));
-    viewModeBox->addItem(tr("HV Setting View"));
-    viewModeBox->addItem(tr("Custom Map View"));
-
-    spectrumSettingButton = new QPushButton("Spectrum Settings");
+    viewModeBox->addItem(tr("Show Energy"));
+    viewModeBox->addItem(tr("Show Occupancy"));
+    viewModeBox->addItem(tr("Show Pedestal"));
+    viewModeBox->addItem(tr("Show Ped. Sigma"));
+    viewModeBox->addItem(tr("Show Custom Map"));
+#ifdef USE_CAEN_HV
+    viewModeBox->addItem(tr("Show High Voltage"));
+    viewModeBox->addItem(tr("Show HV Setting"));
+#endif
 
     eventCntLabel = new QLabel;
     eventCntLabel->setText(tr("No events data loaded."));
@@ -364,20 +379,24 @@ void PRadEventViewer::createControlPanel()
             this, SLOT(changeAnnoType(int)));
     connect(viewModeBox, SIGNAL(currentIndexChanged(int)),
             this, SLOT(changeViewMode(int)));
-    connect(spectrumSettingButton, SIGNAL(clicked()),
-            this, SLOT(changeSpectrumSetting()));
 
     logBox = new PRadLogBox();
 
     QGridLayout *layout = new QGridLayout();
 
-    layout->addWidget(eventSpin,             0, 0, 1, 1);
-    layout->addWidget(eventCntLabel,         0, 1, 1, 1);
-    layout->addWidget(spectrumSettingButton, 0, 2, 1, 1);
-    layout->addWidget(histTypeBox,           1, 0, 1, 1);
-    layout->addWidget(viewModeBox,           1, 1, 1, 1);
-    layout->addWidget(annoTypeBox,           1, 2, 1, 1);
-    layout->addWidget(logBox,                2, 0, 3, 3);
+    layout->addWidget(eventSpin,            0, 0, 1, 1);
+    layout->addWidget(eventCntLabel,        0, 1, 1, 1);
+    layout->addWidget(histTypeBox,          1, 0, 1, 1);
+    layout->addWidget(viewModeBox,          1, 1, 1, 1);
+    layout->addWidget(annoTypeBox,          1, 2, 1, 1);
+    layout->addWidget(logBox,               2, 0, 3, 3);
+#ifdef RECON_DISPLAY
+    clusterSpin = new QSpinBox;
+    clusterSpin->setPrefix("Cluster # ");
+    clusterSpin->setRange(0, 0);
+    layout->addWidget(clusterSpin,          0, 2, 1, 1);
+    connect(clusterSpin, SIGNAL(valueChanged(int)), this, SLOT(Refresh()));
+#endif
 
     controlPanel = new QWidget(this);
     controlPanel->setLayout(layout);
@@ -521,20 +540,6 @@ void PRadEventViewer::setTDCGroupBox()
 }
 
 //============================================================================//
-// HyCal Modules Actions                                                      //
-//============================================================================//
-
-// do the action for all modules
-template<typename... Args>
-void PRadEventViewer::ModuleAction(void (HyCalModule::*act)(Args...), Args&&... args)
-{
-    for(auto &module : HyCal->GetModuleList())
-    {
-        (((HyCalModule*)module)->*act)(std::forward<Args>(args)...);
-    }
-}
-
-//============================================================================//
 // Get color, refresh and erase                                               //
 //============================================================================//
 
@@ -549,14 +554,27 @@ void PRadEventViewer::Refresh()
 {
     switch(viewMode)
     {
+    default:
+        break;
     case PedestalView:
-        ModuleAction(&HyCalModule::ShowPedestal);
+        HyCal->ModuleAction(&HyCalModule::ShowPedestal);
         break;
     case SigmaView:
-        ModuleAction(&HyCalModule::ShowPedSigma);
+        HyCal->ModuleAction(&HyCalModule::ShowPedSigma);
         break;
     case OccupancyView:
-        ModuleAction(&HyCalModule::ShowOccupancy);
+        HyCal->ModuleAction(&HyCalModule::ShowOccupancy);
+        break;
+    case EnergyView:
+#ifdef RECON_DISPLAY
+        if(clusterSpin->value() > 0)
+            HyCal->ShowCluster(clusterSpin->value() - 1);
+        else
+#endif
+        HyCal->ModuleAction(&HyCalModule::ShowEnergy);
+        break;
+    case CustomView:
+        HyCal->ModuleAction(&HyCalModule::ShowCustomValue);
         break;
 #ifdef USE_CAEN_HV
     case HighVoltageView:
@@ -585,18 +603,11 @@ void PRadEventViewer::Refresh()
         break;
     }
 #endif
-    case EnergyView:
-        ModuleAction(&HyCalModule::ShowEnergy);
-        break;
-    case CustomView:
-        ModuleAction(&HyCalModule::ShowCustomValue);
-        break;
     }
 
     UpdateStatusInfo();
 
-    QWidget *viewport = view->viewport();
-    viewport->update();
+    view->viewport()->update();
 }
 
 // clean all the data buffer
@@ -837,7 +848,11 @@ void PRadEventViewer::handleEventChange(int evt)
         handler->ChooseEvent(event);
 
 #ifdef RECON_DISPLAY
-        if(enableRecon->isChecked()) {
+
+        // clear cluster selection range
+        clusterSpin->setRange(0, 0);
+
+        if(reconSetting->IsEnabled()) {
             // clear previous reconstructed events
             HyCal->ClearHitsMarks();
 
@@ -845,6 +860,7 @@ void PRadEventViewer::handleEventChange(int evt)
                 showReconEvent();
         }
 #endif
+
         Refresh();
     } catch (PRadException &e) {
         QMessageBox::critical(this,
@@ -1037,7 +1053,7 @@ void PRadEventViewer::readCustomValue(const QString &filepath)
         return;
     }
 
-    ModuleAction(&HyCalModule::SetCustomValue, 0.);
+    HyCal->ModuleAction(&HyCalModule::SetCustomValue, 0.);
 
     double min_value = 0.;
     double max_value = 1.;
@@ -1286,26 +1302,9 @@ void PRadEventViewer::setupReconDisplay()
 
 }
 
-QMenu *PRadEventViewer::setupReconMenu()
-{
-    QMenu *reconMenu = new QMenu(tr("&Reconstruct Event"));
-
-    enableRecon = reconMenu->addAction(tr("Show Reconstructed Event"));
-    enableRecon->setCheckable(true);
-    enableRecon->setChecked(true);
-
-    QAction *setupRecon = reconMenu->addAction(tr("Reconstruction Settings"));
-    setupRecon->setShortcut(QKeySequence(Qt::CTRL + Qt::ALT + Qt::Key_R));
-
-    connect(enableRecon, SIGNAL(triggered()), this, SLOT(enableReconstruct()));
-    connect(setupRecon, SIGNAL(triggered()), this, SLOT(setupReconMethods()));
-
-    return reconMenu;
-}
-
 void PRadEventViewer::enableReconstruct()
 {
-    if(!enableRecon->isChecked())
+    if(!reconSetting->IsEnabled())
         HyCal->ClearHitsMarks();
 
     emit(changeCurrentEvent(eventSpin->value()));
@@ -1420,9 +1419,10 @@ void PRadEventViewer::showReconEvent()
         }
     }
 
-    // display hits
-    Refresh();
+    // update the cluster size
+    clusterSpin->setRange(0, HyCal->GetModuleClusters().size());
 }
+
 #endif
 
 #ifdef USE_ONLINE_MODE

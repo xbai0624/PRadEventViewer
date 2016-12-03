@@ -51,7 +51,9 @@ ReconSettingPanel::ReconSettingPanel(QWidget *parent)
 
 QGroupBox *ReconSettingPanel::createMarkGroup()
 {
-    QGroupBox *markGroup = new QGroupBox(tr("Cluster Mark Setting"));
+    markGroup = new QGroupBox(tr("Cluster Mark Setting"));
+    markGroup->setCheckable(true);
+    markGroup->setChecked(true);
     QFormLayout *layout = new QFormLayout;
 
     // default settings
@@ -494,7 +496,14 @@ void ReconSettingPanel::ApplyChanges()
     }
 }
 
+bool ReconSettingPanel::IsEnabled()
+const
+{
+    return markGroup->isChecked();
+}
+
 bool ReconSettingPanel::ShowDetector(int det)
+const
 {
     if(det < 0 || det >= PRadDetector::Max_Dets)
         return false;
@@ -503,6 +512,7 @@ bool ReconSettingPanel::ShowDetector(int det)
 }
 
 bool ReconSettingPanel::ShowMatchedDetector(int det)
+const
 {
     if(det < 0 || det >= PRadDetector::Max_Dets)
         return false;
@@ -511,6 +521,7 @@ bool ReconSettingPanel::ShowMatchedDetector(int det)
 }
 
 HyCalScene::MarkAttributes ReconSettingPanel::GetMarkAttributes(int det)
+const
 {
     return HyCalScene::MarkAttributes(GetMarkIndex(det),
                                       GetMarkWidth(det),
@@ -519,6 +530,7 @@ HyCalScene::MarkAttributes ReconSettingPanel::GetMarkAttributes(int det)
 }
 
 int ReconSettingPanel::GetMarkIndex(int det)
+const
 {
     if(det < 0 || det >= PRadDetector::Max_Dets)
         return -1;
@@ -527,6 +539,7 @@ int ReconSettingPanel::GetMarkIndex(int det)
 }
 
 QString ReconSettingPanel::GetMarkName(int det)
+const
 {
     if(det < 0 || det >= PRadDetector::Max_Dets)
         return "";
@@ -535,6 +548,7 @@ QString ReconSettingPanel::GetMarkName(int det)
 }
 
 int ReconSettingPanel::GetMarkWidth(int det)
+const
 {
     if(det < 0 || det >= PRadDetector::Max_Dets)
         return 1;
@@ -543,6 +557,7 @@ int ReconSettingPanel::GetMarkWidth(int det)
 }
 
 QColor ReconSettingPanel::GetMarkColor(int det)
+const
 {
     if(det < 0 || det >= PRadDetector::Max_Dets)
         return Qt::black;
@@ -551,6 +566,7 @@ QColor ReconSettingPanel::GetMarkColor(int det)
 }
 
 double ReconSettingPanel::GetMarkSize(int det)
+const
 {
     if(det < 0 || det >= PRadDetector::Max_Dets)
         return 0;

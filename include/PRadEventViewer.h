@@ -69,11 +69,9 @@ enum ViewMode {
     OccupancyView,
     PedestalView,
     SigmaView,
-#ifdef USE_CAEN_HV
+    CustomView,
     HighVoltageView,
     VoltageSetView,
-#endif
-    CustomView,
 };
 
 enum ViewerStatus {
@@ -89,8 +87,6 @@ class PRadEventViewer : public QMainWindow
 public:
     PRadEventViewer();
     virtual ~PRadEventViewer();
-    template<typename... Args>
-    void ModuleAction(void (HyCalModule::*act)(Args...), Args&&... args);
     ViewMode GetViewMode() {return viewMode;};
     AnnoType GetAnnoType() {return annoType;};
     QColor GetColor(const double &val);
@@ -150,6 +146,7 @@ private:
     QMenu *setupFileMenu();
     QMenu *setupCalibMenu();
     QMenu *setupToolMenu();
+    QMenu *setupSettingMenu();
     QString getFileName(const QString &title,
                         const QString &dir,
                         const QStringList &filter,
@@ -255,12 +252,11 @@ private slots:
     void enableReconstruct();
 private:
     void setupReconDisplay();
-    QMenu *setupReconMenu();
 
     PRadCoordSystem *coordSystem;
     PRadDetMatch *detMatch;
     ReconSettingPanel *reconSetting;
-    QAction *enableRecon;
+    QSpinBox *clusterSpin;
 #endif
 };
 

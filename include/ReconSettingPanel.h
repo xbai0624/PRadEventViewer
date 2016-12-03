@@ -42,14 +42,15 @@ public:
     void ApplyChanges();
 
     // get data
-    bool ShowDetector(int det);
-    bool ShowMatchedDetector(int det);
-    HyCalScene::MarkAttributes GetMarkAttributes(int det);
-    int GetMarkIndex(int det);
-    QString GetMarkName(int det);
-    int GetMarkWidth(int det);
-    QColor GetMarkColor(int det);
-    double GetMarkSize(int det);
+    bool IsEnabled() const;
+    bool ShowDetector(int det) const;
+    bool ShowMatchedDetector(int det) const;
+    HyCalScene::MarkAttributes GetMarkAttributes(int det) const;
+    int GetMarkIndex(int det) const;
+    QString GetMarkName(int det) const;
+    int GetMarkWidth(int det) const;
+    QColor GetMarkColor(int det) const;
+    double GetMarkSize(int det) const;
 
 private:
     QGroupBox *createMarkGroup();
@@ -76,6 +77,7 @@ private:
     PRadCoordSystem *coordSystem;
     PRadDetMatch *detMatch;
 
+    QGroupBox *markGroup;
     QComboBox *hyCalMethods;
     QLineEdit *hyCalConfigPath;
 
