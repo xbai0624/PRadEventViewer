@@ -194,12 +194,13 @@ void PRadEventViewer::setupUI()
 // create spectrum
 void PRadEventViewer::generateSpectrum()
 {
-    energySpectrum = new Spectrum(40, 1100, 1, 1000);
+    energySpectrum = new Spectrum(40, 1100);
     energySpectrum->setPos(600, 0);
     HyCal->addItem(energySpectrum);
 
     specSetting = new SpectrumSettingPanel(this);
     specSetting->ConnectSpectrum(energySpectrum);
+    specSetting->ChoosePreSetting(0);
 
     connect(energySpectrum, SIGNAL(spectrumChanged()), this, SLOT(Refresh()));
 }

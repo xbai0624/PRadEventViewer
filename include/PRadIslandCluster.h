@@ -1,10 +1,16 @@
 #ifndef PRAD_ISLAND_CLUSTER_H
 #define PRAD_ISLAND_CLUSTER_H
 
+#include <list>
 #include <vector>
 #include "PRadHyCalCluster.h"
 
-//#define PRIMEX_METHOD
+// value to judge if two modules are connected at corner, quantized to module size
+#define CORNER_ADJACENT 1.6
+// value to judge if two modules are sharing a side line
+#define SIDE_ADJACENT 1.1
+
+#define PRIMEX_METHOD
 
 class PRadIslandCluster : public PRadHyCalCluster
 {
@@ -18,13 +24,18 @@ public:
                      std::vector<ModuleCluster> &clusters) const;
 
 protected:
+#ifdef PRIMEX_METHOD
+    void groupHits(std::vector<ModuleHit> &hits,
+                   std::list<std::list<ModuleHit*>> &groups) const;
+    bool fillClusters(ModuleHit &hit, std::list<std::list<ModuleHit*>> &groups) const;
+    bool checkAdjacent(const std::list<ModuleHit*> &g1, const std::list<ModuleHit*> &g2) const;
+    void splitCluster(std::list<ModuleHit*> &group, std::vector<ModuleCluster> &clusters) const;
+#else
     void groupHits(std::vector<ModuleHit> &hits,
                    std::vector<ModuleCluster> &clusters) const;
     bool fillClusters(ModuleHit &hit, std::vector<ModuleCluster> &clusters) const;
     void splitClusters(std::vector<ModuleCluster> &clusters) const;
     void splitCluster(ModuleCluster &c1, ModuleCluster &c2) const;
-#ifdef PRIMEX_METHOD
-    bool checkAdjacent(const ModuleCluster &c1, const ModuleCluster &c2) const;
 #endif
 
 protected:

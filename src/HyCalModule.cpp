@@ -184,8 +184,5 @@ void HyCalModule::ShowEnergy()
 
 void HyCalModule::ShowEnergy(const double &energy)
 {
-    if(energy < 1.)
-        color = Qt::white;
-    else
-        SetColor(energy);
+    SetColor(energy);
 }

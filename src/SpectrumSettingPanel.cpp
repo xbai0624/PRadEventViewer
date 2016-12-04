@@ -230,7 +230,7 @@ void SpectrumSettingPanel::ChoosePreSetting(int val)
         break;
     case 3:
         sigmaView->setChecked(true);
-        break; 
+        break;
     case 4:
     case 5:
         voltageView->setChecked(true);

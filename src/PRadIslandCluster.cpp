@@ -43,9 +43,9 @@ void PRadIslandCluster::Configure(const std::string &path)
 
     bool corner = getDefConfig<bool>("Corner Connection", false, verbose);
     if(corner)
-        adj_dist = 1.6;
+        adj_dist = CORNER_ADJACENT;
     else
-        adj_dist = 1.1;
+        adj_dist = SIDE_ADJACENT;
 
     // set the min module energy for all the module type
     float univ_min_energy = getDefConfig<float>("Min Module Energy", 0., false);
@@ -64,6 +64,11 @@ void PRadIslandCluster::Configure(const std::string &path)
     }
 }
 
+//============================================================================//
+// Method based on the code from I. Larin for PrimEx                          //
+//============================================================================//
+#ifdef PRIMEX_METHOD
+
 void PRadIslandCluster::FormCluster(std::vector<ModuleHit> &hits,
                                     std::vector<ModuleCluster> &clusters)
 const
@@ -71,73 +76,61 @@ const
     // clear container first
     clusters.clear();
 
-    // regroup hits in sector
-    groupHits(hits, clusters);
+    std::list<std::list<ModuleHit*>> groups;
 
-    // try to split the energy of shared modules
-    splitClusters(clusters);
+    // group adjacent hits
+    groupHits(hits, groups);
+
+    // try to split the group
+    for(auto &group : groups)
+    {
+        splitCluster(group, clusters);
+    }
 }
 
-//============================================================================//
-// Method based on the code from I. Larin for PrimEx                          //
-//============================================================================//
-#ifdef PRIMEX_METHOD
-
 void PRadIslandCluster::groupHits(std::vector<ModuleHit> &hits,
-                                  std::vector<ModuleCluster> &clusters)
+                                  std::list<std::list<ModuleHit*>> &hits_groups)
 const
 {
     // roughly combine all adjacent hits
     for(auto &hit : hits)
     {
+        if(hit.energy < min_module_energy.at(hit.geo.type))
+            continue;
+
         // not belong to any existing cluster
-        if(!fillClusters(hit, clusters)) {
-            ModuleCluster new_cluster;
-            new_cluster.hits.push_back(hit);
-            clusters.emplace_back(std::move(new_cluster));
+        if(!fillClusters(hit, hits_groups)) {
+            std::list<ModuleHit*> new_group;
+            new_group.push_back(&hit);
+            hits_groups.emplace_back(std::move(new_group));
         }
     }
 
-    // merge adjacent cluster
-    for(auto it = clusters.begin(); it != clusters.end(); ++it)
+    // merge adjacent groups
+    for(auto it = hits_groups.begin(); it != hits_groups.end(); ++it)
     {
-        for(auto it_next = it + 1; it_next != clusters.end(); ++it_next)
+        auto it_next = it;
+        while(++it_next != hits_groups.end())
         {
-            if(!checkAdjacent(*it, *it_next))
-                continue;
-
-            // merge it to previous cluster and erase it
-            it_next->hits.reserve(it->hits.size() + it_next->hits.size());
-            it_next->hits.insert(it_next->hits.end(), it->hits.begin(), it->hits.end());
-            clusters.erase(it--);
-            break;
+            if(checkAdjacent(*it, *it_next)) {
+                it_next->splice(it_next->end(), *it);
+                hits_groups.erase(it--);
+                break;
+            }
         }
-    }
-
-    // clusters are formed, set the energy center
-    for(auto &cluster : clusters)
-    {
-        const ModuleHit *center = &cluster.center;
-        for(auto &hit : cluster.hits)
-        {
-            cluster.energy += hit.energy;
-            if(hit.energy > center->energy)
-                center = &hit;
-        }
-        cluster.center = *center;
     }
 }
 
-bool PRadIslandCluster::fillClusters(ModuleHit &hit, std::vector<ModuleCluster> &clusters)
+bool PRadIslandCluster::fillClusters(ModuleHit &hit, std::list<std::list<ModuleHit*>> &groups)
 const
 {
-    for(auto &cluster : clusters)
+    for(auto &group : groups)
     {
-        for(auto &prev_hit : cluster.hits)
+        for(auto &prev_hit : group)
         {
             // it belongs to a existing cluster
-            if(GetDistance(hit, prev_hit) < adj_dist) {
-                cluster.hits.push_back(hit);
+            if(GetDistance(hit, *prev_hit) < adj_dist) {
+                group.push_back(&hit);
                 return true;
             }
         }
@@ -146,34 +139,112 @@ const
     return false;
 }
 
-inline bool PRadIslandCluster::checkAdjacent(const ModuleCluster &c1,
-                                             const ModuleCluster &c2)
+inline bool PRadIslandCluster::checkAdjacent(const std::list<ModuleHit*> &g1,
+                                             const std::list<ModuleHit*> &g2)
 const
 {
-    for(auto &m1 : c1.hits)
-        for(auto &m2 : c2.hits)
-            if(GetDistance(m1, m2) < adj_dist)
+    for(auto &m1 : g1)
+    {
+        for(auto &m2 : g2)
+        {
+            if(GetDistance(*m1, *m2) < adj_dist) {
                 return true;
+            }
+        }
+    }
 
     return false;
 }
 
-void PRadIslandCluster::splitClusters(std::vector<ModuleCluster> &)
+// split one group into several clusters
+void PRadIslandCluster::splitCluster(std::list<ModuleHit*> &group,
+                                     std::vector<ModuleCluster> &clusters)
 const
 {
+    // find local maximum
+    std::vector<ModuleHit*> local_max;
+    for(auto &hit1 : group)
+    {
+        if(hit1->energy < min_center_energy)
+            continue;
 
+        bool maximum = true;
+        for(auto &hit2 : group)
+        {
+            // we count corner in
+            if((GetDistance(*hit1, *hit2) < CORNER_ADJACENT) &&
+               (hit2->energy > hit1->energy)) {
+                maximum = false;
+                break;
+            }
+        }
+
+        if(maximum)
+            local_max.push_back(hit1);
+    }
+
+    // no need to split
+    if(local_max.empty())
+        return;
+
+    if(local_max.size()) {// == 1) {
+        ModuleCluster new_cluster(*local_max.front());
+        for(auto &hit : group)
+            new_cluster.AddHit(*hit);
+        clusters.emplace_back(std::move(new_cluster));
+    }
+
+    // prepare clusters for split
+    std::vector<ModuleCluster> split_clusters;
+    for(auto &center : local_max)
+    {
+        split_clusters.emplace_back(*center);
+        split_clusters.back().AddHit(*center);
+    }
+
+    // do iteration to refine the splitting
+    int split_iter = 6;
+    for(int i = 0; i < split_iter; ++i)
+    {
+
+    }
 }
-
-inline void PRadIslandCluster::splitCluster(ModuleCluster &, ModuleCluster &)
-const
+/* don't split, output the full hits group
 {
+    ModuleCluster new_cluster;
+    ModuleHit *center = &new_cluster.center;
+    for(auto &hit : group)
+    {
+        new_cluster.AddHit(*hit);
+        if(hit->energy > center->energy)
+            center = hit;
+    }
 
+    if(center->energy > min_center_energy) {
+        new_cluster.center = *center;
+        clusters.emplace_back(std::move(new_cluster));
+    }
 }
+*/
 
 //============================================================================//
 // Method based on code from M. Levillain and W. Xiong                        //
 //============================================================================//
 #else
+
+void PRadIslandCluster::FormCluster(std::vector<ModuleHit> &hits,
+                                    std::vector<ModuleCluster> &clusters)
+const
+{
+    // clear container first
+    clusters.clear();
+
+    // form clusters with high energy hit seed
+    groupHits(hits, clusters);
+
+    // try to split the energy of adjacent clusters
+    splitClusters(clusters);
+}
 
 void PRadIslandCluster::groupHits(std::vector<ModuleHit> &hits,
                                   std::vector<ModuleCluster> &clusters)
@@ -189,6 +260,9 @@ const
     // loop over all hits
     for(auto &hit : hits)
     {
+        if(hit.energy < min_module_energy.at(hit.geo.type))
+            continue;
+
         // not belongs to any cluster, and the energy is larger than center threshold
         if(!fillClusters(hit, clusters) && (hit.energy > min_center_energy))
         {
@@ -206,7 +280,7 @@ const
     {
         for(auto &prev_hit : cluster.hits)
         {
-            if(GetDistance(hit, prev_hit) < 1.6) {
+            if(GetDistance(hit, prev_hit) < CORNER_ADJACENT) {
                 cluster.AddHit(hit);
                 return true;
             }
@@ -241,7 +315,7 @@ const
     {
         for(auto &hit2 : c2.hits)
         {
-            if(GetDistance(hit1, hit2) < 1.6) {
+            if(GetDistance(hit1, hit2) < CORNER_ADJACENT) {
                 shared_hits.push_back(&hit1);
                 break;
             }

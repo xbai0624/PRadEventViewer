@@ -28,11 +28,13 @@ public:
         SpectrumScale scale;
         double range_min;
         double range_max;
+
+        SettingData()
+        : type(Rainbow1), scale(LogScale), range_min(1.), range_max(100.)
+        {};
     };
 
-    Spectrum(int w, int h, double x1, double x2,
-             double l1 = 440, double l2 = 640,
-             SpectrumType type = Rainbow1, SpectrumScale scale = LogScale);
+    Spectrum(double w, double h, double l1 = 440, double l2 = 640);
     void SetSpectrumRange(const double &x1, const double &x2);
     void SetSpectrumRangeMin(double &min);
     void SetSpectrumRangeMax(double &max);
@@ -53,11 +55,13 @@ private:
     void updateGradient();
     double scaling(const double &val);
     QColor scaleToColor(const double &scale);
+
+private:
     SettingData settings;
+    double width;
+    double height;
     double wavelength1;
     double wavelength2;
-    int width;
-    int height;
     QLinearGradient gradient;
     QPainterPath shape;
 };

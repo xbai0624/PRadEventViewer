@@ -11,15 +11,9 @@
 #include <cmath>
 #include "Spectrum.h"
 
-Spectrum::Spectrum(int w, int h, double x1, double x2,
-                   double l1, double l2, SpectrumType type, SpectrumScale scale)
-: wavelength1(l1), wavelength2(l2), width(w), height(h)
+Spectrum::Spectrum(double w, double h, double l1, double l2)
+: width(w), height(h), wavelength1(l1), wavelength2(l2)
 {
-    settings.range_min = x1;
-    settings.range_max = x2;
-    settings.type = type;
-    settings.scale = scale;
-
     shape.addRect(-width/2., -height/2., width, height);
     gradient = QLinearGradient(QPoint(width/2., height/2.),
                                QPoint(width/2., -height/2.));
@@ -86,7 +80,7 @@ void Spectrum::SetSpectrumRangeMax(double &max)
 // get color in log scale
 QColor Spectrum::GetColor(const double &val)
 {
-    if(!val || (settings.range_min == settings.range_max))
+    if(val < settings.range_min || (settings.range_min == settings.range_max))
         return Qt::white;
     else
         return scaleToColor(scaling(val));

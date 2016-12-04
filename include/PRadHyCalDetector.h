@@ -91,6 +91,8 @@ struct ModuleHit
     ModuleHit(int i, const PRadHyCalModule::Geometry &g, float e)
     : id(i), geo(g), energy(e)
     {};
+
+    bool operator ==(const ModuleHit &rhs) const {return id == rhs.id;};
 };
 
 struct ModuleCluster
