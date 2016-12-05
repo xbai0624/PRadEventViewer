@@ -98,6 +98,7 @@ public:
     void RemoveClusterMethod(const std::string &name);
     void ClearClusterMethods();
     void SetClusterMethod(const std::string &name);
+    PRadHyCalCluster *GetClusterMethod() const {return recon;};
     PRadHyCalCluster *GetClusterMethod(const std::string &name) const;
     std::string GetClusterMethodName() const;
     std::vector<std::string> GetClusterMethodNames() const;

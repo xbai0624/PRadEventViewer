@@ -97,7 +97,8 @@ EXAMPLE       = testGEM \
                 testMatch \
                 getAvgGain \
                 replay \
-				mollerCenter
+				mollerCenter \
+				cosmicCheck
 #                testIsland
 #                testCombine
 #                testSim

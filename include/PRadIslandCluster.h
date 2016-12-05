@@ -10,7 +10,7 @@
 // value to judge if two modules are sharing a side line
 #define SIDE_ADJACENT 1.1
 
-#define PRIMEX_METHOD
+//#define PRIMEX_METHOD
 
 class PRadIslandCluster : public PRadHyCalCluster
 {

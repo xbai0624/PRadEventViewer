@@ -165,6 +165,7 @@ const
 void PRadIslandCluster::splitCluster(std::vector<ModuleHit*> &group,
                                      std::vector<ModuleCluster> &clusters)
 const
+/*
 {
     // find local maximum
     std::vector<ModuleHit*> local_max;
@@ -214,7 +215,8 @@ const
 
     }
 }
-/* don't split, output the full hits group
+*/
+// don't split, output the full hits group
 {
     ModuleCluster new_cluster;
     ModuleHit *center = &new_cluster.center;
@@ -230,7 +232,6 @@ const
         clusters.emplace_back(std::move(new_cluster));
     }
 }
-*/
 
 //============================================================================//
 // Method based on code from M. Levillain and W. Xiong                        //
@@ -324,7 +325,9 @@ const
         // discretize the distance to 1/100 of the cell size
         int dx = abs((hit.geo.x - center.geo.x)/center.geo.size_x * 100.);
         int dy = abs((hit.geo.y - center.geo.y)/center.geo.size_y * 100.);
-        frac[i] = profile.GetFraction(center.geo.type, dx, dy);
+        // we are comparing the relative amount of energy to be shared, so use of
+        // center energy should be equivalent to total cluster energy
+        frac[i] = profile.GetFraction(center.geo.type, dx, dy) * center.energy;
         total_frac += frac[i];
     }
 
