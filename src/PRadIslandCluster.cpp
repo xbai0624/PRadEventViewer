@@ -18,6 +18,7 @@
 #include "PRadADCChannel.h"
 #include "PRadTDCChannel.h"
 
+const PRadClusterProfile &profile = PRadClusterProfile::Instance();
 
 PRadIslandCluster::PRadIslandCluster(const std::string &path)
 {
@@ -53,7 +54,7 @@ void PRadIslandCluster::Configure(const std::string &path)
 
     // update the min module energy if some type is specified
     // the key is "Min Module Energy [typename]"
-    for(size_t i = 0; i < min_module_energy.size(); ++i)
+    for(unsigned int i = 0; i < min_module_energy.size(); ++i)
     {
         // determine key name
         std::string type = PRadHyCalModule::get_module_type_name(i);
@@ -241,9 +242,6 @@ const
 
     // form clusters with high energy hit seed
     groupHits(hits, clusters);
-
-    // try to split the energy of adjacent clusters
-    splitClusters(clusters);
 }
 
 void PRadIslandCluster::groupHits(std::vector<ModuleHit> &hits,
@@ -260,15 +258,15 @@ const
     // loop over all hits
     for(auto &hit : hits)
     {
+        // less than min module energy, ignore this hit
         if(hit.energy < min_module_energy.at(hit.geo.type))
             continue;
 
         // not belongs to any cluster, and the energy is larger than center threshold
         if(!fillClusters(hit, clusters) && (hit.energy > min_center_energy))
         {
-            ModuleCluster new_cluster(hit);
-            new_cluster.AddHit(hit);
-            clusters.emplace_back(std::move(new_cluster));
+            clusters.emplace_back(hit);
+            clusters.back().AddHit(hit);
         }
     }
 }
@@ -276,85 +274,77 @@ const
 bool PRadIslandCluster::fillClusters(ModuleHit &hit, std::vector<ModuleCluster> &c)
 const
 {
-    for(auto &cluster : c)
+    std::vector<unsigned int> indices;
+    indices.reserve(5);
+
+    for(unsigned int i = 0; i < c.size(); ++i)
     {
-        for(auto &prev_hit : cluster.hits)
+        for(auto &prev_hit : c.at(i).hits)
         {
             if(GetDistance(hit, prev_hit) < CORNER_ADJACENT) {
-                cluster.AddHit(hit);
-                return true;
-            }
-        }
-    }
-
-    return false;
-}
-
-// split energies of the shared modules into two adjacent clusters
-// here we assumed the cluster center energy is in a descendant order and the 
-// shared modules are always grouped into the cluster with higher center energy
-void PRadIslandCluster::splitClusters(std::vector<ModuleCluster> &clusters)
-const
-{
-    for(auto it = clusters.begin(); it != clusters.end(); ++it)
-    {
-        for(auto it_prev = clusters.begin(); it_prev != it; ++it_prev)
-        {
-            splitCluster(*it_prev, *it);
-        }
-    }
-}
-
-// it is supposed that c1 has all the possible shared modules
-inline void PRadIslandCluster::splitCluster(ModuleCluster &c1, ModuleCluster &c2)
-const
-{
-    std::vector<ModuleHit*> shared_hits;
-
-    for(auto &hit1 : c1.hits)
-    {
-        for(auto &hit2 : c2.hits)
-        {
-            if(GetDistance(hit1, hit2) < CORNER_ADJACENT) {
-                shared_hits.push_back(&hit1);
+                indices.push_back(i);
                 break;
             }
         }
     }
 
-    const PRadClusterProfile &profile = PRadClusterProfile::Instance();
+    // it belongs to no cluster
+    if(indices.empty())
+        return false;
 
-    // rough splitting
-    for(auto hit : shared_hits)
-    {
-        // check profile of c1 and c2
-        int dx1 = (hit->geo.x - c1.center.geo.x)/c1.center.geo.size_x * 100.;
-        int dy1 = (hit->geo.y - c1.center.geo.y)/c1.center.geo.size_y * 100.;
-        float frac1 = profile.GetFraction(c1.center.geo.type, abs(dx1), abs(dy1));
-
-        int dx2 = (hit->geo.x - c2.center.geo.x)/c2.center.geo.size_x * 100.;
-        int dy2 = (hit->geo.y - c2.center.geo.y)/c2.center.geo.size_y * 100.;
-        float frac2 = profile.GetFraction(c2.center.geo.type, abs(dx2), abs(dy2));
-
-        // no need to split
-        if(frac2 == 0.) {
-            continue;
-        }
-
-        // calculate the ratio of splitting energy
-        float ratio = frac1*c1.center.energy/(frac1*c1.center.energy + frac2*c2.center.energy);
-
-        // copy a new ModuleHit and split its energy
-        ModuleHit split_hit(*hit);
-
-        hit->energy *= ratio;
-        split_hit.energy -= hit->energy;
-
-        // add hit to c2
-        c1.energy -= split_hit.energy;
-        c2.AddHit(split_hit);
+    // it belongs to single cluster
+    if(indices.size() == 1) {
+        c.at(indices.front()).AddHit(hit);
+        return true;
     }
+
+    // it belongs to several clusters
+    return splitHit(hit, c, indices);
 }
+
+// split hit that belongs to several clusters
+bool PRadIslandCluster::splitHit(ModuleHit &hit,
+                                 std::vector<ModuleCluster> &clusters,
+                                 std::vector<unsigned int> &indices)
+const
+{
+    // energy fraction
+    std::vector<float> frac(indices.size(), 0.);
+    float total_frac = 0.;
+
+    // rough splitting, only use the center position
+    // to refine it, use a reconstruction position or position from other detector
+    for(unsigned int i = 0; i < indices.size(); ++i)
+    {
+        auto &center = clusters.at(indices.at(i)).center;
+        // discretize the distance to 1/100 of the cell size
+        int dx = abs((hit.geo.x - center.geo.x)/center.geo.size_x * 100.);
+        int dy = abs((hit.geo.y - center.geo.y)/center.geo.size_y * 100.);
+        frac.at(i) = profile.GetFraction(center.geo.type, dx, dy);
+        total_frac += frac.at(i);
+    }
+
+    // this hit is too far away from all clusters, discard it
+    if(total_frac == 0.) {
+        return false;
+    }
+
+    // add hit to all clusters
+    for(unsigned int i = 0; i < indices.size(); ++i)
+    {
+        // this cluster has no share of the hit
+        if(frac.at(i) == 0.)
+            continue;
+
+        auto &cluster = clusters.at(indices.at(i));
+        ModuleHit shared_hit(hit);
+        shared_hit.energy *= frac.at(i)/total_frac;
+        cluster.AddHit(shared_hit);
+    }
+
+    return true;
+}
+
 #endif
 
 

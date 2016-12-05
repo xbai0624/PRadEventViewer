@@ -10,7 +10,7 @@
 // value to judge if two modules are sharing a side line
 #define SIDE_ADJACENT 1.1
 
-#define PRIMEX_METHOD
+//#define PRIMEX_METHOD
 
 class PRadIslandCluster : public PRadHyCalCluster
 {
@@ -34,8 +34,9 @@ protected:
     void groupHits(std::vector<ModuleHit> &hits,
                    std::vector<ModuleCluster> &clusters) const;
     bool fillClusters(ModuleHit &hit, std::vector<ModuleCluster> &clusters) const;
-    void splitClusters(std::vector<ModuleCluster> &clusters) const;
-    void splitCluster(ModuleCluster &c1, ModuleCluster &c2) const;
+    bool splitHit(ModuleHit &hit,
+                  std::vector<ModuleCluster> &clusters,
+                  std::vector<unsigned int> &indices) const;
 #endif
 
 protected:

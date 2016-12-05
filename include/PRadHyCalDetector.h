@@ -101,8 +101,8 @@ struct ModuleCluster
     std::vector<ModuleHit> hits;    // hits group
     float energy;
 
-    ModuleCluster() : energy(0) {};
-    ModuleCluster(const ModuleHit &hit) : center(hit), energy(0) {};
+    ModuleCluster() : energy(0) { hits.reserve(100); };
+    ModuleCluster(const ModuleHit &hit) : center(hit), energy(0) { hits.reserve(100); };
 
     void AddHit(const ModuleHit &hit)
     {
