@@ -77,7 +77,7 @@ const
     // clear container first
     clusters.clear();
 
-    std::list<std::list<ModuleHit*>> groups;
+    std::vector<std::vector<ModuleHit*>> groups;
 
     // group adjacent hits
     groupHits(hits, groups);
@@ -89,8 +89,11 @@ const
     }
 }
 
+// group adjacent hits into raw clusters
+// list is suitable for the merge process, but it has poor performance while loop
+// over all the elements, the test with real data prefers vector as container
 void PRadIslandCluster::groupHits(std::vector<ModuleHit> &hits,
-                                  std::list<std::list<ModuleHit*>> &hits_groups)
+                                  std::vector<std::vector<ModuleHit*>> &hits_groups)
 const
 {
     // roughly combine all adjacent hits
@@ -101,7 +104,8 @@ const
 
         // not belong to any existing cluster
         if(!fillClusters(hit, hits_groups)) {
-            std::list<ModuleHit*> new_group;
+            std::vector<ModuleHit*> new_group;
+            new_group.reserve(50);
             new_group.push_back(&hit);
             hits_groups.emplace_back(std::move(new_group));
         }
@@ -114,7 +118,7 @@ const
         while(++it_next != hits_groups.end())
         {
             if(checkAdjacent(*it, *it_next)) {
-                it_next->splice(it_next->end(), *it);
+                it_next->insert(it_next->end(), it->begin(), it->end());
                 hits_groups.erase(it--);
                 break;
             }
@@ -122,7 +126,7 @@ const
     }
 }
 
-bool PRadIslandCluster::fillClusters(ModuleHit &hit, std::list<std::list<ModuleHit*>> &groups)
+bool PRadIslandCluster::fillClusters(ModuleHit &hit, std::vector<std::vector<ModuleHit*>> &groups)
 const
 {
     for(auto &group : groups)
@@ -140,8 +144,8 @@ const
     return false;
 }
 
-inline bool PRadIslandCluster::checkAdjacent(const std::list<ModuleHit*> &g1,
-                                             const std::list<ModuleHit*> &g2)
+inline bool PRadIslandCluster::checkAdjacent(const std::vector<ModuleHit*> &g1,
+                                             const std::vector<ModuleHit*> &g2)
 const
 {
     for(auto &m1 : g1)
@@ -158,7 +162,7 @@ const
 }
 
 // split one group into several clusters
-void PRadIslandCluster::splitCluster(std::list<ModuleHit*> &group,
+void PRadIslandCluster::splitCluster(std::vector<ModuleHit*> &group,
                                      std::vector<ModuleCluster> &clusters)
 const
 {
@@ -309,7 +313,7 @@ bool PRadIslandCluster::splitHit(ModuleHit &hit,
 const
 {
     // energy fraction
-    std::vector<float> frac(indices.size(), 0.);
+    float frac[indices.size()];
     float total_frac = 0.;
 
     // rough splitting, only use the center position
@@ -320,8 +324,8 @@ const
         // discretize the distance to 1/100 of the cell size
         int dx = abs((hit.geo.x - center.geo.x)/center.geo.size_x * 100.);
         int dy = abs((hit.geo.y - center.geo.y)/center.geo.size_y * 100.);
-        frac.at(i) = profile.GetFraction(center.geo.type, dx, dy);
-        total_frac += frac.at(i);
+        frac[i] = profile.GetFraction(center.geo.type, dx, dy);
+        total_frac += frac[i];
     }
 
     // this hit is too far away from all clusters, discard it
@@ -333,12 +337,12 @@ const
     for(unsigned int i = 0; i < indices.size(); ++i)
     {
         // this cluster has no share of the hit
-        if(frac.at(i) == 0.)
+        if(frac[i] == 0.)
             continue;
 
         auto &cluster = clusters.at(indices.at(i));
         ModuleHit shared_hit(hit);
-        shared_hit.energy *= frac.at(i)/total_frac;
+        shared_hit.energy *= frac[i]/total_frac;
         cluster.AddHit(shared_hit);
     }
 
