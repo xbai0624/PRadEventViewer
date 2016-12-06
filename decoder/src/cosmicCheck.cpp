@@ -23,20 +23,19 @@ using namespace std;
 const PRadClusterProfile &profile = PRadClusterProfile::Instance();
 
 // declaration of functions
-void Evaluate(const string &file, PRadHyCalSystem *sys);
+void Evaluate(const string &file);
 float EvalEstimator(const HyCalHit &hit, const vector<ModuleHit> &hits);
 float EvalUniformity(const HyCalHit &hycal_hit, const vector<ModuleHit> &hits);
 
 int main(int /*argc*/, char * /*argv*/ [])
 {
-    PRadHyCalSystem *sys = new PRadHyCalSystem("config/hycal.conf");
-    Evaluate("cosmic.dst", sys);            // a cosimic run
-    Evaluate("prad_1310.dst", sys);         // a normal production run
-    Evaluate("prad_1310_select.dst", sys);  // selected events, (70%, 130%) beam energy
+    Evaluate("cosmic.dst");             // a cosimic run
+    Evaluate("prad_1310.dst");          // a normal production run
+    Evaluate("prad_1310_select.dst");   // selected events, (70%, 130%) beam energy
     return 0;
 }
 
-void Evaluate(const string &file, PRadHyCalSystem *sys)
+void Evaluate(const string &file)
 {
     // remove affix
     string fname = file.substr(0, file.find_last_of("."));
@@ -44,11 +43,14 @@ void Evaluate(const string &file, PRadHyCalSystem *sys)
     PRadDSTParser dst_parser;
     dst_parser.OpenInput(file);
     dst_parser.OpenOutput(fname + "_rej.dst");
+    PRadDSTParser dst_parser2;
+    dst_parser2.OpenOutput(fname + "_sav.dst");
 
     TFile f((fname + "_est.root").c_str(), "RECREATE");
     TH1F hist("Likelihood", "Estimator", 1000, 0., 50.);
     TH1F hist_uni("Uniformity", "Energy Fluctuation", 1000, 0., 3.);
 
+    PRadHyCalSystem *sys = new PRadHyCalSystem("config/hycal.conf");
     PRadHyCalDetector *hycal = sys->GetDetector();
     PRadHyCalCluster *method = sys->GetClusterMethod();
 
@@ -78,7 +80,7 @@ void Evaluate(const string &file, PRadHyCalSystem *sys)
                 // found a not uniform cluster
                 float uni = EvalUniformity(hit, cluster.hits);
                 hist_uni.Fill(uni);
-                if(uni > 1.)
+                if(uni > 0.8)
                     uniform = false;
             }
 
@@ -88,12 +90,14 @@ void Evaluate(const string &file, PRadHyCalSystem *sys)
             // too uniform, reject
             if(uniform)
                 dst_parser.WriteEvent(event);
+            else
+                dst_parser2.WriteEvent(event);
         }
     }
 
     dst_parser.CloseInput();
     dst_parser.CloseOutput();
-
+    dst_parser2.CloseOutput();
     hist.Write();
     hist_uni.Write();
     f.Close();
