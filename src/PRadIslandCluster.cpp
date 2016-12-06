@@ -134,7 +134,7 @@ const
         for(auto &prev_hit : group)
         {
             // it belongs to a existing cluster
-            if(GetDistance(hit, *prev_hit) < adj_dist) {
+            if(PRadHyCalDetector::hit_distance(hit, *prev_hit) < adj_dist) {
                 group.push_back(&hit);
                 return true;
             }
@@ -152,7 +152,7 @@ const
     {
         for(auto &m2 : g2)
         {
-            if(GetDistance(*m1, *m2) < adj_dist) {
+            if(PRadHyCalDetector::hit_distance(*m1, *m2) < adj_dist) {
                 return true;
             }
         }
@@ -178,7 +178,7 @@ const
         for(auto &hit2 : group)
         {
             // we count corner in
-            if((GetDistance(*hit1, *hit2) < CORNER_ADJACENT) &&
+            if((PRadHyCalDetector::hit_distance(*hit1, *hit2) < CORNER_ADJACENT) &&
                (hit2->energy > hit1->energy)) {
                 maximum = false;
                 break;
@@ -286,7 +286,7 @@ const
     {
         for(auto &prev_hit : c.at(i).hits)
         {
-            if(GetDistance(hit, prev_hit) < CORNER_ADJACENT) {
+            if(PRadHyCalDetector::hit_distance(hit, prev_hit) < CORNER_ADJACENT) {
                 indices.push_back(i);
                 break;
             }

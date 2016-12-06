@@ -94,7 +94,7 @@ const
     // lead glass (largest) value as default
     float base_range = leadGlassRes;
     // crystal region
-    if(TEST_BIT(hycal.flag, kPWO))
+    if(TEST_BIT(hycal.flag, kPbWO4))
         base_range = crystalRes;
     // transition region
     if(TEST_BIT(hycal.flag, kTransition))

@@ -71,6 +71,9 @@ public:
     std::vector<HyCalHit> &GetHits() {return hycal_hits;};
     const std::vector<HyCalHit> &GetHits() const {return hycal_hits;};
 
+public:
+    static float hit_distance(const ModuleHit &m1, const ModuleHit &m2);
+
 protected:
     PRadHyCalSystem *system;
     std::vector<PRadHyCalModule*> module_list;

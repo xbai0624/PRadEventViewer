@@ -438,4 +438,14 @@ const
     return energy;
 }
 
+// quantize the distance between two modules by there sizes
+// by this way we can indiscriminately check modules with different size
+// only useful for adjacent module checking
+float PRadHyCalDetector::hit_distance(const ModuleHit &m1, const ModuleHit &m2)
+{
+    float dx = (m1.geo.x - m2.geo.x)/(m1.geo.size_x + m2.geo.size_x);
+    float dy = (m1.geo.y - m2.geo.y)/(m1.geo.size_y + m2.geo.size_y);
+
+    return sqrt(dx*dx + dy*dy)*2.;
+}
 

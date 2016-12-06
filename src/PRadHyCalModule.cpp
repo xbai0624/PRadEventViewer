@@ -216,7 +216,7 @@ void PRadHyCalModule::hycal_info(int pid, int &sector, int &row, int &col, unsig
         col = pid%34 + 1;
 
         // set flag
-        SET_BIT(flag, kPWO);
+        SET_BIT(flag, kPbWO4);
         if(row <= 19 && row >= 16 && col <= 19 && row >= 16)
             SET_BIT(flag, kInnerBound);
         if(row == 1 || row == 34 || col == 1 || col == 34)
@@ -229,7 +229,7 @@ void PRadHyCalModule::hycal_info(int pid, int &sector, int &row, int &col, unsig
         int g_col = pid%30 + 1;
 
         // set flag
-        SET_BIT(flag, kLG);
+        SET_BIT(flag, kPbGlass);
         if(g_row == 1 || g_row == 30 || g_col == 1 || g_col == 30)
             SET_BIT(flag, kOuterBound);
 

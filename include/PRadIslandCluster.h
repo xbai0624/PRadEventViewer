@@ -8,9 +8,9 @@
 // value to judge if two modules are connected at corner, quantized to module size
 #define CORNER_ADJACENT 1.6
 // value to judge if two modules are sharing a side line
-#define SIDE_ADJACENT 1.1
+#define SIDE_ADJACENT 1.3
 
-//#define PRIMEX_METHOD
+#define PRIMEX_METHOD
 
 class PRadIslandCluster : public PRadHyCalCluster
 {

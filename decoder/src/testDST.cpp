@@ -35,9 +35,12 @@ int main()
     PRadBenchMark timer;
 
     PRadDSTParser *dst_parser = new PRadDSTParser(handler);
-    dst_parser->OpenInput("/work/hallb/prad/replay/prad_001288.dst");
-    dst_parser->OpenOutput("test.dst");
+    //dst_parser->OpenInput("/work/hallb/prad/replay/prad_001288.dst");
+    //dst_parser->OpenOutput("test.dst");
+    dst_parser->OpenInput("prad_1310.dst");
+    dst_parser->OpenOutput("prad_1310_select.dst");
     int count = 0;
+    float beam_energy = 1097;
 
     // uncomment next line, it will not update calibration factor from dst file
 
@@ -55,12 +58,13 @@ int main()
             hycal->Reconstruct(event);
 
             // only save the event with only 1 cluster and 1000+ MeV energy
-            bool save = false;
-            if((hycal->GetDetector()->GetHits().size() == 1) &&
-               (hycal->GetDetector()->GetHits().at(0).E > 1000.))
-                save = true;
+            float energy = 0;
+            for(auto &hit : hycal->GetDetector()->GetHits())
+            {
+                energy += hit.E;
+            }
 
-            if(save)
+            if(energy >= beam_energy*0.7 && energy <= beam_energy*1.3)
                 dst_parser->WriteEvent();
 
         } else if (dst_parser->EventType() == PRad_DST_Epics) {

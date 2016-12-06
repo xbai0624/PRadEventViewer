@@ -405,9 +405,9 @@ enum HyCalHitStatus
 #define CLEAR_BIT(n,i)  ( (n) &= ~(1ULL << i) )
 #define TEST_BIT(n,i)  ( (bool)( n & (1ULL << i) ) )
 
-    kPWO = 0,           //cluster center at PWO region
-    kLG,                //cluster center at LG region
-    kTransition,        //cluster center at LG region
+    kPbGlass = 0,       //cluster center at lead glass region
+    kPbWO4,             //cluster center at lead tungstate region
+    kTransition,        //cluster center at transition region
     kSplit,             //cluster after splitting
     kDeadModule,        //cluster near dead module
     kInnerBound,        //cluster near the inner hole of HyCal

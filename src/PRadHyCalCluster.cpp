@@ -50,18 +50,6 @@ const
     // to be implemented by methods
 }
 
-// quantize the distance between two modules by there sizes
-// by this way we can indiscriminately check modules with different size
-// only useful for adjacent module checking
-float PRadHyCalCluster::GetDistance(const ModuleHit &m1, const ModuleHit &m2)
-const
-{
-    float dx = (m1.geo.x - m2.geo.x)/(m1.geo.size_x + m2.geo.size_x);
-    float dy = (m1.geo.y - m2.geo.y)/(m1.geo.size_y + m2.geo.size_y);
-
-    return sqrt(dx*dx + dy*dy)*2.;
-}
-
 inline float PRadHyCalCluster::GetWeight(const float &E, const float &E0)
 const
 {
@@ -121,7 +109,7 @@ HyCalHit PRadHyCalCluster::Reconstruct(const ModuleCluster &cluster)
 
     for(auto &hit : cluster.hits)
     {
-        if(GetDistance(cluster.center, hit) < 1.6) {
+        if(PRadHyCalDetector::hit_distance(cluster.center, hit) < 1.6) {
             cl_x[count] = hit.geo.x;
             cl_y[count] = hit.geo.y;
             cl_E[count] = hit.energy;

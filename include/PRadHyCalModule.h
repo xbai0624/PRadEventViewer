@@ -147,7 +147,6 @@ public:
     static const char *get_sector_name(int sec);
     static double distance(const PRadHyCalModule &m1, const PRadHyCalModule &m2);
 
-
 protected:
     PRadHyCalDetector *detector;
     PRadADCChannel *daq_ch;

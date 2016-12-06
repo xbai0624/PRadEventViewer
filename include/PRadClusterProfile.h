@@ -41,6 +41,8 @@ public:
     float GetFraction(int type, int x, int y) const;
     float GetError(int type, int x, int y) const;
     const Profile &GetProfile(int type, int x, int y) const;
+    const Profile &GetProfile(const float &x1, const float &y1,
+                              const float &x2, const float &y2) const;
 
 private:
     PRadClusterProfile(int type = 2, int xsize = 501, int ysize = 501);
@@ -52,6 +54,8 @@ private:
     int x_steps;
     int y_steps;
     Profile ***profiles;
+    Profile empty_prof;
+    Profile trans_prof;
 };
 
 #endif

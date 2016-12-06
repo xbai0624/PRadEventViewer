@@ -20,7 +20,6 @@ public:
     HyCalHit Reconstruct(const ModuleCluster &cluster);
     float GetWeight(const float &E, const float &E0) const;
     float GetShowerDepth(int module_type, const float &E) const;
-    float GetDistance(const ModuleHit &m1, const ModuleHit &m2) const;
 
 protected:
     PRadHyCalCluster();
