@@ -15,6 +15,8 @@
 #include "PRadGEMSystem.h"
 #include "PRadCoordSystem.h"
 #include "PRadDetMatch.h"
+#include "TFile.h"
+#include "TH1.h"
 #include <iostream>
 #include <string>
 #include <vector>
@@ -29,6 +31,7 @@ int main(int /*argc*/, char * /*argv*/ [])
     PRadGEMSystem *gem = new PRadGEMSystem("config/gem.conf");
 
     PRadDSTParser *dst_parser = new PRadDSTParser();
+    dst_parser->SetMode(No_Run_Info_Update);
 
     // coordinate system and detector match system
     PRadCoordSystem *coord_sys = new PRadCoordSystem("database/coordinates.dat");
@@ -36,23 +39,25 @@ int main(int /*argc*/, char * /*argv*/ [])
 
     PRadBenchMark timer;
 
-    // here shows an example how to read DST file while not saving all the events
-    // in memory
-    dst_parser->OpenInput("/work/hallb/prad/replay/prad_001288.dst");
+    //dst_parser->OpenInput("/work/hallb/prad/replay/prad_001288.dst");
+    dst_parser->OpenInput("prad_1310_select.dst");
+    TFile f("prad_1310_match.root", "RECREATE");
+    TH1F *hist[3];
+    hist[0] = new TH1F("PbGlass R Diff", "Diff in R", 1000, -100, 100);
+    hist[1] = new TH1F("PbWO4 R Diff", "Diff in R", 1000, -100, 100);
+    hist[2] = new TH1F("Trans R Diff", "Diff in R", 1000, -100, 100);
 
     PRadHyCalDetector *hycal_det = hycal->GetDetector();
     PRadGEMDetector *gem_det1 = gem->GetDetector("PRadGEM1");
     PRadGEMDetector *gem_det2 = gem->GetDetector("PRadGEM2");
 
-    int count = 0;
-    while(dst_parser->Read() && count < 50000)
+    while(dst_parser->Read())
     {
         if(dst_parser->EventType() == PRad_DST_Event) {
-            ++count;
             // you can push this event into data handler
             // handler->GetEventData().push_back(dst_parser->GetEvent()
             // or you can just do something with this event and discard it
-            auto event = dst_parser->GetEvent();
+            auto &event = dst_parser->GetEvent();
 
             // only interested in physics event
             if(!event.is_physics_event())
@@ -66,16 +71,15 @@ int main(int /*argc*/, char * /*argv*/ [])
             gem->Reconstruct(event);
 
             // get reconstructed clusters
-            auto hycal_hit = hycal->GetDetector()->GetHits();
-            auto gem1_hit = gem->GetDetector("PRadGEM1")->GetHits();
-            auto gem2_hit = gem->GetDetector("PRadGEM2")->GetHits();
+            auto &hycal_hit = hycal_det->GetHits();
+            auto &gem1_hit = gem_det1->GetHits();
+            auto &gem2_hit = gem_det2->GetHits();
 
             // coordinates transform, projection
-            // you can either pass iterators
-            coord_sys->Transform(hycal_det);
-            coord_sys->Transform(gem_det1);
-            coord_sys->Transform(gem_det2);
-            // or arrays
+            coord_sys->Transform(PRadDetector::HyCal, hycal_hit.begin(), hycal_hit.end());
+            coord_sys->Transform(PRadDetector::PRadGEM1, gem1_hit.begin(), gem1_hit.end());
+            coord_sys->Transform(PRadDetector::PRadGEM2, gem2_hit.begin(), gem2_hit.end());
+
             coord_sys->Projection(hycal_hit.begin(), hycal_hit.end());
             coord_sys->Projection(gem1_hit.begin(), gem1_hit.end());
             coord_sys->Projection(gem2_hit.begin(), gem2_hit.end());
@@ -83,27 +87,27 @@ int main(int /*argc*/, char * /*argv*/ [])
             // hits matching, return matched index
             auto matched = det_match->Match(hycal_hit, gem1_hit, gem2_hit);
 
-            cout << event.event_number << "  ";
-            if(matched.empty())
-                cout << "No matched event" << endl;
-
             for(auto idx : matched)
             {
-                cout << "HyCal: " << hycal_hit[idx.hycal].x
-                     << ", " << hycal_hit[idx.hycal].y
-                     << ", " << hycal_hit[idx.hycal].E
-                     << ". ";
+                auto &hit = hycal_hit[idx.hycal];
+
+                int hidx = 0;
+                if(TEST_BIT(hit.flag, kPbWO4))
+                    hidx = 1;
+                if(TEST_BIT(hit.flag, kTransition))
+                    hidx = 2;
+
+                float r = sqrt(hit.x*hit.x + hit.y*hit.y);
+                float x, y;
                 if(idx.gem1 >= 0) {
-                    cout << "GEM 1: " << gem1_hit[idx.gem1].x
-                         << ", " << gem1_hit[idx.gem1].y
-                         << ". ";
+                    x = gem1_hit[idx.gem1].x;
+                    y = gem1_hit[idx.gem1].y;
+                } else {
+                    x = gem2_hit[idx.gem2].x;
+                    y = gem2_hit[idx.gem2].y;
                 }
-                if(idx.gem2 >= 0) {
-                    cout << "GEM 2: " << gem2_hit[idx.gem2].x
-                         << ", " << gem2_hit[idx.gem2].y
-                         << ". ";
-                }
-                cout << endl;
+
+                hist[hidx]->Fill(r - sqrt(x*x + y*y));
             }
 
         } else if(dst_parser->EventType() == PRad_DST_Epics) {
@@ -115,12 +119,14 @@ int main(int /*argc*/, char * /*argv*/ [])
     dst_parser->CloseInput();
 
     cout << "TIMER: Finished, took " << timer.GetElapsedTime() << " ms" << endl;
-    cout << "Read " << count << " events and "
-         << epics->GetEventCount() << " EPICS events from file."
-         << endl;
     cout << PRadInfoCenter::GetBeamCharge() << endl;
     cout << PRadInfoCenter::GetLiveTime() << endl;
 
+    for(int i = 0; i < 3; ++i)
+    {
+        hist[i]->Write();
+    }
+    f.Close();
 //    handler->WriteToDST("prad_001323_0-10.dst");
     //handler->PrintOutEPICS();
     return 0;

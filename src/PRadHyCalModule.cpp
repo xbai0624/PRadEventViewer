@@ -15,7 +15,6 @@
 
 // enum name lists
 static const char *__module_type_list[] = {"PbGlass", "PbWO4"};
-static const char *__hycal_sector_list[] = {"Center", "Top", "Right", "Bottom", "Left"};
 
 
 
@@ -46,7 +45,7 @@ PRadHyCalModule::PRadHyCalModule(int pid, const Geometry &geo, PRadHyCalDetector
 // copy constructor
 PRadHyCalModule::PRadHyCalModule(const PRadHyCalModule &that)
 : detector(nullptr), daq_ch(nullptr), name(that.name), id(that.id),
-  geometry(that.geometry), cal_const(that.cal_const)
+  geometry(that.geometry), layout(that.layout), cal_const(that.cal_const)
 {
     // place holder
 }
@@ -54,7 +53,7 @@ PRadHyCalModule::PRadHyCalModule(const PRadHyCalModule &that)
 // move constructor
 PRadHyCalModule::PRadHyCalModule(PRadHyCalModule &&that)
 : detector(nullptr), daq_ch(nullptr), name(std::move(that.name)), id(that.id),
-  geometry(that.geometry), cal_const(that.cal_const)
+  geometry(that.geometry), layout(that.layout), cal_const(that.cal_const)
 {
     // place holder
 }
@@ -148,7 +147,7 @@ const
 std::string PRadHyCalModule::GetSectorName()
 const
 {
-    return std::string(get_sector_name(geometry.sector));
+    return std::string(PRadHyCalDetector::get_sector_name(layout.sector));
 }
 
 PRadTDCChannel *PRadHyCalModule::GetTDC()
@@ -202,78 +201,10 @@ int PRadHyCalModule::name_to_primex_id(const std::string &name)
     return -1;
 }
 
-// get sector position information from primex id
-void PRadHyCalModule::hycal_info(int pid, int &sector, int &row, int &col, unsigned int &flag)
-{
-    // calculate geometry information
-    flag = 0;
-
-    if(pid > 1000) {
-        // crystal module
-        pid -= 1001;
-        sector = (int)Center;
-        row = pid/34 + 1;
-        col = pid%34 + 1;
-
-        // set flag
-        SET_BIT(flag, kPbWO4);
-        if(row <= 19 && row >= 16 && col <= 19 && row >= 16)
-            SET_BIT(flag, kInnerBound);
-        if(row == 1 || row == 34 || col == 1 || col == 34)
-            SET_BIT(flag, kTransition);
-
-    } else {
-        // lead glass module
-        pid -= 1;
-        int g_row = pid/30 + 1;
-        int g_col = pid%30 + 1;
-
-        // set flag
-        SET_BIT(flag, kPbGlass);
-        if(g_row == 1 || g_row == 30 || g_col == 1 || g_col == 30)
-            SET_BIT(flag, kOuterBound);
-
-        // there are 4 sectors for lead glass
-        // top sector
-        if(g_col <= 24 && g_row <= 6) {
-            sector = (int)Top;
-            row = g_row;
-            col = g_col;
-            if(row == 6 && col >= 6)
-                SET_BIT(flag, kTransition);
-        }
-        // right sector
-        if(g_col > 24 && g_row <= 24) {
-            sector = (int)Right;
-            row = g_row;
-            col = g_col - 24;
-            if(col == 1 && row >= 6)
-                SET_BIT(flag, kTransition);
-        }
-        // bottom sector
-        if(g_col > 6 && g_row > 24) {
-            sector = (int)Bottom;
-            row = g_row - 24;
-            col = g_col - 6;
-            if(row == 1 && col < 20)
-                SET_BIT(flag, kTransition);
-        }
-        // left sector
-        if(g_col <= 6 && g_row > 6) {
-            sector = (int)Left;
-            row = g_row - 6;
-            col = g_col;
-            if(col == 6 && row < 20)
-                SET_BIT(flag, kTransition);
-        }
-
-    }
-}
-
 // get enum ModuleType by its name
 int PRadHyCalModule::get_module_type(const char *name)
 {
-    for(int i = 0; i < (int)Max_ModuleType; ++i)
+    for(int i = 0; i < (int)Max_Type; ++i)
         if(strcmp(name, __module_type_list[i]) == 0)
             return i;
 
@@ -284,36 +215,13 @@ int PRadHyCalModule::get_module_type(const char *name)
     return -1;
 }
 
-// get enum HyCalSector by its name
-int PRadHyCalModule::get_sector_id(const char *name)
-{
-    for(int i = 0; i < (int)Max_HyCalSector; ++i)
-        if(strcmp(name, __hycal_sector_list[i]) == 0)
-            return i;
-
-    std::cerr << "PRad HyCal Module Error: Cannot find sector " << name
-              << ", please check the definition in PRadHyCalModule."
-              << std::endl;
-    // not found
-    return -1;
-}
-
 // get name of ModuleType
 const char *PRadHyCalModule::get_module_type_name(int type)
 {
-    if(type < 0 || type >= (int)Max_ModuleType)
+    if(type < 0 || type >= (int)Max_Type)
         return "Undefined";
     else
         return __module_type_list[type];
-}
-
-// get name of HyCalSector
-const char *PRadHyCalModule::get_sector_name(int sec)
-{
-    if(sec < 0 || sec >= (int)Max_HyCalSector)
-        return "Undefined";
-    else
-        return __hycal_sector_list[sec];
 }
 
 double PRadHyCalModule::distance(const PRadHyCalModule &m1, const PRadHyCalModule &m2)
@@ -342,11 +250,7 @@ std::ostream &operator <<(std::ostream &os, const PRadHyCalModule &m)
        << std::setw(8) << m.GetSizeZ()
        << std::setw(12) << m.GetX()
        << std::setw(12) << m.GetY()
-       << std::setw(12) << m.GetZ()
-    // sector info
-       << std::setw(10) << m.GetSectorName()
-       << std::setw(4) << m.GetRow()
-       << std::setw(4) << m.GetColumn();
+       << std::setw(12) << m.GetZ();
 
     return os;
 }

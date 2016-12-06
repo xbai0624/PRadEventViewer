@@ -201,23 +201,6 @@ const
     z += coord.z_ori;
 }
 
-// transform the reconstructed hits in detector to beam frame
-void PRadCoordSystem::Transform(PRadHyCalDetector *det)
-const
-{
-    auto &hits = det->GetHits();
-    for(auto &hit : hits)
-        Transform(det->GetDetID(), hit.x, hit.y, hit.z);
-}
-
-void PRadCoordSystem::Transform(PRadGEMDetector *det)
-const
-{
-    auto &hits = det->GetHits();
-    for(auto &hit : hits)
-        Transform(det->GetDetID(), hit.x, hit.y, hit.z);
-}
-
 // projection from (xi, yi, zi) to zf
 void PRadCoordSystem::Projection(float &x, float &y, float &z,
                                  const float &xi, const float &yi, const float &zi,

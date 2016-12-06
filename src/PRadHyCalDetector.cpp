@@ -13,6 +13,10 @@
 #include <iomanip>
 
 
+// enum name lists
+static const char *__hycal_sector_list[] = {"Center", "Top", "Right", "Bottom", "Left"};
+
+
 
 //============================================================================//
 // constructor, assigment operator, destructor                                //
@@ -139,16 +143,14 @@ void PRadHyCalDetector::ReadModuleList(const std::string &path)
     // some info that is not read from list
     while (c_parser.ParseLine())
     {
-        if(!c_parser.CheckElements(11))
+        if(!c_parser.CheckElements(8))
             continue;
 
         c_parser >> name >> type
                  >> geo.size_x >> geo.size_y >> geo.size_z
-                 >> geo.x >> geo.y >> geo.z
-                 >> sector >> geo.row >> geo.column;
+                 >> geo.x >> geo.y >> geo.z;
 
         geo.type = PRadHyCalModule::get_module_type(type.c_str());
-        geo.sector = PRadHyCalModule::get_sector_id(sector.c_str());
 
         PRadHyCalModule *module = new PRadHyCalModule(name, geo);
 
@@ -255,6 +257,7 @@ bool PRadHyCalDetector::AddModule(PRadHyCalModule *module)
     }
 
     module->SetDetector(this);
+    setLayout(*module);
     module_list.push_back(module);
     name_map[name] = module;
     id_map[id] = module;
@@ -399,7 +402,7 @@ void PRadHyCalDetector::CollectHits()
     {
         float energy = module->GetEnergy();
         if(energy > 0)
-            module_hits.emplace_back(module->GetID(), module->GetGeometry(), energy);
+            module_hits.emplace_back(module, energy);
     }
 }
 
@@ -438,6 +441,79 @@ const
     return energy;
 }
 
+// using primex id to get layout information
+// TODO now it is highly specific to the current HyCal layout, make it configurable
+void PRadHyCalDetector::setLayout(PRadHyCalModule &module)
+const
+{
+    int pid = module.GetID(), sector = -1, col = 0, row = 0;
+    unsigned int flag;
+
+    // calculate geometry information
+    flag = 0;
+    if(pid > 1000) {
+        // crystal module
+        pid -= 1001;
+        sector = (int)Center;
+        row = pid/34 + 1;
+        col = pid%34 + 1;
+
+        // set flag
+        SET_BIT(flag, kPbWO4);
+        if(row <= 19 && row >= 16 && col <= 19 && row >= 16)
+            SET_BIT(flag, kInnerBound);
+        if(row == 1 || row == 34 || col == 1 || col == 34)
+            SET_BIT(flag, kTransition);
+
+    } else {
+        // lead glass module
+        pid -= 1;
+        int g_row = pid/30 + 1;
+        int g_col = pid%30 + 1;
+
+        // set flag
+        SET_BIT(flag, kPbGlass);
+        if(g_row == 1 || g_row == 30 || g_col == 1 || g_col == 30)
+            SET_BIT(flag, kOuterBound);
+
+        // there are 4 sectors for lead glass
+        // top sector
+        if(g_col <= 24 && g_row <= 6) {
+            sector = (int)Top;
+            row = g_row;
+            col = g_col;
+            if(row == 6 && col >= 6)
+                SET_BIT(flag, kTransition);
+        }
+        // right sector
+        if(g_col > 24 && g_row <= 24) {
+            sector = (int)Right;
+            row = g_row;
+            col = g_col - 24;
+            if(col == 1 && row >= 6)
+                SET_BIT(flag, kTransition);
+        }
+        // bottom sector
+        if(g_col > 6 && g_row > 24) {
+            sector = (int)Bottom;
+            row = g_row - 24;
+            col = g_col - 6;
+            if(row == 1 && col < 20)
+                SET_BIT(flag, kTransition);
+        }
+        // left sector
+        if(g_col <= 6 && g_row > 6) {
+            sector = (int)Left;
+            row = g_row - 6;
+            col = g_col;
+            if(col == 6 && row < 20)
+                SET_BIT(flag, kTransition);
+        }
+    }
+
+    module.SetLayout(PRadHyCalModule::Layout(flag, sector, row, col));
+}
+
 // quantize the distance between two modules by there sizes
 // by this way we can indiscriminately check modules with different size
 // only useful for adjacent module checking
@@ -448,4 +524,28 @@ float PRadHyCalDetector::hit_distance(const ModuleHit &m1, const ModuleHit &m2)
 
     return sqrt(dx*dx + dy*dy)*2.;
 }
+
+// get enum HyCalSector by its name
+int PRadHyCalDetector::get_sector_id(const char *name)
+{
+    for(int i = 0; i < (int)Max_Sector; ++i)
+        if(strcmp(name, __hycal_sector_list[i]) == 0)
+            return i;
+
+    std::cerr << "PRad HyCal Detector Error: Cannot find sector " << name
+              << ", please check the definition in PRadHyCalModule."
+              << std::endl;
+    // not found
+    return -1;
+}
+
+// get name of HyCalSector
+const char *PRadHyCalDetector::get_sector_name(int sec)
+{
+    if(sec < 0 || sec >= (int)Max_Sector)
+        return "Undefined";
+    else
+        return __hycal_sector_list[sec];
+}
+
 

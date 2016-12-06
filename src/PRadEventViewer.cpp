@@ -1347,9 +1347,9 @@ void PRadEventViewer::showReconEvent()
     auto &gem2_hit = gem2->GetHits();
 
     // coordinates transform, projection
-    coordSystem->Transform((PRadHyCalDetector *)HyCal);
-    coordSystem->Transform(gem1);
-    coordSystem->Transform(gem2);
+    coordSystem->Transform(HyCal->GetDetID(), hycal_hit.begin(), hycal_hit.end());
+    coordSystem->Transform(gem1->GetDetID(), gem1_hit.begin(), gem1_hit.end());
+    coordSystem->Transform(gem2->GetDetID(), gem2_hit.begin(), gem2_hit.end());
 
     coordSystem->Projection(hycal_hit.begin(), hycal_hit.end());
     coordSystem->Projection(gem1_hit.begin(), gem1_hit.end());

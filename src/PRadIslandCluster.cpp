@@ -50,7 +50,7 @@ void PRadIslandCluster::Configure(const std::string &path)
 
     // set the min module energy for all the module type
     float univ_min_energy = getDefConfig<float>("Min Module Energy", 0., false);
-    min_module_energy.resize(PRadHyCalModule::Max_ModuleType, univ_min_energy);
+    min_module_energy.resize(PRadHyCalModule::Max_Type, univ_min_energy);
 
     // update the min module energy if some type is specified
     // the key is "Min Module Energy [typename]"
@@ -322,12 +322,9 @@ const
     for(unsigned int i = 0; i < indices.size(); ++i)
     {
         auto &center = clusters.at(indices.at(i)).center;
-        // discretize the distance to 1/100 of the cell size
-        int dx = abs((hit.geo.x - center.geo.x)/center.geo.size_x * 100.);
-        int dy = abs((hit.geo.y - center.geo.y)/center.geo.size_y * 100.);
         // we are comparing the relative amount of energy to be shared, so use of
         // center energy should be equivalent to total cluster energy
-        frac[i] = profile.GetFraction(center.geo.type, dx, dy) * center.energy;
+        frac[i] = profile.GetProfile(center, hit).frac * center.energy;
         total_frac += frac[i];
     }
 

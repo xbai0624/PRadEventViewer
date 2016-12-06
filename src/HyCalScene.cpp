@@ -202,16 +202,14 @@ void HyCalScene::ReadModuleList(const std::string &path)
     // some info that is not read from list
     while (c_parser.ParseLine())
     {
-        if(!c_parser.CheckElements(11))
+        if(!c_parser.CheckElements(8))
             continue;
 
         c_parser >> name >> type
                  >> geo.size_x >> geo.size_y >> geo.size_z
-                 >> geo.x >> geo.y >> geo.z
-                 >> sector >> geo.row >> geo.column;
+                 >> geo.x >> geo.y >> geo.z;
 
         geo.type = PRadHyCalModule::get_module_type(type.c_str());
-        geo.sector = PRadHyCalModule::get_sector_id(sector.c_str());
 
         HyCalModule *module = new HyCalModule(console, name, geo);
 

@@ -64,7 +64,7 @@ float PRadHyCalCluster::GetShowerDepth(int module_type, const float &E)
 const
 {
     if(depth_corr && E > 0.) {
-        // here all the values are hard coded, because they are all physical
+        // here all the values are hard coded, because these are all physical
         // values corresponding to the material, so no need to change
         // it returns the maximum shower depth that
         // t = X0*ln(E0/Ec)/ln2, where X0 is radiation length, Ec is critical energy
@@ -72,6 +72,7 @@ const
         if(module_type == PRadHyCalModule::PbWO4)
             return 8.6*log(E/1.1)/log(2.);
 
+        // -101.2 is the surface difference between Lead Glass and Lead Tungstate modules
         if(module_type == PRadHyCalModule::PbGlass)
             return 26.7*log(E/2.84)/log(2.);
     }
@@ -95,7 +96,7 @@ HyCalHit PRadHyCalCluster::Reconstruct(const ModuleCluster &cluster)
 {
     // initialize the hit
     HyCalHit hycal_hit(cluster.center.id,       // center id
-                       cluster.center.geo.flag, // module flag
+                       cluster.center.flag,     // module flag
                        cluster.energy);         // total energy
 
     // count modules

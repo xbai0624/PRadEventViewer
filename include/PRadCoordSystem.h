@@ -95,10 +95,6 @@ public:
     // basic transform functions
     void Transform(int det_id, float &x, float &y, float &z) const;
 
-    // functions for PRadDetectors
-    void Transform(PRadHyCalDetector *det) const;
-    void Transform(PRadGEMDetector *det) const;
-
 public:
     // template functions
     // transform for clusters with det_id

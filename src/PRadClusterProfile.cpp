@@ -7,7 +7,6 @@
 //============================================================================//
 
 #include "PRadClusterProfile.h"
-#include "PRadHyCalModule.h"
 #include "ConfigParser.h"
 #include <cmath>
 
@@ -154,12 +153,51 @@ const
 // TODO generalize it according to the module list read in
 #define PWO_X_BOUNDARY 353.09
 #define PWO_Y_BOUNDARY 352.75
-static float __cp_size_x[2] = {38.15, 20.77};
-static float __cp_size_y[2] = {38.15, 20.75};
 static float __cp_boundary[4] = {PWO_Y_BOUNDARY, PWO_X_BOUNDARY,
                                  -PWO_Y_BOUNDARY, -PWO_X_BOUNDARY};
 static bool __cp_x_boundary[4] = {false, true, false, true};
 
+const CProfile &PRadClusterProfile::GetProfile(const ModuleHit &m1, const ModuleHit &m2)
+const
+{
+    int dx, dy;
+    // both belong to the same part
+    if(m1.geo.type == m2.geo.type) {
+        dx = abs(100.*(m1.geo.x - m2.geo.x)/m1.geo.size_x);
+        dy = abs(100.*(m1.geo.y - m2.geo.y)/m1.geo.size_y);
+    // belong to different part
+    } else {
+        // determine the line that connects the two points
+        // y = kx + b
+        float k = (m2.geo.y - m1.geo.y)/(m2.geo.x - m1.geo.x);
+        float b = m1.geo.y - k*m1.geo.x;
+
+        // determine which boundary the line is crossing
+        int sect = abs(m1.sector - m2.sector);
+        float boundary = __cp_boundary[sect - 1];
+        bool x_boundary = __cp_x_boundary[sect - 1];
+
+        // get the intersect point
+        float inter_x, inter_y;
+        if(x_boundary) {
+            inter_x = boundary;
+            inter_y = k*inter_x + b;
+        } else {
+            inter_y = boundary;
+            inter_x = (inter_y - b)/k;
+        }
+
+        dx =   abs(100.*(m1.geo.x - inter_x)/m1.geo.size_x)
+             + abs(100.*(m2.geo.x - inter_x)/m2.geo.size_x);
+        dy =   abs(100.*(m1.geo.y - inter_y)/m1.geo.size_y)
+             + abs(100.*(m2.geo.y - inter_y)/m2.geo.size_y);
+    }
+
+    return GetProfile(m1.geo.type, dx, dy);
+}
+
+static float __cp_size_x[2] = {38.15, 20.77};
+static float __cp_size_y[2] = {38.15, 20.75};
 inline int __cp_get_sector(const float &x, const float &y)
 {
     if(y > PWO_Y_BOUNDARY && x <= PWO_X_BOUNDARY)
@@ -209,10 +247,10 @@ const
         float inter_x, inter_y;
         if(x_boundary) {
             inter_x = boundary;
-            inter_y = k*boundary + b;
+            inter_y = k*inter_x + b;
         } else {
             inter_y = boundary;
-            inter_x = (boundary - b)/k;
+            inter_x = (inter_y - b)/k;
         }
 
         dx =  abs((x1 - inter_x)/__cp_size_x[type1]*100.)

@@ -20,6 +20,19 @@ class PRadHyCalDetector : public PRadDetector
 {
 public:
     friend class PRadHyCalSystem;
+    enum Sector
+    {
+        // undefined
+        Undefined_Sector = -1,
+        // normal sectors
+        Center = 0,
+        Top = 1,
+        Right = 2,
+        Bottom = 3,
+        Left = 4,
+        // max number of sectors
+        Max_Sector,
+    };
 
 public:
     // constructor
@@ -72,7 +85,12 @@ public:
     const std::vector<HyCalHit> &GetHits() const {return hycal_hits;};
 
 public:
+    static int get_sector_id(const char *name);
+    static const char *get_sector_name(int sec);
     static float hit_distance(const ModuleHit &m1, const ModuleHit &m2);
+
+protected:
+    virtual void setLayout(PRadHyCalModule &module) const;
 
 protected:
     PRadHyCalSystem *system;
@@ -87,13 +105,20 @@ protected:
 struct ModuleHit
 {
     int id;                         // module id
+    unsigned int flag;              // module flag
+    int sector;                     // hycal sector
     PRadHyCalModule::Geometry geo;  // geometry
     float energy;                   // participated energy, may be splitted
 
-    ModuleHit() : id(0), energy(0) {};
-    ModuleHit(int i, const PRadHyCalModule::Geometry &g, float e)
-    : id(i), geo(g), energy(e)
-    {};
+    ModuleHit() : id(0), flag(0), sector(0), energy(0) {};
+    ModuleHit(PRadHyCalModule *m, float e)
+    : energy(e)
+    {
+        id = m->GetID();
+        flag = m->GetLayoutFlag();
+        sector = m->GetSectorID();
+        geo = m->GetGeometry();
+    };
 
     bool operator ==(const ModuleHit &rhs) const {return id == rhs.id;};
 };

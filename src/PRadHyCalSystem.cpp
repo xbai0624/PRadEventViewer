@@ -442,7 +442,7 @@ void PRadHyCalSystem::Reconstruct(const EventData &event)
 
         double val = adc.value - adc_list.at(adc.channel_id)->GetPedestal().mean;
 
-        hits.emplace_back(module->GetID(), module->GetGeometry(), module->GetEnergy(val));
+        hits.emplace_back(module, module->GetEnergy(val));
     }
 
     // reoncsturct
@@ -885,8 +885,8 @@ const
     auto ch_list = adc_list;
     std::sort(ch_list.begin(), ch_list.end(), ch_order);
 
-    TDirectory *mod_dir[PRadHyCalModule::Max_ModuleType];
-    for(int i = 0; i < (int) PRadHyCalModule::Max_ModuleType; ++i)
+    TDirectory *mod_dir[PRadHyCalModule::Max_Type];
+    for(int i = 0; i < (int) PRadHyCalModule::Max_Type; ++i)
     {
         mod_dir[i] = cur_dir->mkdir(PRadHyCalModule::get_module_type_name(i));
     }
