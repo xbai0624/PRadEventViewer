@@ -440,7 +440,7 @@ void PRadHyCalSystem::Reconstruct(const EventData &event)
         if(!module)
             continue;
 
-        double val = adc.value - adc_list.at(adc.channel_id)->GetPedestal().mean;
+        double val = (double)adc.value - adc_list.at(adc.channel_id)->GetPedestal().mean;
 
         hits.emplace_back(module, module->GetEnergy(val));
     }

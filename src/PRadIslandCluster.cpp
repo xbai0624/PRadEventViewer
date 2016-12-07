@@ -3,6 +3,10 @@
 // Reconstruct the cluster using island algorithm from PrimEx                 //
 //                                                                            //
 // Ilya Larin, adapted GAMS island algorithm for HyCal in PrimEx.             //
+// Maxime Levillain & Weizhi Xiong, developed a new method based on PrimEx    //
+//                                  method, has a much better performance on  //
+//                                  splitting, but has a slightly worse       //
+//                                  resolution 08/01/2016                     //
 // Weizhi Xiong, adapted island algorithm for PRad, reduced the discretized   //
 //               energy value from 10 MeV to 0.1 MeV, wrote a C++ wrapper for //
 //               the fortran code. 09/28/2016                                 //
@@ -42,6 +46,8 @@ void PRadIslandCluster::Configure(const std::string &path)
 
     bool verbose = !path.empty();
 
+    split_iter = getDefConfig<unsigned int>("Split Iteration", 6, verbose);
+    least_share = getDefConfig<float>("Least Split Fraction", 0.01, verbose);
     bool corner = getDefConfig<bool>("Corner Connection", false, verbose);
     if(corner)
         adj_dist = CORNER_ADJACENT;
@@ -70,6 +76,25 @@ void PRadIslandCluster::Configure(const std::string &path)
 //============================================================================//
 #ifdef PRIMEX_METHOD
 
+// some global container and function to help splitting and improve performance
+#define SPLIT_MAX_HITS 1000
+#define SPLIT_MAX_CLUSTERS 100
+float __ic_frac[SPLIT_MAX_HITS][SPLIT_MAX_CLUSTERS];
+float __ic_tot_frac[SPLIT_MAX_HITS];
+float __ic_cl_x[POS_RECON_HITS], __ic_cl_y[POS_RECON_HITS], __ic_cl_E[POS_RECON_HITS];
+
+inline void __ic_sum_frac(size_t hits, size_t maximums)
+{
+    for(size_t i = 0; i < hits; ++i)
+    {
+        __ic_tot_frac[i] = 0;
+        for(size_t j = 0; j < maximums; ++j)
+            __ic_tot_frac[i] += __ic_frac[i][j];
+    }
+}
+
+
+
 void PRadIslandCluster::FormCluster(std::vector<ModuleHit> &hits,
                                     std::vector<ModuleCluster> &clusters)
 const
@@ -93,7 +118,7 @@ const
 // list is suitable for the merge process, but it has poor performance while loop
 // over all the elements, the test with real data prefers vector as container
 void PRadIslandCluster::groupHits(std::vector<ModuleHit> &hits,
-                                  std::vector<std::vector<ModuleHit*>> &hits_groups)
+                                  std::vector<std::vector<ModuleHit*>> &groups)
 const
 {
     // roughly combine all adjacent hits
@@ -103,30 +128,31 @@ const
             continue;
 
         // not belong to any existing cluster
-        if(!fillClusters(hit, hits_groups)) {
+        if(!fillClusters(hit, groups)) {
             std::vector<ModuleHit*> new_group;
             new_group.reserve(50);
             new_group.push_back(&hit);
-            hits_groups.emplace_back(std::move(new_group));
+            groups.emplace_back(std::move(new_group));
         }
     }
 
     // merge adjacent groups
-    for(auto it = hits_groups.begin(); it != hits_groups.end(); ++it)
+    for(auto it = groups.begin(); it != groups.end(); ++it)
     {
         auto it_next = it;
-        while(++it_next != hits_groups.end())
+        while(++it_next != groups.end())
         {
             if(checkAdjacent(*it, *it_next)) {
                 it_next->insert(it_next->end(), it->begin(), it->end());
-                hits_groups.erase(it--);
+                groups.erase(it--);
                 break;
             }
         }
     }
 }
 
-bool PRadIslandCluster::fillClusters(ModuleHit &hit, std::vector<std::vector<ModuleHit*>> &groups)
+bool PRadIslandCluster::fillClusters(ModuleHit &hit,
+                                     std::vector<std::vector<ModuleHit*>> &groups)
 const
 {
     for(auto &group : groups)
@@ -162,21 +188,49 @@ const
 }
 
 // split one group into several clusters
-void PRadIslandCluster::splitCluster(std::vector<ModuleHit*> &group,
+void PRadIslandCluster::splitCluster(const std::vector<ModuleHit*> &group,
                                      std::vector<ModuleCluster> &clusters)
 const
-/*
 {
     // find local maximum
+    auto maximums = findMaximums(group);
+
+    // no cluster center found
+    if(maximums.empty())
+        return;
+
+    // only 1 maximum, no need to split
+    if(maximums.size() == 1) {
+        // create cluster based on the center
+        clusters.emplace_back(*maximums.front());
+        auto &cluster = clusters.back();
+
+        for(auto &hit : group)
+            cluster.AddHit(*hit);
+    // split hits between several maximums
+    } else {
+        splitHits(maximums, group, clusters);
+    }
+}
+
+// find local maximums in a group of adjacent hits
+std::vector<ModuleHit*> PRadIslandCluster::findMaximums(const std::vector<ModuleHit*> &hits)
+const
+{
     std::vector<ModuleHit*> local_max;
-    for(auto &hit1 : group)
+    local_max.reserve(20);
+    for(auto it = hits.begin(); it != hits.end(); ++it)
     {
+        auto &hit1 = *it;
         if(hit1->energy < min_center_energy)
             continue;
 
         bool maximum = true;
-        for(auto &hit2 : group)
+        for(auto &hit2 : hits)
         {
+            if(hit1 == hit2)
+                continue;
+
             // we count corner in
             if((PRadHyCalDetector::hit_distance(*hit1, *hit2) < CORNER_ADJACENT) &&
                (hit2->energy > hit1->energy)) {
@@ -185,53 +239,111 @@ const
             }
         }
 
-        if(maximum)
+        if(maximum) {
             local_max.push_back(hit1);
+        }
     }
 
-    // no need to split
-    if(local_max.empty())
-        return;
-
-    if(local_max.size()) {// == 1) {
-        ModuleCluster new_cluster(*local_max.front());
-        for(auto &hit : group)
-            new_cluster.AddHit(*hit);
-        clusters.emplace_back(std::move(new_cluster));
-    }
-
-    // prepare clusters for split
-    std::vector<ModuleCluster> split_clusters;
-    for(auto &center : local_max)
-    {
-        split_clusters.emplace_back(*center);
-        split_clusters.back().AddHit(*center);
-    }
-
-    // do iteration to refine the splitting
-    int split_iter = 6;
-    for(int i = 0; i < split_iter; ++i)
-    {
-
-    }
+    return local_max;
 }
-*/
-// don't split, output the full hits group
+
+// split hits between several local maximums inside a cluster group
+void PRadIslandCluster::splitHits(const std::vector<ModuleHit*> &maximums,
+                                  const std::vector<ModuleHit*> &hits,
+                                  std::vector<ModuleCluster> &clusters)
+const
 {
-    ModuleCluster new_cluster;
-    ModuleHit *center = &new_cluster.center;
-    for(auto &hit : group)
+    // initialize fractions
+    for(size_t i = 0; i < maximums.size(); ++i)
     {
-        new_cluster.AddHit(*hit);
-        if(hit->energy > center->energy)
-            center = hit;
+        auto &center = *maximums.at(i);
+        for(size_t j = 0; j < hits.size(); ++j)
+        {
+            auto &hit = *hits.at(j);
+            __ic_frac[j][i] = profile.GetProfile(center, hit).frac*center.energy;
+        }
     }
 
-    if(center->energy > min_center_energy) {
-        new_cluster.center = *center;
-        clusters.emplace_back(std::move(new_cluster));
+    // do iteration to evaluate the share of hits between several maximums
+    unsigned int count = 0;
+    while(count++ < split_iter)
+    {
+        evalFraction(hits, maximums);
+    }
+
+    // done iteration, add cluster according to the final share of energy
+    __ic_sum_frac(hits.size(), maximums.size());
+    for(size_t i = 0; i < maximums.size(); ++i)
+    {
+        clusters.emplace_back(*maximums.at(i));
+        auto &cluster = clusters.back();
+
+        for(size_t j = 0; j < hits.size(); ++j)
+        {
+            if(__ic_frac[j][i] == 0.)
+                continue;
+
+            ModuleHit new_hit(*hits.at(j));
+            new_hit.energy *= __ic_frac[j][i]/__ic_tot_frac[j];
+            cluster.AddHit(new_hit);
+
+            // update the center energy
+            if(new_hit == cluster.center)
+                cluster.center.energy = new_hit.energy;
+        }
     }
 }
+
+inline void PRadIslandCluster::evalFraction(const std::vector<ModuleHit*> &hits,
+                                            const std::vector<ModuleHit*> &maximums)
+const
+{
+    __ic_sum_frac(hits.size(), maximums.size());
+    for(size_t i = 0; i < maximums.size(); ++i)
+    {
+        auto &center = *maximums.at(i);
+        float tot_E = 0.;
+        int count = 0;
+        for(size_t j = 0; j < hits.size(); ++j)
+        {
+            auto &hit = *hits.at(j);
+            if(__ic_frac[j][i] == 0.)
+                continue;
+
+            // using 3x3 to reconstruct hit position
+            if(PRadHyCalDetector::hit_distance(center, hit) < CORNER_ADJACENT) {
+                __ic_cl_x[count] = hit.geo.x;
+                __ic_cl_y[count] = hit.geo.y;
+                __ic_cl_E[count] = hit.energy*__ic_frac[j][i]/__ic_tot_frac[j];
+                tot_E += __ic_cl_E[count];
+                count++;
+            }
+        }
+
+        float tot_weight = 0., weight_x = 0., weight_y = 0.;
+        for(int i = 0; i < count; ++i)
+        {
+            float weight = PRadHyCalCluster::GetWeight(__ic_cl_E[i], tot_E);
+            weight_x += weight*__ic_cl_x[i];
+            weight_y += weight*__ic_cl_y[i];
+            tot_weight += weight;
+        }
+        float x = weight_x/tot_weight;
+        float y = weight_y/tot_weight;
+
+        for(size_t j = 0; j < hits.size(); ++j)
+        {
+            auto &hit = *hits.at(j);
+            float frac = profile.GetProfile(x, y, hit.geo.x, hit.geo.y).frac;
+            if(frac < least_share) // too small share, treat as zero
+                __ic_frac[j][i] = 0.;
+            else
+                __ic_frac[j][i] = frac*tot_E;
+        }
+    }
+}
+
+
 
 //============================================================================//
 // Method based on code from M. Levillain and W. Xiong                        //
@@ -350,5 +462,4 @@ const
 }
 
 #endif
-
 

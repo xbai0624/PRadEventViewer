@@ -17,6 +17,7 @@
 #include "PRadDetMatch.h"
 #include "TFile.h"
 #include "TH1.h"
+#include "TH2.h"
 #include <iostream>
 #include <string>
 #include <vector>
@@ -46,6 +47,7 @@ int main(int /*argc*/, char * /*argv*/ [])
     hist[0] = new TH1F("PbGlass R Diff", "Diff in R", 1000, -100, 100);
     hist[1] = new TH1F("PbWO4 R Diff", "Diff in R", 1000, -100, 100);
     hist[2] = new TH1F("Trans R Diff", "Diff in R", 1000, -100, 100);
+    TH2F *hist2d = new TH2F("R Diff", "HyCal - GEM", 800, 0, 800, 200, -100, 100);
 
     PRadHyCalDetector *hycal_det = hycal->GetDetector();
     PRadGEMDetector *gem_det1 = gem->GetDetector("PRadGEM1");
@@ -107,7 +109,9 @@ int main(int /*argc*/, char * /*argv*/ [])
                     y = gem2_hit[idx.gem2].y;
                 }
 
-                hist[hidx]->Fill(r - sqrt(x*x + y*y));
+                float dr = r - sqrt(x*x + y*y);
+                hist[hidx]->Fill(dr);
+                hist2d->Fill(r, dr);
             }
 
         } else if(dst_parser->EventType() == PRad_DST_Epics) {
@@ -126,6 +130,7 @@ int main(int /*argc*/, char * /*argv*/ [])
     {
         hist[i]->Write();
     }
+    hist2d->Write();
     f.Close();
 //    handler->WriteToDST("prad_001323_0-10.dst");
     //handler->PrintOutEPICS();

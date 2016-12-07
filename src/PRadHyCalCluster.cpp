@@ -50,7 +50,7 @@ const
     // to be implemented by methods
 }
 
-inline float PRadHyCalCluster::GetWeight(const float &E, const float &E0)
+float PRadHyCalCluster::GetWeight(const float &E, const float &E0)
 const
 {
     float w = log_weight_thres + log(E/E0);
@@ -91,8 +91,12 @@ const
     return true;
 }
 
+// a global container to have a better performance
+float __hc_cl_x[POS_RECON_HITS], __hc_cl_y[POS_RECON_HITS], __hc_cl_E[POS_RECON_HITS];
+
 // reconstruct cluster
 HyCalHit PRadHyCalCluster::Reconstruct(const ModuleCluster &cluster)
+const
 {
     // initialize the hit
     HyCalHit hycal_hit(cluster.center.id,       // center id
@@ -111,9 +115,9 @@ HyCalHit PRadHyCalCluster::Reconstruct(const ModuleCluster &cluster)
     for(auto &hit : cluster.hits)
     {
         if(PRadHyCalDetector::hit_distance(cluster.center, hit) < 1.6) {
-            cl_x[count] = hit.geo.x;
-            cl_y[count] = hit.geo.y;
-            cl_E[count] = hit.energy;
+            __hc_cl_x[count] = hit.geo.x;
+            __hc_cl_y[count] = hit.geo.y;
+            __hc_cl_E[count] = hit.energy;
             energy += hit.energy;
             count++;
         }
@@ -121,9 +125,9 @@ HyCalHit PRadHyCalCluster::Reconstruct(const ModuleCluster &cluster)
 
     for(int i = 0; i < count; ++i)
     {
-        float weight = GetWeight(cl_E[i], energy);
-        weight_x += cl_x[i]*weight;
-        weight_y += cl_y[i]*weight;
+        float weight = GetWeight(__hc_cl_E[i], energy);
+        weight_x += __hc_cl_x[i]*weight;
+        weight_y += __hc_cl_y[i]*weight;
         weight_total += weight;
     }
 
