@@ -36,8 +36,8 @@ public:
     const std::vector<double> &GetRefGains() const {return base_gains;};
 
     double Calibration(const double &adc_value) const;
-    void NonLinearCorr(double &E) const;
-    void NonLinearCorr(float &E) const;
+    double NonLinearCorr(const double &E) const;
+    float NonLinearCorr(const float &E) const;
 
 private:
     double factor;

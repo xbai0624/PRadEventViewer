@@ -426,31 +426,25 @@ public:
     short type;         // Cluster types: 0,1,2,3,4;-1
     short status;       // Spliting status
     short nblocks;      // Number of blocks in a cluster
+    short npos;         // Number of blocks participated in position reconstruction
     short cid;          // Cluster's central cell ID
     float E;            // Cluster's energy (MeV)
-    float chi2;         // chi2 comparing to shower profile
-    float sigma_E;
+    float E_leak;       // Leakage correction on energy (MeV)
+    float lin_corr;     // Non Linearity factor for energy correction E_f = E_i*lin_corr
     unsigned short time[TIME_MEASURE_SIZE];      // time information from central TDC group
 
     HyCalHit()
-    : flag(0), type(0), status(0), nblocks(0), cid(0),
-      E(0), chi2(0), sigma_E(0)
+    : flag(0), type(0), status(0), nblocks(0), npos(0), cid(0),
+      E(0.), E_leak(0.), lin_corr(1.)
     {
         clear_time();
     }
 
-    HyCalHit(short id, unsigned int f, float ene)
-    : BaseHit(0, 0, 0), flag(f), type(0), status(0), nblocks(0), cid(id),
-      E(ene), chi2(0), sigma_E(0)
+    HyCalHit(short id, unsigned int f, float ene, float leak)
+    : flag(f), type(0), status(0), nblocks(0), npos(0), cid(id),
+      E(ene), E_leak(leak), lin_corr(1.)
     {
         clear_time();
-    }
-
-    HyCalHit(short id, unsigned int f, const std::vector<unsigned short> &t)
-    : BaseHit(0, 0, 0), flag(f), type(0), status(0), nblocks(0), cid(id),
-      E(0), chi2(0), sigma_E(0)
-    {
-        set_time(t);
     }
 
     void clear_time()

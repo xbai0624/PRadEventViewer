@@ -13,6 +13,9 @@
 
 class PRadHyCalCluster : public ConfigObject
 {
+protected:
+    PRadHyCalCluster();
+
 public:
     virtual ~PRadHyCalCluster();
     virtual PRadHyCalCluster *Clone();
@@ -21,20 +24,26 @@ public:
                              std::vector<ModuleCluster> &clusters) const;
     virtual bool CheckCluster(const ModuleCluster &hit) const;
 
-    HyCalHit Reconstruct(const ModuleCluster &cluster) const;
     float GetWeight(const float &E, const float &E0) const;
     float GetShowerDepth(int module_type, const float &E) const;
     void LeakCorr(ModuleCluster &cluster, std::vector<ModuleHit> &dead) const;
+    HyCalHit Reconstruct(const ModuleCluster &cluster, const float &alpE = 1.) const;
+
+private:
+    struct HitInfo {float x; float y; float E;};
+    void fillHits(HitInfo *temp, int &count, const ModuleHit &center,
+                  const std::vector<ModuleHit> &hits) const;
+    void posRecon(HitInfo *temp, int count, float &x, float &y) const;
 
 protected:
-    PRadHyCalCluster();
-
     bool depth_corr;
     bool leak_corr;
+    bool linear_corr;
     float log_weight_thres;
     float min_cluster_energy;
     float min_center_energy;
     float least_leak;
+    float linear_corr_limit;
     unsigned int min_cluster_size;
     unsigned int leak_iters;
 };

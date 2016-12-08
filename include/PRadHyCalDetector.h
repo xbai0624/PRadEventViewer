@@ -133,12 +133,22 @@ struct ModuleHit
 
 struct ModuleCluster
 {
-    ModuleHit center;
+    ModuleHit center;               // center hit
     std::vector<ModuleHit> hits;    // hits group
-    float energy;
+    float energy;                   // cluster energy
+    float leakage;                  // energy leakage
 
-    ModuleCluster() : energy(0) { hits.reserve(100); };
-    ModuleCluster(const ModuleHit &hit) : center(hit), energy(0) { hits.reserve(100); };
+    ModuleCluster()
+    : energy(0), leakage(0)
+    {
+        hits.reserve(100);
+    }
+
+    ModuleCluster(const ModuleHit &hit)
+    : center(hit), energy(0), leakage(0)
+    {
+        hits.reserve(100);
+    }
 
     void AddHit(const ModuleHit &hit)
     {

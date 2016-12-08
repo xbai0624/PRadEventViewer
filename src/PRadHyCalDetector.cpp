@@ -424,15 +424,15 @@ void PRadHyCalDetector::Reconstruct(PRadHyCalCluster *method)
             method->LeakCorr(cluster, dead_hits);
         }
 
-        // reconstruct hit the position based on the cluster
-        HyCalHit hit = method->Reconstruct(cluster);
-
         // the center module does not exist should be a fatal problem, thus no
         // safety check here
-        PRadHyCalModule *center = GetModule(hit.cid);
+        PRadHyCalModule *center = GetModule(cluster.center.id);
 
-        // do non-linear correction
-        center->GetCalibConst().NonLinearCorr(hit.E);
+        // get non-linear correction factor
+        float lin_corr = center->GetCalibConst().NonLinearCorr(cluster.energy);
+
+        // reconstruct hit the position based on the cluster
+        HyCalHit hit = method->Reconstruct(cluster, lin_corr);
 
         // add timing information
         PRadTDCChannel *tdc = center->GetTDC();
