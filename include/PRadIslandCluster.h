@@ -5,11 +5,6 @@
 #include <vector>
 #include "PRadHyCalCluster.h"
 
-// value to judge if two modules are connected at corner, quantized to module size
-#define CORNER_ADJACENT 1.6
-// value to judge if two modules are sharing a side line
-#define SIDE_ADJACENT 1.3
-
 #define PRIMEX_METHOD
 
 class PRadIslandCluster : public PRadHyCalCluster
@@ -36,7 +31,8 @@ protected:
                    const std::vector<ModuleHit*> &hits,
                    std::vector<ModuleCluster> &clusters) const;
     void evalFraction(const std::vector<ModuleHit*> &maximums,
-                      const std::vector<ModuleHit*> &hits) const;
+                      const std::vector<ModuleHit*> &hits,
+                      size_t iters) const;
 // M. Levillain and W. Xiong method
 #else
     void groupHits(std::vector<ModuleHit> &hits,

@@ -33,7 +33,9 @@ PRadHyCalDetector::PRadHyCalDetector(const std::string &det, PRadHyCalSystem *sy
 // HyCal system and the connections between modules and DAQ units won't be copied
 // copy constructor
 PRadHyCalDetector::PRadHyCalDetector(const PRadHyCalDetector &that)
-: PRadDetector(that), system(nullptr)
+: PRadDetector(that), system(nullptr), module_hits(that.module_hits),
+  dead_hits(that.dead_hits), module_clusters(that.module_clusters),
+  hycal_hits(that.hycal_hits)
 {
     for(auto module : that.module_list)
     {
@@ -44,7 +46,9 @@ PRadHyCalDetector::PRadHyCalDetector(const PRadHyCalDetector &that)
 // move constructor
 PRadHyCalDetector::PRadHyCalDetector(PRadHyCalDetector &&that)
 : PRadDetector(that), system(nullptr), module_list(std::move(that.module_list)),
-  id_map(std::move(that.id_map)), name_map(std::move(that.name_map))
+  id_map(std::move(that.id_map)), name_map(std::move(that.name_map)),
+  module_hits(std::move(that.module_hits)), dead_hits(std::move(that.dead_hits)),
+  module_clusters(std::move(that.module_clusters)), hycal_hits(std::move(that.hycal_hits))
 {
     // reset the connections between module and HyCal
     for(auto module : module_list)
@@ -80,6 +84,10 @@ PRadHyCalDetector &PRadHyCalDetector::operator =(PRadHyCalDetector &&rhs)
     module_list = std::move(rhs.module_list);
     id_map = std::move(rhs.id_map);
     name_map = std::move(rhs.name_map);
+    module_hits = std::move(rhs.module_hits);
+    dead_hits = std::move(rhs.dead_hits);
+    module_clusters = std::move(rhs.module_clusters);
+    hycal_hits = std::move(rhs.hycal_hits);
 
     for(auto module : module_list)
         module->SetDetector(this);
@@ -358,6 +366,44 @@ void PRadHyCalDetector::Reset()
     hycal_hits.clear();
 }
 
+// prepare dead hits for the leakage correction in reconstruction
+void PRadHyCalDetector::CreateDeadHits()
+{
+    // clear current dead hits
+    dead_hits.clear();
+
+    // create dead hits
+    for(auto module : module_list)
+    {
+        // clear the dead module flag
+        CLEAR_BIT(module->layout.flag, kDeadModule);
+
+        // module is not connected to a adc channel or the channel is dead
+        if(!module->GetChannel() || module->GetChannel()->IsDead()) {
+            dead_hits.emplace_back(module, 0.);
+        }
+    }
+
+    // check if any modules are very close to this dead module, and set a bit
+    // for the future correction
+    for(auto module : module_list)
+    {
+        const auto &geo = module->GetGeometry();
+
+        for(auto &dead : dead_hits)
+        {
+            float dx = (geo.x - dead.geo.x)/(geo.size_x + dead.geo.size_x);
+            float dy = (geo.y - dead.geo.y)/(geo.size_y + dead.geo.size_y);
+
+            if(sqrt(dx*dx + dy*dy)*2. < CORNER_ADJACENT)
+            {
+               SET_BIT(module->layout.flag, kDeadModule);
+               break;
+            }
+        }
+    }
+}
+
 // hits/clusters reconstruction
 void PRadHyCalDetector::Reconstruct(PRadHyCalCluster *method)
 {
@@ -372,6 +418,11 @@ void PRadHyCalDetector::Reconstruct(PRadHyCalCluster *method)
         // discard cluster that does not satisfy certain conditions
         if(!method->CheckCluster(cluster))
             continue;
+
+        // leakage correction for dead modules
+        if(TEST_BIT(cluster.center.flag, kDeadModule)) {
+            method->LeakCorr(cluster, dead_hits);
+        }
 
         // reconstruct hit the position based on the cluster
         HyCalHit hit = method->Reconstruct(cluster);

@@ -170,10 +170,8 @@ void PRadHyCalSystem::Configure(const std::string &path)
 
     // channel, pedestal and gain factors
     ReadChannelList(GetConfig<std::string>("DAQ Channel List"));
-    ReadRunInfoFile(GetConfig<std::string>("Run Info File"));
 
-    // build connection between modules and channels
-    BuildConnections();
+    ReadRunInfoFile(GetConfig<std::string>("Run Info File"));
 
     // reconstruction configuration
     SetClusterMethod(GetConfig<std::string>("Cluster Method"));
@@ -279,6 +277,9 @@ void PRadHyCalSystem::ReadChannelList(const std::string &path)
                       << std::endl;
         }
     }
+
+    // build connection between modules and channels
+    BuildConnections();
 }
 
 // build connections between ADC channels and HyCal modules
@@ -369,11 +370,11 @@ void PRadHyCalSystem::ReadRunInfoFile(const std::string &path)
 
         c_parser >> name >> ped_mean >> ped_sig >> lms_mean >> lms_sig >> status;
 
-        PRadADCChannel *tmp = GetADCChannel(name);
-        if(tmp) {
-            tmp->SetPedestal(ped_mean, ped_sig);
-            tmp->SetDead(status&1);
-            PRadHyCalModule *module = tmp->GetModule();
+        PRadADCChannel *ch = GetADCChannel(name);
+        if(ch) {
+            ch->SetPedestal(ped_mean, ped_sig);
+            ch->SetDead(status&1);
+            PRadHyCalModule *module = ch->GetModule();
             if(module)
                 module->GainCorrection((lms_mean - ped_mean)/ref_gain[ref], ref);
         } else {
@@ -382,6 +383,10 @@ void PRadHyCalSystem::ReadRunInfoFile(const std::string &path)
                       << std::endl;
         }
     }
+
+    // finished reading, inform detector to update dead module listg
+    if(hycal)
+        hycal->CreateDeadHits();
 }
 
 // update the event info to DAQ system

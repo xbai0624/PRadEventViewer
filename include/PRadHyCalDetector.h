@@ -10,6 +10,12 @@
 #include "PRadDetector.h"
 #include "PRadEventStruct.h"
 
+
+// value to judge if two modules are connected at corner, quantized to module size
+#define CORNER_ADJACENT 1.6
+// value to judge if two modules are sharing a side line
+#define SIDE_ADJACENT 1.3
+
 class PRadHyCalSystem;
 class PRadHyCalCluster;
 // these two structure will be used for cluster reconstruction, defined at the end
@@ -70,6 +76,7 @@ public:
 
     // hits/clusters reconstruction
     void Reconstruct(PRadHyCalCluster *method);
+    void CreateDeadHits();
     void CollectHits();
     void ClearHits();
 
@@ -98,6 +105,7 @@ protected:
     std::unordered_map<int, PRadHyCalModule*> id_map;
     std::unordered_map<std::string, PRadHyCalModule*> name_map;
     std::vector<ModuleHit> module_hits;
+    std::vector<ModuleHit> dead_hits;
     std::vector<ModuleCluster> module_clusters;
     std::vector<HyCalHit> hycal_hits;
 };

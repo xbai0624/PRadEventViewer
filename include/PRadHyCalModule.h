@@ -13,6 +13,8 @@ class PRadTDCChannel;
 class PRadHyCalModule
 {
 public:
+    friend class PRadHyCalDetector;
+
     enum ModuleType
     {
         // undefined

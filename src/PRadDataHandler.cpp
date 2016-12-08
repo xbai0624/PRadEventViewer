@@ -520,9 +520,12 @@ void PRadDataHandler::WriteToDST(const std::string &path)
                   << "\"" << path << "\""
                   << std::endl;
 
-        dst_parser.WriteHyCalInfo(hycal_sys);
-        dst_parser.WriteGEMInfo(gem_sys);
-        dst_parser.WriteEPICSMap(epic_sys);
+        if(hycal_sys)
+            dst_parser.WriteHyCalInfo(hycal_sys);
+        if(gem_sys)
+            dst_parser.WriteGEMInfo(gem_sys);
+        if(epic_sys)
+            dst_parser.WriteEPICSMap(epic_sys);
 
         if(epic_sys) {
             for(auto &epics : epic_sys->GetEventData())

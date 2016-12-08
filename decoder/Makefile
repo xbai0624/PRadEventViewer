@@ -95,13 +95,12 @@ EXAMPLE       = testGEM \
                 testLMS \
                 testEPICS \
                 testMatch \
+                testSim \
                 getAvgGain \
                 replay \
 				mollerCenter \
 				cosmicCheck
-#                testIsland
 #                testCombine
-#                testSim
 
 EXAMPLE_BINS  = $(addprefix $(EXAMPLE_DIR)/, $(EXAMPLE))
 EXAMPLE_LIBS  = -L$(LIB_DIR) -lprana

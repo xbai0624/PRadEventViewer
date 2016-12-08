@@ -60,7 +60,7 @@ int main(int /*argc*/, char * /*argv*/ [])
     // test reconstruction performance
 //    dst_parser->OpenInput("/work/hallb/prad/replay/prad_001288.dst");
     dst_parser->OpenInput("prad_1310.dst");
-
+    dst_parser->OpenOutput("prad_1310_leak.dst");
     PRadBenchMark timer;
 
     while(dst_parser->Read())
@@ -72,15 +72,22 @@ int main(int /*argc*/, char * /*argv*/ [])
                 continue;
 
             sys->Reconstruct(event);
-/*
-            for(auto cluster : sys->GetDetector()->GetHits())
+            bool save = false;
+            for(auto hit : sys->GetDetector()->GetHits())
             {
-                cout << cluster.E << ", " << cluster.x << ", " << cluster.y << endl;
+                if(TEST_BIT(hit.flag, kDeadModule)) {
+                    save = true;
+                    break;
+                }
             }
-*/
+
+            if(save)
+                dst_parser->WriteEvent(event);
         }
     }
 
+    dst_parser->CloseOutput();
+    dst_parser->CloseInput();
     cout << "TIMER: Finished, took " << timer.GetElapsedTime() << " ms" << endl;
 
     return 0;

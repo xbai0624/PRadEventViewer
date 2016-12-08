@@ -41,6 +41,7 @@ public:
     float GetError(int type, int x, int y) const;
     const Profile &GetProfile(int type, int x, int y) const;
     const Profile &GetProfile(const ModuleHit &m1, const ModuleHit &m2) const;
+    const Profile &GetProfile(const float &x, const float &y, const ModuleHit &hit) const;
     const Profile &GetProfile(const float &x1, const float &y1,
                               const float &x2, const float &y2) const;
 

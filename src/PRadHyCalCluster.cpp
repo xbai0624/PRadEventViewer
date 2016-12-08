@@ -10,11 +10,17 @@
 #include <iostream>
 #include <iomanip>
 #include "PRadHyCalCluster.h"
+#include "PRadClusterProfile.h"
+
+
+const PRadClusterProfile &__hc_prof = PRadClusterProfile::Instance();
 
 PRadHyCalCluster::PRadHyCalCluster()
-: depth_corr(true), log_weight_thres(3.6)
+: depth_corr(true), leak_corr(true), log_weight_thres(3.6),
+  min_cluster_energy(30.), min_center_energy(10.), least_leak(0.05),
+  min_cluster_size(1), leak_iters(3)
 {
-
+    // place holder
 }
 
 PRadHyCalCluster::~PRadHyCalCluster()
@@ -37,10 +43,13 @@ void PRadHyCalCluster::Configure(const std::string &path)
     }
 
     depth_corr = getDefConfig<bool>("Shower Depth Correction", true, verbose);
+    leak_corr = getDefConfig<bool>("Leakage Correction", true, verbose);
     log_weight_thres = getDefConfig<float>("Log Weight Threshold", 3.6, verbose);
     min_cluster_energy = getDefConfig<float>("Minimum Cluster Energy", 50., verbose);
     min_center_energy = getDefConfig<float>("Minimum Center Energy", 10., verbose);
     min_cluster_size = getDefConfig<unsigned int>("Minimum Cluster Size", 1, verbose);
+    least_leak = getDefConfig<float>("Least Leakage Fraction", 0.05, verbose);
+    leak_iters = getDefConfig<unsigned int>("Leakage Iterations", 3, verbose);
 }
 
 void PRadHyCalCluster::FormCluster(std::vector<ModuleHit> &,
@@ -91,9 +100,6 @@ const
     return true;
 }
 
-// a global container to have a better performance
-float __hc_cl_x[POS_RECON_HITS], __hc_cl_y[POS_RECON_HITS], __hc_cl_E[POS_RECON_HITS];
-
 // reconstruct cluster
 HyCalHit PRadHyCalCluster::Reconstruct(const ModuleCluster &cluster)
 const
@@ -108,16 +114,17 @@ const
 
     // reconstruct position
     // only use the center 3x3 to reconstruct the module position
-    int count = 0;
     float energy = 0;
     float weight_x = 0, weight_y = 0, weight_total = 0;
 
+    float cl_x[POS_RECON_HITS], cl_y[POS_RECON_HITS], cl_E[POS_RECON_HITS];
+    int count = 0;
     for(auto &hit : cluster.hits)
     {
-        if(PRadHyCalDetector::hit_distance(cluster.center, hit) < 1.6) {
-            __hc_cl_x[count] = hit.geo.x;
-            __hc_cl_y[count] = hit.geo.y;
-            __hc_cl_E[count] = hit.energy;
+        if(PRadHyCalDetector::hit_distance(cluster.center, hit) < CORNER_ADJACENT) {
+            cl_x[count] = hit.geo.x;
+            cl_y[count] = hit.geo.y;
+            cl_E[count] = hit.energy;
             energy += hit.energy;
             count++;
         }
@@ -125,9 +132,9 @@ const
 
     for(int i = 0; i < count; ++i)
     {
-        float weight = GetWeight(__hc_cl_E[i], energy);
-        weight_x += __hc_cl_x[i]*weight;
-        weight_y += __hc_cl_y[i]*weight;
+        float weight = GetWeight(cl_E[i], energy);
+        weight_x += cl_x[i]*weight;
+        weight_y += cl_y[i]*weight;
         weight_total += weight;
     }
 
@@ -149,4 +156,81 @@ const
     hycal_hit.z += GetShowerDepth(cluster.center.geo.type, cluster.energy);
 
     return hycal_hit;
+}
+
+void PRadHyCalCluster::LeakCorr(ModuleCluster &cluster, std::vector<ModuleHit> &dead)
+const
+{
+    // no need to do correction
+    if(!leak_corr)
+        return;
+
+    // erase dead module energies first
+    for(auto &hit : dead)
+    {
+        hit.energy = 0.;
+    }
+
+    unsigned int iter = 0;
+    while(iter++ < leak_iters)
+    {
+        // only use the center 3x3 to reconstruct the module position
+        float energy = 0, weight_x = 0, weight_y = 0, weight_total = 0;
+
+        float cl_x[POS_RECON_HITS], cl_y[POS_RECON_HITS], cl_E[POS_RECON_HITS];
+        int count = 0;
+        for(auto &hit : cluster.hits)
+        {
+            if(PRadHyCalDetector::hit_distance(cluster.center, hit) < CORNER_ADJACENT) {
+                cl_x[count] = hit.geo.x;
+                cl_y[count] = hit.geo.y;
+                cl_E[count] = hit.energy;
+                energy += hit.energy;
+                count++;
+            }
+        }
+
+        // dead modules also participate in reconstruction
+        for(auto &hit : dead)
+        {
+            if(hit.energy == 0.)
+                continue;
+
+            if(PRadHyCalDetector::hit_distance(cluster.center, hit) < CORNER_ADJACENT) {
+                cl_x[count] = hit.geo.x;
+                cl_y[count] = hit.geo.y;
+                cl_E[count] = hit.energy;
+                energy += hit.energy;
+                count ++;
+            }
+        }
+
+        // reconstruct position
+        for(int i = 0; i < count; ++i)
+        {
+            float weight = GetWeight(cl_E[i], energy);
+            weight_x += cl_x[i]*weight;
+            weight_y += cl_y[i]*weight;
+            weight_total += weight;
+        }
+
+        float x = weight_x/weight_total;
+        float y = weight_y/weight_total;
+
+        // check profile
+        for(auto &hit : dead)
+        {
+            float frac = __hc_prof.GetProfile(x, y, hit).frac;
+
+            // leakage is too small, don't correct it
+            hit.energy = cluster.energy*frac/(1. - frac);
+        }
+    }
+
+    for(auto &hit : dead)
+    {
+        if(hit.energy > least_leak*cluster.energy) {
+            cluster.AddHit(hit);
+        }
+    }
 }

@@ -6,11 +6,10 @@
 //============================================================================//
 
 #include "PRadDataHandler.h"
+#include "PRadHyCalSystem.h"
 #include "PRadDSTParser.h"
 #include "PRadEvioParser.h"
 #include "PRadBenchMark.h"
-#include "PRadDAQUnit.h"
-#include "PRadGEMSystem.h"
 #include "TFile.h"
 #include "TTree.h"
 #include <iostream>
@@ -21,15 +20,12 @@ using namespace std;
 
 int main(int /*argc*/, char * /*argv*/ [])
 {
-
+    // simulation data is more like raw evio data with HyCal information only,
+    // so we only need hycal system to connected to the handler
     PRadDataHandler *handler = new PRadDataHandler();
+    PRadHyCalSystem *hycal = new PRadHyCalSystem("config/hycal.conf");
 
-    // read configuration files
-    handler->ReadConfig("config.txt");
-    // reading pedestal file can be set in config.txt
-    // but other example either reading ped from dst file
-    // or fit ped from data, so the reading config is commented out
-    handler->ReadPedestalFile("config/pedestal.dat");
+    handler->SetHyCalSystem(hycal);
 
     PRadBenchMark timer;
 
@@ -49,32 +45,27 @@ int main(int /*argc*/, char * /*argv*/ [])
     t->Branch("ClusterY", &y[0], "ClusterY[NClusters]/D");
 
 
-    for(size_t i = 0; i < handler->GetEventCount(); ++i)
+    for(auto &event : handler->GetEventData())
     {
-        handler->HyCalReconstruct(i);
-        HyCalHit *hit = handler->GetHyCalCluster(N);
-
-        for(int i = 0; i < N; ++i)
+        hycal->Reconstruct(event);
+        auto &hits = hycal->GetDetector()->GetHits();
+        N = (int)hits.size();
+        for(size_t i = 0; i < hits.size(); ++i)
         {
-            E[i] = hit[i].E;
-            x[i] = hit[i].x;
-            y[i] = hit[i].y;
+            E[i] = hits[i].E;
+            x[i] = hits[i].x;
+            y[i] = hits[i].y;
         }
         t->Fill();
     }
 
-    cout << "TIMER: Finished, took " << timer.GetElapsedTime() << " ms" << endl;
-    cout << "Read " << handler->GetEventCount() << " events and "
-         << handler->GetEPICSEventCount() << " EPICS events from file."
-         << endl;
-    cout << handler->GetBeamCharge() << endl;
-    cout << handler->GetLiveTime() << endl;
+    cout << "TIMER: Finished, took " << timer.GetElapsedTime() << " ms." << endl;
+    cout << "Read " << handler->GetEventCount() << " events." << endl;
 
     f->cd();
     t->Write();
     f->Close();
 
-//    handler->WriteToDST("prad_001323_0-10.dst");
-    //handler->PrintOutEPICS();
+    handler->WriteToDST("simrun_47.dst");
     return 0;
 }

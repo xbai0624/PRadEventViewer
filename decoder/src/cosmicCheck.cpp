@@ -113,7 +113,7 @@ float EvalEstimator(const HyCalHit &hycal_hit, const vector<ModuleHit> &hits)
     float est = 0.;
     for(auto hit : hits)
     {
-        const auto &prof = profile.GetProfile(hycal_hit.x, hycal_hit.y, hit.geo.x, hit.geo.y);
+        const auto &prof = profile.GetProfile(hycal_hit.x, hycal_hit.y, hit);
 
         float diff = fabs(hit.energy - hycal_hit.E*prof.frac);
 

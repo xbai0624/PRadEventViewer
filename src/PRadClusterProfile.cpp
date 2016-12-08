@@ -187,6 +187,8 @@ const
             inter_x = (inter_y - b)/k;
         }
 
+        // the dx dy will be the sum of two parts, each part quantized to the
+        // module's size (Moliere radius)
         dx =   abs(100.*(m1.geo.x - inter_x)/m1.geo.size_x)
              + abs(100.*(m2.geo.x - inter_x)/m2.geo.size_x);
         dy =   abs(100.*(m1.geo.y - inter_y)/m1.geo.size_y)
@@ -213,6 +215,52 @@ inline int __cp_get_sector(const float &x, const float &y)
         return 4; // left
 
     return 0; // center
+}
+
+const CProfile &PRadClusterProfile::GetProfile(const float &x, const float &y,
+                                               const ModuleHit &hit)
+const
+{
+    // firstly, check which sector the point belongs to
+    // 0 means pwo module and 1,2,3,4 means lg module
+    int sect = __cp_get_sector(x, y);
+    int type = (sect == 0)? PRadHyCalModule::PbWO4 : PRadHyCalModule::PbGlass;
+
+    int dx, dy;
+    // both belong to the same part
+    if(type == hit.geo.type) {
+        dx = abs(x - hit.geo.x)/hit.geo.size_x * 100.;
+        dy = abs(y - hit.geo.y)/hit.geo.size_y * 100.;
+    // belong to different part
+    } else {
+        // determine the line that connects the two points
+        float k = (y - hit.geo.y)/(x - hit.geo.x);
+        float b = y - k*x;
+
+        // determine which boundary the line is crossing
+        sect = abs(sect - hit.sector);
+        float boundary = __cp_boundary[sect - 1];
+        bool x_boundary = __cp_x_boundary[sect - 1];
+
+        // get the intersect point
+        float inter_x, inter_y;
+        if(x_boundary) {
+            inter_x = boundary;
+            inter_y = k*inter_x + b;
+        } else {
+            inter_y = boundary;
+            inter_x = (inter_y - b)/k;
+        }
+
+        // the dx dy will be the sum of two parts, each part quantized to the
+        // module's size (Moliere radius)
+        dx =   abs((x - inter_x)/__cp_size_x[type]*100.)
+             + abs((hit.geo.x - inter_x)/hit.geo.size_x*100.);
+        dy =   abs((y - inter_y)/__cp_size_y[type]*100.)
+             + abs((hit.geo.y - inter_y)/hit.geo.size_y*100.);
+    }
+
+    return GetProfile(hit.geo.type, dx, dy);
 }
 
 const CProfile &PRadClusterProfile::GetProfile(const float &x1, const float &y1,
@@ -253,10 +301,12 @@ const
             inter_x = (inter_y - b)/k;
         }
 
-        dx =  abs((x1 - inter_x)/__cp_size_x[type1]*100.)
-            + abs((x2 - inter_x)/__cp_size_x[type2]*100.);
-        dy =  abs((y1 - inter_y)/__cp_size_y[type1]*100.)
-            + abs((y2 - inter_y)/__cp_size_y[type2]*100.);
+        // the dx dy will be the sum of two parts, each part quantized to the
+        // module's size (Moliere radius)
+        dx =   abs((x1 - inter_x)/__cp_size_x[type1]*100.)
+             + abs((x2 - inter_x)/__cp_size_x[type2]*100.);
+        dy =   abs((y1 - inter_y)/__cp_size_y[type1]*100.)
+             + abs((y2 - inter_y)/__cp_size_y[type2]*100.);
     }
 
     return GetProfile(type1, dx, dy);

@@ -22,7 +22,7 @@
 #include "PRadADCChannel.h"
 #include "PRadTDCChannel.h"
 
-const PRadClusterProfile &profile = PRadClusterProfile::Instance();
+const PRadClusterProfile &__ic_prof = PRadClusterProfile::Instance();
 
 PRadIslandCluster::PRadIslandCluster(const std::string &path)
 {
@@ -75,25 +75,6 @@ void PRadIslandCluster::Configure(const std::string &path)
 // Method based on the code from I. Larin for PrimEx                          //
 //============================================================================//
 #ifdef PRIMEX_METHOD
-
-// some global container and function to help splitting and improve performance
-#define SPLIT_MAX_HITS 1000
-#define SPLIT_MAX_CLUSTERS 100
-float __ic_frac[SPLIT_MAX_HITS][SPLIT_MAX_CLUSTERS];
-float __ic_tot_frac[SPLIT_MAX_HITS];
-float __ic_cl_x[POS_RECON_HITS], __ic_cl_y[POS_RECON_HITS], __ic_cl_E[POS_RECON_HITS];
-
-inline void __ic_sum_frac(size_t hits, size_t maximums)
-{
-    for(size_t i = 0; i < hits; ++i)
-    {
-        __ic_tot_frac[i] = 0;
-        for(size_t j = 0; j < maximums; ++j)
-            __ic_tot_frac[i] += __ic_frac[i][j];
-    }
-}
-
-
 
 void PRadIslandCluster::FormCluster(std::vector<ModuleHit> &hits,
                                     std::vector<ModuleCluster> &clusters)
@@ -247,6 +228,22 @@ const
     return local_max;
 }
 
+// some global container and function to help splitting and improve performance
+#define SPLIT_MAX_HITS 1000
+#define SPLIT_MAX_CLUSTERS 100
+float __ic_frac[SPLIT_MAX_HITS][SPLIT_MAX_CLUSTERS];
+float __ic_tot_frac[SPLIT_MAX_HITS];
+
+inline void __ic_sum_frac(size_t hits, size_t maximums)
+{
+    for(size_t i = 0; i < hits; ++i)
+    {
+        __ic_tot_frac[i] = 0;
+        for(size_t j = 0; j < maximums; ++j)
+            __ic_tot_frac[i] += __ic_frac[i][j];
+    }
+}
+
 // split hits between several local maximums inside a cluster group
 void PRadIslandCluster::splitHits(const std::vector<ModuleHit*> &maximums,
                                   const std::vector<ModuleHit*> &hits,
@@ -260,19 +257,14 @@ const
         for(size_t j = 0; j < hits.size(); ++j)
         {
             auto &hit = *hits.at(j);
-            __ic_frac[j][i] = profile.GetProfile(center, hit).frac*center.energy;
+            __ic_frac[j][i] = __ic_prof.GetProfile(center, hit).frac*center.energy;
         }
     }
 
     // do iteration to evaluate the share of hits between several maximums
-    unsigned int count = 0;
-    while(count++ < split_iter)
-    {
-        evalFraction(hits, maximums);
-    }
+    evalFraction(hits, maximums, split_iter);
 
     // done iteration, add cluster according to the final share of energy
-    __ic_sum_frac(hits.size(), maximums.size());
     for(size_t i = 0; i < maximums.size(); ++i)
     {
         clusters.emplace_back(*maximums.at(i));
@@ -295,52 +287,63 @@ const
 }
 
 inline void PRadIslandCluster::evalFraction(const std::vector<ModuleHit*> &hits,
-                                            const std::vector<ModuleHit*> &maximums)
+                                            const std::vector<ModuleHit*> &maximums,
+                                            size_t iters)
 const
 {
-    __ic_sum_frac(hits.size(), maximums.size());
-    for(size_t i = 0; i < maximums.size(); ++i)
-    {
-        auto &center = *maximums.at(i);
-        float tot_E = 0.;
-        int count = 0;
-        for(size_t j = 0; j < hits.size(); ++j)
-        {
-            auto &hit = *hits.at(j);
-            if(__ic_frac[j][i] == 0.)
-                continue;
+    // temp containers for reconstruction
+    float cl_x[POS_RECON_HITS], cl_y[POS_RECON_HITS], cl_E[POS_RECON_HITS];
 
-            // using 3x3 to reconstruct hit position
-            if(PRadHyCalDetector::hit_distance(center, hit) < CORNER_ADJACENT) {
-                __ic_cl_x[count] = hit.geo.x;
-                __ic_cl_y[count] = hit.geo.y;
-                __ic_cl_E[count] = hit.energy*__ic_frac[j][i]/__ic_tot_frac[j];
-                tot_E += __ic_cl_E[count];
-                count++;
+    // iterations to refine the split energies
+    while(iters-- > 0)
+    {
+        __ic_sum_frac(hits.size(), maximums.size());
+        for(size_t i = 0; i < maximums.size(); ++i)
+        {
+            // cluster center reconstruction
+            auto &center = *maximums.at(i);
+            float tot_E = 0.;
+            int count = 0;
+            for(size_t j = 0; j < hits.size(); ++j)
+            {
+                auto &hit = *hits.at(j);
+                if(__ic_frac[j][i] == 0.)
+                    continue;
+
+                // using 3x3 to reconstruct hit position
+                if(PRadHyCalDetector::hit_distance(center, hit) < CORNER_ADJACENT) {
+                    cl_x[count] = hit.geo.x;
+                    cl_y[count] = hit.geo.y;
+                    cl_E[count] = hit.energy*__ic_frac[j][i]/__ic_tot_frac[j];
+                    tot_E += cl_E[count];
+                    count++;
+                }
+            }
+
+            float tot_weight = 0., weight_x = 0., weight_y = 0.;
+            for(int i = 0; i < count; ++i)
+            {
+                float weight = PRadHyCalCluster::GetWeight(cl_E[i], tot_E);
+                weight_x += weight*cl_x[i];
+                weight_y += weight*cl_y[i];
+                tot_weight += weight;
+            }
+            float x = weight_x/tot_weight;
+            float y = weight_y/tot_weight;
+
+            // update profile with the reconstructed center
+            for(size_t j = 0; j < hits.size(); ++j)
+            {
+                auto &hit = *hits.at(j);
+                float frac = __ic_prof.GetProfile(x, y, hit).frac;
+                if(frac < least_share) // too small share, treat as zero
+                    __ic_frac[j][i] = 0.;
+                else
+                    __ic_frac[j][i] = frac*tot_E;
             }
         }
-
-        float tot_weight = 0., weight_x = 0., weight_y = 0.;
-        for(int i = 0; i < count; ++i)
-        {
-            float weight = PRadHyCalCluster::GetWeight(__ic_cl_E[i], tot_E);
-            weight_x += weight*__ic_cl_x[i];
-            weight_y += weight*__ic_cl_y[i];
-            tot_weight += weight;
-        }
-        float x = weight_x/tot_weight;
-        float y = weight_y/tot_weight;
-
-        for(size_t j = 0; j < hits.size(); ++j)
-        {
-            auto &hit = *hits.at(j);
-            float frac = profile.GetProfile(x, y, hit.geo.x, hit.geo.y).frac;
-            if(frac < least_share) // too small share, treat as zero
-                __ic_frac[j][i] = 0.;
-            else
-                __ic_frac[j][i] = frac*tot_E;
-        }
     }
+    __ic_sum_frac(hits.size(), maximums.size());
 }
 
 
@@ -436,7 +439,7 @@ const
         auto &center = clusters.at(indices.at(i)).center;
         // we are comparing the relative amount of energy to be shared, so use of
         // center energy should be equivalent to total cluster energy
-        frac[i] = profile.GetProfile(center, hit).frac * center.energy;
+        frac[i] = __ic_prof.GetProfile(center, hit).frac * center.energy;
         total_frac += frac[i];
     }
 
