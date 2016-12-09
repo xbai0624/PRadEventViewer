@@ -69,7 +69,8 @@ int main(int /*argc*/, char * /*argv*/ [])
             PRadInfoCenter::Instance().UpdateInfo(event);
 
             // reconstruct
-            hycal->Reconstruct(event);
+            hycal->ChooseEvent(event);
+            hycal->Reconstruct();
             gem->Reconstruct(event);
 
             // get reconstructed clusters

@@ -415,7 +415,6 @@ enum HyCalHitStatus
     kOuterBound,        //cluster near the outer boundary of HyCal
     kGEM1Match,         //cluster found a match GEM hit on GEM 1
     kGEM2Match,         //cluster found a match GEM hit on GEM 2
-    kOverlapMatch,      //cluster found a match on both GEM
 };
 
 // hycal cluster

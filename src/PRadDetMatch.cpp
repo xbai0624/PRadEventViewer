@@ -138,26 +138,25 @@ const
         }
     }
 
-    // no gem1 hits matched
-    if(index.gem1 == -1) {
-        SET_BIT(hycal.flag, kGEM2Match);
-    // no gem2 hits matched
-    } else if(index.gem2 == -1) {
+    if(index.gem1 >= 0)
         SET_BIT(hycal.flag, kGEM1Match);
+    if(index.gem2 >= 0)
+        SET_BIT(hycal.flag, kGEM2Match);
+
     // both gem1 and gem2 have matched hits, check if they are overlapped
-    } else {
+    if(index.gem1 >= 0 && index.gem2 >= 0) {
         float gem_dist = PRadCoordSystem::ProjectionDistance(gem1[index.gem1], gem2[index.gem2]);
-        if(gem_dist < overlapSigma * gemRes) {
-            SET_BIT(hycal.flag, kOverlapMatch);
-        } else {
+        // they are not overlap hits
+        if(gem_dist > overlapSigma * gemRes) {
             float gem1_dist = PRadCoordSystem::ProjectionDistance(gem1[index.gem1], hycal);
             float gem2_dist = PRadCoordSystem::ProjectionDistance(gem2[index.gem2], hycal);
-            if(gem1_dist < gem2_dist) {
-                index.gem2 = -1;
-                SET_BIT(hycal.flag, kGEM1Match);
-            } else {
+            // gem2 has a better match
+            if(gem2_dist < gem1_dist) {
                 index.gem1 = -1;
-                SET_BIT(hycal.flag, kGEM2Match);
+                CLEAR_BIT(hycal.flag, kGEM1Match);
+            } else {
+                index.gem2 = -1;
+                CLEAR_BIT(hycal.flag, kGEM2Match);
             }
         }
     }

@@ -15,6 +15,7 @@ void PRadBenchMark::Reset()
 }
 
 unsigned int PRadBenchMark::GetElapsedTime()
+const
 {
     auto time_end = std::chrono::high_resolution_clock::now();
     auto int_ms = std::chrono::duration_cast<std::chrono::milliseconds>(time_end - time_point);

@@ -16,7 +16,7 @@ public:
     PRadBenchMark();
     ~PRadBenchMark();
     void Reset();
-    unsigned int GetElapsedTime();
+    unsigned int GetElapsedTime() const;
 
 private:
     std::chrono::time_point<std::chrono::high_resolution_clock> time_point;

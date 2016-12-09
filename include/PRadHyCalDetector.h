@@ -84,6 +84,7 @@ public:
     PRadHyCalSystem *GetSystem() const {return system;};
     PRadHyCalModule *GetModule(const int &primex_id) const;
     PRadHyCalModule *GetModule(const std::string &module_name) const;
+    PRadHyCalModule *GetModule(const float &x, const float &y) const;
     double GetEnergy() const;
     const std::vector<PRadHyCalModule*> &GetModuleList() const {return module_list;};
     const std::vector<ModuleHit> &GetModuleHits() const {return module_hits;};

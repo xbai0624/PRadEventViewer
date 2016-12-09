@@ -101,6 +101,7 @@ EXAMPLE       = testGEM \
                 replay \
 				mollerCenter \
 				cosmicCheck \
+				calibration
 #                testCombine
 
 EXAMPLE_BINS  = $(addprefix $(EXAMPLE_DIR)/, $(EXAMPLE))

@@ -482,6 +482,25 @@ const
     return it->second;
 }
 
+PRadHyCalModule *PRadHyCalDetector::GetModule(const float &x, const float &y)
+const
+{
+    for(auto &module : module_list)
+    {
+        float x = module->GetX();
+        float size_x = module->GetSizeX();
+        if((x > x + size_x/2.) || (x < x - size_x/2.))
+            continue;
+        float y = module->GetY();
+        float size_y = module->GetSizeY();
+        if((y > y + size_y/2.) || (y < y - size_x/2.))
+            continue;
+
+        return module;
+    }
+    return nullptr;
+}
+
 double PRadHyCalDetector::GetEnergy()
 const
 {
@@ -599,5 +618,3 @@ const char *PRadHyCalDetector::get_sector_name(int sec)
     else
         return __hycal_sector_list[sec];
 }
-
-
