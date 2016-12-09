@@ -133,15 +133,25 @@ void PRadEPICSystem::SaveData(const int &event_number, bool online)
 float PRadEPICSystem::GetValue(const std::string &name)
 const
 {
+    unsigned int ch = GetChannel(name);
+    if(ch >= epics_values.size())
+        return EPICS_UNDEFINED_VALUE;
+
+    return epics_values.at(ch);
+}
+
+int PRadEPICSystem::GetChannel(const std::string &name)
+const
+{
     auto it = epics_map.find(name);
     if(it == epics_map.end()) {
         std::cout << "PRad EPICS Warning: Did not find EPICS channel "
                   << name
                   << std::endl;
-        return EPICS_UNDEFINED_VALUE;
+        return -1;
     }
 
-    return epics_values.at(it->second);
+    return it->second;
 }
 
 float PRadEPICSystem::FindValue(int evt, const std::string &name)

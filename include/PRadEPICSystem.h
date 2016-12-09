@@ -40,6 +40,7 @@ public:
     std::vector<EPICSChannel> GetSortedList() const;
     const std::vector<float> &GetValues() const {return epics_values;};
     float GetValue(const std::string &name) const;
+    int GetChannel(const std::string &name) const;
     const EPICS_Data &GetEvent(const unsigned int &index) const throw(PRadException);
     const std::deque<EPICS_Data> &GetEventData() const {return epics_data;};
     unsigned int GetEventCount() const {return epics_data.size();};

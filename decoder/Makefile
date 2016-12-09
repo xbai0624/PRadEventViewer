@@ -100,7 +100,7 @@ EXAMPLE       = testGEM \
                 getAvgGain \
                 replay \
 				mollerCenter \
-				cosmicCheck
+				cosmicCheck \
 #                testCombine
 
 EXAMPLE_BINS  = $(addprefix $(EXAMPLE_DIR)/, $(EXAMPLE))
