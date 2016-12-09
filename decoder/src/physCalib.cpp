@@ -1,5 +1,6 @@
 //============================================================================//
-// Analyzed several runs in a calibration period for physics calibration      //
+// Automatically search data files between the input begin and end runs       //
+// Analyze these data files for physics calibration                           //
 //                                                                            //
 // Weizhi Xiong                                                               //
 // 12/10/2016                                                                 //
@@ -35,13 +36,14 @@
 
 #define T_BLOCKS 2156
 #define PROGRESS_COUNT 10000
-#define MAXHIT 50
 #define MAXCLUSTER 6
-#define NPLANE 4
+
+using namespace std;
 
 const bool isLowE = true; //true if 1.1 GeV
-using namespace std;
-struct PairCoor{
+
+struct PairCoor
+{
   float x1;
   float y1;
   float x2;
@@ -50,17 +52,20 @@ struct PairCoor{
   :x1(xx1), y1(yy1), x2(xx2), y2(yy2) {}
 };
 
-enum ParticleType{
+enum ParticleType
+{
     kProton = 0,
     kElectron
 };
 
+// combine gem hit info to hycal hit
 class CombinedHit : public HyCalHit
 {
 public:
     float x_gem;
     float y_gem;
-    // be abled to assgin CombinedHit to this class
+
+    // be abled to assgin HyCalHit to this class
     CombinedHit &operator =(const HyCalHit &hit)
     {
         *(HyCalHit*)this = hit;
