@@ -409,7 +409,8 @@ enum HyCalHitStatus
     kPbWO4,             //cluster center at lead tungstate region
     kTransition,        //cluster center at transition region
     kSplit,             //cluster after splitting
-    kDeadModule,        //cluster near dead module
+    kDeadModule,        //cluster center is a dead module (only possible from leakage correction)
+    kDeadNeighbor,      //cluster center is near a dead module
     kInnerBound,        //cluster near the inner hole of HyCal
     kOuterBound,        //cluster near the outer boundary of HyCal
     kGEM1Match,         //cluster found a match GEM hit on GEM 1

@@ -118,35 +118,23 @@ void PRadClusterProfile::LoadProfile(int type, const std::string &path)
                       << std::endl;
             continue;
         }
+        // x and y are symmetric
         profile[x][y] = Profile(val, err);
+        profile[y][x] = Profile(val, err);
     }
-}
-
-// x y is symmetric in profile
-float PRadClusterProfile::GetFraction(int type, int x, int y)
-const
-{
-    return GetProfile(type, x, y).frac;
-}
-
-float PRadClusterProfile::GetError(int type, int x, int y)
-const
-{
-    return GetProfile(type, x, y).err;
 }
 
 typedef PRadClusterProfile::Profile CProfile;
 
+// 1 step has 0.01% difference, much smaller than the profiles' own error
+// so we are not going to do interpolation
 const CProfile &PRadClusterProfile::GetProfile(int type, int x, int y)
 const
 {
     if(x >= x_steps || y >= y_steps)
         return empty_prof;
 
-    if(x < y)
-        return profiles[type][y][x];
-    else
-        return profiles[type][x][y];
+    return profiles[type][x][y];
 }
 
 // highly specific to HyCal geometry
@@ -163,8 +151,8 @@ const
     int dx, dy;
     // both belong to the same part
     if(m1.geo.type == m2.geo.type) {
-        dx = abs(100.*(m1.geo.x - m2.geo.x)/m1.geo.size_x);
-        dy = abs(100.*(m1.geo.y - m2.geo.y)/m1.geo.size_y);
+        dx = fabs(100.*(m1.geo.x - m2.geo.x)/m1.geo.size_x) + 0.5;
+        dy = fabs(100.*(m1.geo.y - m2.geo.y)/m1.geo.size_y) + 0.5;
     // belong to different part
     } else {
         // determine the line that connects the two points
@@ -189,10 +177,12 @@ const
 
         // the dx dy will be the sum of two parts, each part quantized to the
         // module's size (Moliere radius)
-        dx =   abs(100.*(m1.geo.x - inter_x)/m1.geo.size_x)
-             + abs(100.*(m2.geo.x - inter_x)/m2.geo.size_x);
-        dy =   abs(100.*(m1.geo.y - inter_y)/m1.geo.size_y)
-             + abs(100.*(m2.geo.y - inter_y)/m2.geo.size_y);
+        dx =   fabs(100.*(m1.geo.x - inter_x)/m1.geo.size_x)
+             + fabs(100.*(m2.geo.x - inter_x)/m2.geo.size_x)
+             + 0.5;
+        dy =   fabs(100.*(m1.geo.y - inter_y)/m1.geo.size_y)
+             + fabs(100.*(m2.geo.y - inter_y)/m2.geo.size_y)
+             + 0.5;
     }
 
     return GetProfile(m1.geo.type, dx, dy);
@@ -229,8 +219,8 @@ const
     int dx, dy;
     // both belong to the same part
     if(type == hit.geo.type) {
-        dx = abs(x - hit.geo.x)/hit.geo.size_x * 100.;
-        dy = abs(y - hit.geo.y)/hit.geo.size_y * 100.;
+        dx = fabs(100.*(x - hit.geo.x)/hit.geo.size_x) + 0.5;
+        dy = fabs(100.*(y - hit.geo.y)/hit.geo.size_y) + 0.5;
     // belong to different part
     } else {
         // determine the line that connects the two points
@@ -254,61 +244,14 @@ const
 
         // the dx dy will be the sum of two parts, each part quantized to the
         // module's size (Moliere radius)
-        dx =   abs((x - inter_x)/__cp_size_x[type]*100.)
-             + abs((hit.geo.x - inter_x)/hit.geo.size_x*100.);
-        dy =   abs((y - inter_y)/__cp_size_y[type]*100.)
-             + abs((hit.geo.y - inter_y)/hit.geo.size_y*100.);
+        dx =   fabs(100.*(x - inter_x)/__cp_size_x[type])
+             + fabs(100.*(hit.geo.x - inter_x)/hit.geo.size_x)
+             + 0.5;
+        dy =   fabs(100.*(y - inter_y)/__cp_size_y[type])
+             + fabs(100.*(hit.geo.y - inter_y)/hit.geo.size_y)
+             + 0.5;
     }
 
     return GetProfile(hit.geo.type, dx, dy);
-}
-
-const CProfile &PRadClusterProfile::GetProfile(const float &x1, const float &y1,
-                                               const float &x2, const float &y2)
-const
-{
-    // firstly, check which part the point belongs to
-    // 0 means pwo module and 1,2,3,4 means lg module
-    int sect1 = __cp_get_sector(x1, y1);
-    int sect2 = __cp_get_sector(x2, y2);
-
-    int type1 = (sect1 == 0)? PRadHyCalModule::PbWO4 : PRadHyCalModule::PbGlass;
-    int type2 = (sect2 == 0)? PRadHyCalModule::PbWO4 : PRadHyCalModule::PbGlass;
-
-    int dx, dy;
-    // both belong to the same part
-    if(type1 == type2) {
-        dx = abs((x1 - x2)/__cp_size_x[type1] * 100.);
-        dy = abs((y1 - y2)/__cp_size_y[type1] * 100.);
-    // belong to different part
-    } else {
-        // determine the line that connects the two points
-        float k = (y1 - y2)/(x1 - x2);
-        float b = y1 - k*x1;
-
-        // determine which boundary the line is crossing
-        int sect = abs(sect1 - sect2);
-        float boundary = __cp_boundary[sect - 1];
-        bool x_boundary = __cp_x_boundary[sect - 1];
-
-        // get the intersect point
-        float inter_x, inter_y;
-        if(x_boundary) {
-            inter_x = boundary;
-            inter_y = k*inter_x + b;
-        } else {
-            inter_y = boundary;
-            inter_x = (inter_y - b)/k;
-        }
-
-        // the dx dy will be the sum of two parts, each part quantized to the
-        // module's size (Moliere radius)
-        dx =   abs((x1 - inter_x)/__cp_size_x[type1]*100.)
-             + abs((x2 - inter_x)/__cp_size_x[type2]*100.);
-        dy =   abs((y1 - inter_y)/__cp_size_y[type1]*100.)
-             + abs((y2 - inter_y)/__cp_size_y[type2]*100.);
-    }
-
-    return GetProfile(type1, dx, dy);
 }
 

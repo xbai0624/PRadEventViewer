@@ -26,7 +26,7 @@ public:
 
     float GetWeight(const float &E, const float &E0) const;
     float GetShowerDepth(int module_type, const float &E) const;
-    void LeakCorr(ModuleCluster &cluster, std::vector<ModuleHit> &dead) const;
+    void LeakCorr(ModuleCluster &cluster, const std::vector<ModuleHit> &dead) const;
     HyCalHit Reconstruct(const ModuleCluster &cluster, const float &alpE = 1.) const;
 
 private:
@@ -34,6 +34,7 @@ private:
     void fillHits(HitInfo *temp, int &count, const ModuleHit &center,
                   const std::vector<ModuleHit> &hits) const;
     void posRecon(HitInfo *temp, int count, float &x, float &y) const;
+    float evalEstimator(const HitInfo &hit, const ModuleCluster &cluster) const;
 
 protected:
     bool depth_corr;

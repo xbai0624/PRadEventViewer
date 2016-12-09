@@ -380,6 +380,7 @@ void PRadHyCalDetector::CreateDeadHits()
 
         // module is not connected to a adc channel or the channel is dead
         if(!module->GetChannel() || module->GetChannel()->IsDead()) {
+            SET_BIT(module->layout.flag, kDeadModule);
             dead_hits.emplace_back(module, 0.);
         }
     }
@@ -397,7 +398,7 @@ void PRadHyCalDetector::CreateDeadHits()
 
             if(sqrt(dx*dx + dy*dy)*2. < CORNER_ADJACENT)
             {
-               SET_BIT(module->layout.flag, kDeadModule);
+               SET_BIT(module->layout.flag, kDeadNeighbor);
                break;
             }
         }
@@ -420,7 +421,7 @@ void PRadHyCalDetector::Reconstruct(PRadHyCalCluster *method)
             continue;
 
         // leakage correction for dead modules
-        if(TEST_BIT(cluster.center.flag, kDeadModule)) {
+        if(TEST_BIT(cluster.center.flag, kDeadNeighbor)) {
             method->LeakCorr(cluster, dead_hits);
         }
 

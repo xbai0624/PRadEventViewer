@@ -111,27 +111,26 @@ inline float quad_sum(const float &x, const float &y)
 float EvalEstimator(const HyCalHit &hycal_hit, const vector<ModuleHit> &hits)
 {
     float est = 0.;
+
+    float res = 0.026;  // 2.6% for PbWO4
+    if(TEST_BIT(hycal_hit.flag, kPbGlass))
+        res = 0.065;    // 6.5% for PbGlass
+    if(TEST_BIT(hycal_hit.flag, kTransition))
+        res = 0.050;    // 5.0% for transition
+    res /= sqrt(hycal_hit.E/1000.);
+
     for(auto hit : hits)
     {
         const auto &prof = profile.GetProfile(hycal_hit.x, hycal_hit.y, hit);
 
-        float diff = fabs(hit.energy - hycal_hit.E*prof.frac);
-
-        float res = 0.026;  // 2.6% for PbWO4
-        if(TEST_BIT(hycal_hit.flag, kPbGlass))
-            res = 0.065;    // 6.5% for PbGlass
-        if(TEST_BIT(hycal_hit.flag, kTransition))
-            res = 0.050;    // 5.0% for transition
-
-        // get resolution
-        res /= sqrt(hycal_hit.E/1000.);
+        float diff = hit.energy - hycal_hit.E*prof.frac;
 
         // energy resolution part and profile error part
-//        float sigma2 = quad_sum(res*hit.energy, prof.frac*hycal_hit.E*prof.err);
+        //float sigma2 = quad_sum(hycal_hit.E*prof.err, res*hit.energy);
         float sigma2 = 0.816*hit.energy + res*hycal_hit.E*prof.err;
 
         // log likelyhood for double exponential distribution
-        est += diff/sqrt(sigma2);
+        est += fabs(diff)/sqrt(sigma2);
     }
 
     return est/hits.size();

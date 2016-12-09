@@ -141,49 +141,97 @@ const
     return hycal_hit;
 }
 
-void PRadHyCalCluster::LeakCorr(ModuleCluster &cluster, std::vector<ModuleHit> &dead)
+void PRadHyCalCluster::LeakCorr(ModuleCluster &cluster, const std::vector<ModuleHit> &dead)
 const
 {
     // no need to do correction
     if(!leak_corr)
         return;
 
-    // erase dead module energies first
-    for(auto &hit : dead)
+    // prepare variables to be used
+    HitInfo temp_hit, cl[POS_RECON_HITS];
+    float estimator = 5.; // initial estimator value
+    float dead_energy[dead.size()], temp_energy[dead.size()];
+    const auto &center = cluster.center;
+    for(auto &ene : dead_energy)
     {
-        hit.energy = 0.;
+        ene = 0.;
     }
 
+    // iteration to correct leakage
     for(unsigned int iter = 0; iter <= leak_iters; ++iter)
     {
-        float x, y;
         // reconstruct position using cluster hits and dead modules
         if(iter > 0) {
             int count = 0;
-            HitInfo cl[POS_RECON_HITS];
-            fillHits(cl, count, cluster.center, cluster.hits);
-            fillHits(cl, count, cluster.center, dead);
-            posRecon(cl, count, x, y);
+            // fill existing cluster hits
+            fillHits(cl, count, center, cluster.hits);
+            // fill virtual hits for dead modules
+            for(size_t i = 0; i < dead.size(); ++i)
+            {
+                if(dead_energy[i] == 0.)
+                    continue;
+
+                const auto &hit = dead.at(i);
+                if(PRadHyCalDetector::hit_distance(center, hit) < CORNER_ADJACENT) {
+                    cl[count].x = hit.geo.x;
+                    cl[count].y = hit.geo.y;
+                    cl[count].E = dead_energy[i];
+                    count++;
+                }
+            }
+            // reconstruct position
+            posRecon(cl, count, temp_hit.x, temp_hit.y);
+
         } else {
             // first iteration, using center module position only
-            x = cluster.center.geo.x;
-            y = cluster.center.geo.y;
+            temp_hit.x = center.geo.x;
+            temp_hit.y = center.geo.y;
         }
 
-        for(auto &hit : dead)
+        // check profile to determine dead hits' energy
+        temp_hit.E = cluster.energy;
+        for(size_t i = 0; i < dead.size(); ++i)
         {
-            float frac = __hc_prof.GetProfile(x, y, hit).frac;
+            float frac = __hc_prof.GetProfile(temp_hit.x, temp_hit.y, dead.at(i)).frac;
 
-            hit.energy = cluster.energy*frac;
+            temp_energy[i] = cluster.energy*frac;
+            temp_hit.E += temp_energy[i];
+        }
+
+        // check if the correction helps improve the cluster profile
+        float new_est = evalEstimator(temp_hit, cluster);
+        // improved! record current changes
+        if(new_est < estimator) {
+            estimator = new_est;
+            for(size_t i = 0; i < dead.size(); ++i)
+            {
+                dead_energy[i] = temp_energy[i];
+            }
+        // not improved! stop iteration
+        } else {
+            break;
         }
     }
 
-    for(auto &hit : dead)
+    // leakage correction to cluster
+    for(size_t i = 0; i < dead.size(); ++i)
     {
-        // leakage is too small, don't correct it
-        if(hit.energy > least_leak*cluster.energy) {
-            cluster.AddHit(hit);
-            cluster.leakage += hit.energy;
+        // leakage is large enough
+        if(dead_energy[i] >= least_leak*cluster.energy) {
+
+            // add virtual hit
+            ModuleHit vhit(dead.at(i));
+            vhit.energy = dead_energy[i];
+            cluster.AddHit(vhit);
+
+            // record leakage correction
+            cluster.leakage += vhit.energy;
+
+            // change center if its energy is even larger
+            if(vhit.energy > cluster.center.energy) {
+                cluster.center = vhit;
+            }
         }
     }
 }
@@ -196,9 +244,6 @@ const
 {
     for(auto &hit : hits)
     {
-        if(hit.energy == 0.)
-            continue;
-
         if(PRadHyCalDetector::hit_distance(center, hit) < CORNER_ADJACENT) {
             temp[count].x = hit.geo.x;
             temp[count].y = hit.geo.y;
@@ -232,3 +277,36 @@ const
     x = weight_x/weight_total;
     y = weight_y/weight_total;
 }
+
+// evaluate how well the profile can describe this cluster
+// tmp is a reconstructed hit that contains position and energy information of
+// this cluster
+float PRadHyCalCluster::evalEstimator(const HitInfo &tmp, const ModuleCluster &cl)
+const
+{
+    float est = 0.;
+
+    // determine energy resolution
+    float res = 0.026;  // 2.6% for PbWO4
+    if(TEST_BIT(cl.center.flag, kPbGlass))
+        res = 0.065;    // 6.5% for PbGlass
+    if(TEST_BIT(cl.center.flag, kTransition))
+        res = 0.050;    // 5.0% for transition
+    res /= sqrt(tmp.E/1000.);
+
+    for(auto hit : cl.hits)
+    {
+        const auto &prof = __hc_prof.GetProfile(tmp.x, tmp.y, hit);
+
+        float diff = hit.energy - tmp.E*prof.frac;
+
+        // energy resolution part and profile error part
+        float sigma2 = 0.816*hit.energy + res*tmp.E*prof.err;
+
+        // log likelyhood for double exponential distribution
+        est += fabs(diff)/sqrt(sigma2);
+    }
+
+    return est/cl.hits.size();
+}
+

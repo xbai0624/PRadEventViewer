@@ -170,6 +170,22 @@ const
     return false;
 }
 
+// some global container and function to help splitting and improve performance
+#define SPLIT_MAX_HITS 100
+#define SPLIT_MAX_CLUSTERS 10
+float __ic_frac[SPLIT_MAX_HITS][SPLIT_MAX_CLUSTERS];
+float __ic_tot_frac[SPLIT_MAX_HITS];
+
+inline void __ic_sum_frac(size_t hits, size_t maximums)
+{
+    for(size_t i = 0; i < hits; ++i)
+    {
+        __ic_tot_frac[i] = 0;
+        for(size_t j = 0; j < maximums; ++j)
+            __ic_tot_frac[i] += __ic_frac[i][j];
+    }
+}
+
 // split one group into several clusters
 void PRadIslandCluster::splitCluster(const std::vector<ModuleHit*> &group,
                                      std::vector<ModuleCluster> &clusters)
@@ -182,8 +198,9 @@ const
     if(maximums.empty())
         return;
 
-    // only 1 maximum, no need to split
-    if(maximums.size() == 1) {
+    if((maximums.size() == 1) ||                    // only 1 cluster
+       (group.size() >= SPLIT_MAX_HITS) ||          // too many hits
+       (maximums.size() >= SPLIT_MAX_CLUSTERS)) {   // too many local maximums
         // create cluster based on the center
         clusters.emplace_back(*maximums.front());
         auto &cluster = clusters.back();
@@ -230,22 +247,6 @@ const
     return local_max;
 }
 
-// some global container and function to help splitting and improve performance
-#define SPLIT_MAX_HITS 1000
-#define SPLIT_MAX_CLUSTERS 100
-float __ic_frac[SPLIT_MAX_HITS][SPLIT_MAX_CLUSTERS];
-float __ic_tot_frac[SPLIT_MAX_HITS];
-
-inline void __ic_sum_frac(size_t hits, size_t maximums)
-{
-    for(size_t i = 0; i < hits; ++i)
-    {
-        __ic_tot_frac[i] = 0;
-        for(size_t j = 0; j < maximums; ++j)
-            __ic_tot_frac[i] += __ic_frac[i][j];
-    }
-}
-
 // split hits between several local maximums inside a cluster group
 void PRadIslandCluster::splitHits(const std::vector<ModuleHit*> &maximums,
                                   const std::vector<ModuleHit*> &hits,
@@ -276,6 +277,12 @@ const
         {
             if(__ic_frac[j][i] == 0.)
                 continue;
+
+            // too small share, treat as zero
+            if(__ic_frac[j][i]/__ic_tot_frac[j] < least_share) {
+                __ic_tot_frac[j] -= __ic_frac[j][i];
+                continue;
+            }
 
             ModuleHit new_hit(*hits.at(j));
             new_hit.energy *= __ic_frac[j][i]/__ic_tot_frac[j];
@@ -337,11 +344,7 @@ const
             for(size_t j = 0; j < hits.size(); ++j)
             {
                 auto &hit = *hits.at(j);
-                float frac = __ic_prof.GetProfile(x, y, hit).frac;
-                if(frac < least_share) // too small share, treat as zero
-                    __ic_frac[j][i] = 0.;
-                else
-                    __ic_frac[j][i] = frac*tot_E;
+                __ic_frac[j][i] = __ic_prof.GetProfile(x, y, hit).frac*tot_E;
             }
         }
     }
