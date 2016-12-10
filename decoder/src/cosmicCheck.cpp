@@ -47,7 +47,8 @@ void Evaluate(const string &file)
     dst_parser2.OpenOutput(fname + "_sav.dst");
 
     TFile f((fname + "_est.root").c_str(), "RECREATE");
-    TH1F hist("Likelihood", "Estimator", 1000, 0., 50.);
+    TH1F hist_cl("Likelihood_cl", "Estimator Cluster", 1000, 0., 50.);
+    TH1F hist_ev("Likelihood_ev", "Estimator Event", 1000, 0., 50.);
     TH1F hist_uni("Uniformity", "Energy Fluctuation", 1000, 0., 3.);
 
     PRadHyCalSystem *sys = new PRadHyCalSystem("config/hycal.conf");
@@ -68,6 +69,7 @@ void Evaluate(const string &file)
             float est = 0.;
             bool uniform = true;
 
+            int count = 0;
             for(auto &cluster : clusters)
             {
                 // it isn't a good cluster
@@ -75,7 +77,10 @@ void Evaluate(const string &file)
                     continue;
 
                 auto hit = method->Reconstruct(cluster);
-                est += EvalEstimator(hit, cluster.hits);
+                float cl_est = EvalEstimator(hit, cluster.hits);
+                hist_cl.Fill(cl_est);
+                est += cl_est;
+                ++count;
 
                 // found a not uniform cluster
                 float uni = EvalUniformity(hit, cluster.hits);
@@ -84,8 +89,8 @@ void Evaluate(const string &file)
                     uniform = false;
             }
 
-            est /= clusters.size();
-            hist.Fill(est);
+            est /= count;
+            hist_ev.Fill(est);
 
             // too uniform, reject
             if(uniform)
@@ -98,7 +103,8 @@ void Evaluate(const string &file)
     dst_parser.CloseInput();
     dst_parser.CloseOutput();
     dst_parser2.CloseOutput();
-    hist.Write();
+    hist_cl.Write();
+    hist_ev.Write();
     hist_uni.Write();
     f.Close();
 }

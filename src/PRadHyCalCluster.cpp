@@ -219,7 +219,7 @@ const
     float estimator = evalEstimator(temp_hit, cluster);
 
     // this cluster is too bad
-    if(estimator > 3.)
+    if(estimator > 5.)
         return;
 
     // temporty container for dead hits energies
@@ -243,10 +243,8 @@ const
 
         // reconstruct position using cluster hits and dead modules
         int count = 0;
-
         // fill existing cluster hits
         fillHits(cl, count, center, cluster.hits);
-
         // fill virtual hits for dead modules
         temp_hit.E = cluster.energy;
         for(unsigned int i = 0; i < dead.size(); ++i)
@@ -392,19 +390,22 @@ const
         res = 0.050;    // 5.0% for transition
     res /= sqrt(tmp.E/1000.);
 
+    int count = 0;
     for(auto hit : cl.hits)
     {
         const auto &prof = __hc_prof.GetProfile(tmp.x, tmp.y, hit);
+        if(prof.frac < 0.01)
+            continue;
+
+        ++count;
 
         float diff = hit.energy - tmp.E*prof.frac;
-
-        // energy resolution part and profile error part
         float sigma2 = 0.816*hit.energy + res*tmp.E*prof.err;
 
         // log likelyhood for double exponential distribution
         est += fabs(diff)/sqrt(sigma2);
     }
 
-    return est/cl.hits.size();
+    return est/count;
 }
 
