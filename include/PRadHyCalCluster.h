@@ -34,11 +34,10 @@ public:
     HyCalHit Reconstruct(const ModuleCluster &cluster, const float &alpE = 1.) const;
 
 private:
-    struct HitInfo {float x; float y; float E;};
-    void fillHits(HitInfo *temp, int &count, const ModuleHit &center,
+    void fillHits(BaseHit *temp, int &count, const ModuleHit &center,
                   const std::vector<ModuleHit> &hits) const;
-    void posRecon(HitInfo *temp, int count, float &x, float &y) const;
-    float evalEstimator(const HitInfo &hit, const ModuleCluster &cluster) const;
+    void posRecon(BaseHit *temp, int count, float &x, float &y) const;
+    float evalEstimator(const BaseHit &hit, const ModuleCluster &cluster) const;
 
 protected:
     bool depth_corr;

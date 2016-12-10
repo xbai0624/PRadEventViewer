@@ -170,7 +170,7 @@ const
 
     // fill 3x3 hits around center into temp container for position reconstruction
     int count = 0;
-    HitInfo cl[POS_RECON_HITS];
+    BaseHit cl[POS_RECON_HITS];
     fillHits(cl, count, cluster.center, cluster.hits);
 
     // record how many hits participated in position reconstruction
@@ -210,75 +210,79 @@ const
     if(dead.empty())
         return;
 
-    // prepare variables to be used
-    HitInfo temp_hit, cl[POS_RECON_HITS];
-    float estimator = 5.; // initial estimator value
-    float dead_energy[dead.size()], temp_energy[dead.size()];
     const auto &center = cluster.center;
-    for(auto &ene : dead_energy)
+
+    // temp container to reconstruct position
+    BaseHit cl[POS_RECON_HITS], temp_hit(center.geo.x, center.geo.y, 0., cluster.energy);
+
+    // estimator to check if virtual hits will improve the profile
+    float estimator = evalEstimator(temp_hit, cluster);
+
+    // this cluster is too bad
+    if(estimator > 3.)
+        return;
+
+    // temporty container for dead hits energies
+    float dead_energy[dead.size()], temp_energy[dead.size()];
+    // initialize
+    for(unsigned int i = 0; i < dead.size(); ++i)
     {
-        ene = 0.;
+        dead_energy[i] = 0.;
     }
 
     // iteration to correct leakage
-    for(unsigned int iter = 0; iter <= leak_iters; ++iter)
+    for(unsigned int iter = 0; iter < leak_iters; ++iter)
     {
-        // reconstruct position using cluster hits and dead modules
-        if(iter > 0) {
-            int count = 0;
-            // fill existing cluster hits
-            fillHits(cl, count, center, cluster.hits);
-            // fill virtual hits for dead modules
-            for(size_t i = 0; i < dead.size(); ++i)
-            {
-                if(dead_energy[i] == 0.)
-                    continue;
-
-                const auto &hit = dead.at(i);
-                if(PRadHyCalDetector::hit_distance(center, hit) < CORNER_ADJACENT) {
-                    cl[count].x = hit.geo.x;
-                    cl[count].y = hit.geo.y;
-                    cl[count].E = dead_energy[i];
-                    count++;
-                }
-            }
-            // reconstruct position
-            posRecon(cl, count, temp_hit.x, temp_hit.y);
-
-        } else {
-            // first iteration, using center module position only
-            temp_hit.x = center.geo.x;
-            temp_hit.y = center.geo.y;
-        }
-
-        // check profile to determine dead hits' energy
-        temp_hit.E = cluster.energy;
-        for(size_t i = 0; i < dead.size(); ++i)
+        // check profile to update dead hits' energies
+        for(unsigned int i = 0; i < dead.size(); ++i)
         {
             float frac = __hc_prof.GetProfile(temp_hit.x, temp_hit.y, dead.at(i)).frac;
-
             // full correction would be frac/(1 - frac), but it may result in divergence
             temp_energy[i] = cluster.energy*frac;
-            temp_hit.E += temp_energy[i];
         }
+
+        // reconstruct position using cluster hits and dead modules
+        int count = 0;
+
+        // fill existing cluster hits
+        fillHits(cl, count, center, cluster.hits);
+
+        // fill virtual hits for dead modules
+        temp_hit.E = cluster.energy;
+        for(unsigned int i = 0; i < dead.size(); ++i)
+        {
+            if(temp_energy[i] == 0.)
+                continue;
+
+            const auto &hit = dead.at(i);
+            if(PRadHyCalDetector::hit_distance(center, hit) < CORNER_ADJACENT) {
+                cl[count].x = hit.geo.x;
+                cl[count].y = hit.geo.y;
+                cl[count].E = temp_energy[i];
+                temp_hit.E += temp_energy[i];
+                count++;
+            }
+        }
+
+        // reconstruct position
+        posRecon(cl, count, temp_hit.x, temp_hit.y);
 
         // check if the correction helps improve the cluster profile
         float new_est = evalEstimator(temp_hit, cluster);
-        // improved! record current changes
-        if(new_est < estimator) {
-            estimator = new_est;
-            for(size_t i = 0; i < dead.size(); ++i)
-            {
-                dead_energy[i] = temp_energy[i];
-            }
-        // not improved! stop iteration
-        } else {
+        // not improving, stop!
+        if(new_est > estimator)
             break;
+
+        // improved! apply changes
+        estimator = new_est;
+        for(unsigned int i = 0; i < dead.size(); ++i)
+        {
+            dead_energy[i] = temp_energy[i];
         }
     }
 
     // leakage correction to cluster
-    for(size_t i = 0; i < dead.size(); ++i)
+    for(unsigned int i = 0; i < dead.size(); ++i)
     {
         // leakage is large enough
         if(dead_energy[i] >= least_leak*cluster.energy) {
@@ -331,7 +335,7 @@ const
 }
 
 // only use the center 3x3 to fill the temp container
-inline void PRadHyCalCluster::fillHits(HitInfo *temp, int &count,
+inline void PRadHyCalCluster::fillHits(BaseHit *temp, int &count,
                                        const ModuleHit &center,
                                        const std::vector<ModuleHit> &hits)
 const
@@ -348,7 +352,7 @@ const
 }
 
 // reconstruct position from the temp container
-inline void PRadHyCalCluster::posRecon(HitInfo *temp, int count, float &x, float &y)
+inline void PRadHyCalCluster::posRecon(BaseHit *temp, int count, float &x, float &y)
 const
 {
     // get total energy
@@ -375,7 +379,7 @@ const
 // evaluate how well the profile can describe this cluster
 // tmp is a reconstructed hit that contains position and energy information of
 // this cluster
-float PRadHyCalCluster::evalEstimator(const HitInfo &tmp, const ModuleCluster &cl)
+float PRadHyCalCluster::evalEstimator(const BaseHit &tmp, const ModuleCluster &cl)
 const
 {
     float est = 0.;

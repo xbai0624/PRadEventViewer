@@ -30,7 +30,7 @@ float EvalUniformity(const HyCalHit &hycal_hit, const vector<ModuleHit> &hits);
 int main(int /*argc*/, char * /*argv*/ [])
 {
     Evaluate("cosmic.dst");             // a cosimic run
-    Evaluate("prad_1310.dst");          // a normal production run
+//    Evaluate("prad_1310.dst");          // a normal production run
     Evaluate("prad_1310_select.dst");   // selected events, (70%, 130%) beam energy
     return 0;
 }
@@ -119,21 +119,25 @@ float EvalEstimator(const HyCalHit &hycal_hit, const vector<ModuleHit> &hits)
         res = 0.050;    // 5.0% for transition
     res /= sqrt(hycal_hit.E/1000.);
 
+    int count = 0;
     for(auto hit : hits)
     {
         const auto &prof = profile.GetProfile(hycal_hit.x, hycal_hit.y, hit);
 
+        if(prof.frac < 0.01)
+            continue;
+
         float diff = hit.energy - hycal_hit.E*prof.frac;
 
-        // energy resolution part and profile error part
-        //float sigma2 = quad_sum(hycal_hit.E*prof.err, res*hit.energy);
+        // adjusted from PrimEx method
         float sigma2 = 0.816*hit.energy + res*hycal_hit.E*prof.err;
 
         // log likelyhood for double exponential distribution
         est += fabs(diff)/sqrt(sigma2);
+        count++;
     }
 
-    return est/hits.size();
+    return est/count;
 }
 
 float EvalUniformity(const HyCalHit &hycal_hit, const vector<ModuleHit> &hits)

@@ -387,11 +387,14 @@ public:
     float x;            // Cluster's x-position (mm)
     float y;            // Cluster's y-position (mm)
     float z;            // Cluster's z-position (mm)
+    float E;            // Cluster's energy (MeV)
 
-    BaseHit() : x(0), y(0), z(0)
+    BaseHit()
+    : x(0.), y(0.), z(0.), E(0.)
     {};
-    BaseHit(float xi, float yi, float zi)
-    : x(xi), y(yi), z(zi)
+
+    BaseHit(float xi, float yi, float zi, float Ei)
+    : x(xi), y(yi), z(zi), E(Ei)
     {};
 };
 
@@ -428,21 +431,19 @@ public:
     short nblocks;      // Number of blocks in a cluster
     short npos;         // Number of blocks participated in position reconstruction
     short cid;          // Cluster's central cell ID
-    float E;            // Cluster's energy (MeV)
     float E_leak;       // Leakage correction on energy (MeV)
     float lin_corr;     // Non Linearity factor for energy correction E_f = E_i*lin_corr
     unsigned short time[TIME_MEASURE_SIZE];      // time information from central TDC group
 
     HyCalHit()
-    : flag(0), type(0), status(0), nblocks(0), npos(0), cid(0),
-      E(0.), E_leak(0.), lin_corr(1.)
+    : flag(0), type(0), status(0), nblocks(0), npos(0), cid(0), E_leak(0.), lin_corr(1.)
     {
         clear_time();
     }
 
     HyCalHit(short id, unsigned int f, float ene, float leak)
-    : flag(f), type(0), status(0), nblocks(0), npos(0), cid(id),
-      E(ene), E_leak(leak), lin_corr(1.)
+    : BaseHit(0., 0., 0., ene), flag(f), type(0), status(0), nblocks(0), npos(0),
+      cid(id), E_leak(leak), lin_corr(1.)
     {
         clear_time();
     }
@@ -482,7 +483,7 @@ public:
 
     GEMHit(float x, float y, float z,
                float xc, float yc, float xp, float yp, int xs, int ys)
-    : BaseHit(x, y, z),
+    : BaseHit(x, y, z, 0.),
       x_charge(xc), y_charge(yc), x_peak(xp), y_peak(yp), x_size(xs), y_size(ys)
     {};
 };
