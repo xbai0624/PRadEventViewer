@@ -1,4 +1,13 @@
+//============================================================================//
+// A timer class to test the performance                                      //
+//                                                                            //
+// Chao Peng                                                                  //
+// 02/12/2016                                                                 //
+//============================================================================//
+
 #include "PRadBenchMark.h"
+
+
 
 PRadBenchMark::PRadBenchMark()
 {
@@ -7,6 +16,7 @@ PRadBenchMark::PRadBenchMark()
 
 PRadBenchMark::~PRadBenchMark()
 {
+    // place holder
 }
 
 void PRadBenchMark::Reset()

@@ -98,7 +98,7 @@ int main(int /*argc*/, char * /*argv*/ [])
                 E[i] = hit.E;
                 corr[i] = hit.lin_corr;
                 leak[i] = hit.E_leak;
-                if(hit.E_leak > 300)
+                if(hit.E_leak > 100)
                     save = true;
             }
             t->Fill();

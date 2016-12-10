@@ -253,7 +253,6 @@ bool PRadHyCalDetector::AddModule(PRadHyCalModule *module)
                   << std::endl;
         return false;
     }
-
     const std::string &name = module->GetName();
 
     if(name_map.find(name) != name_map.end()) {
@@ -381,7 +380,7 @@ void PRadHyCalDetector::CreateDeadHits()
         // module is not connected to a adc channel or the channel is dead
         if(!module->GetChannel() || module->GetChannel()->IsDead()) {
             SET_BIT(module->layout.flag, kDeadModule);
-            dead_hits.emplace_back(module, 0.);
+            dead_hits.emplace_back(module, 0., false);
         }
     }
 
@@ -421,9 +420,7 @@ void PRadHyCalDetector::Reconstruct(PRadHyCalCluster *method)
             continue;
 
         // leakage correction for dead modules
-        if(TEST_BIT(cluster.center.flag, kDeadNeighbor)) {
-            method->LeakCorr(cluster, dead_hits);
-        }
+        method->LeakCorr(cluster, dead_hits);
 
         // the center module does not exist should be a fatal problem, thus no
         // safety check here
@@ -487,13 +484,13 @@ const
 {
     for(auto &module : module_list)
     {
-        float x = module->GetX();
+        float pos_x = module->GetX();
         float size_x = module->GetSizeX();
-        if((x > x + size_x/2.) || (x < x - size_x/2.))
+        if((x > pos_x + size_x/2.) || (x < pos_x - size_x/2.))
             continue;
-        float y = module->GetY();
+        float pos_y = module->GetY();
         float size_y = module->GetSizeY();
-        if((y > y + size_y/2.) || (y < y - size_x/2.))
+        if((y > pos_y + size_y/2.) || (y < pos_y - size_x/2.))
             continue;
 
         return module;

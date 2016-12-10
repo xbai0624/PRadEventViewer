@@ -1,6 +1,7 @@
 #ifndef PRAD_HYCAL_CLUSTER_H
 #define PRAD_HYCAL_CLUSTER_H
 
+#include <vector>
 #include <string>
 #include <iostream>
 #include "ConfigObject.h"
@@ -24,9 +25,12 @@ public:
                              std::vector<ModuleCluster> &clusters) const;
     virtual bool CheckCluster(const ModuleCluster &hit) const;
 
+    void ReadVModuleList(const std::string &path);
     float GetWeight(const float &E, const float &E0) const;
     float GetShowerDepth(int module_type, const float &E) const;
     void LeakCorr(ModuleCluster &cluster, const std::vector<ModuleHit> &dead) const;
+    void AddVirtHits(ModuleCluster &cluster, const std::vector<ModuleHit> &dead) const;
+    void CorrectVirtHits(ModuleCluster &cluster, float x, float y) const;
     HyCalHit Reconstruct(const ModuleCluster &cluster, const float &alpE = 1.) const;
 
 private:
@@ -47,6 +51,8 @@ protected:
     float linear_corr_limit;
     unsigned int min_cluster_size;
     unsigned int leak_iters;
+    std::vector<ModuleHit> inner_virtual;
+    std::vector<ModuleHit> outer_virtual;
 };
 
 #endif

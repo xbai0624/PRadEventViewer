@@ -57,8 +57,9 @@ public:
 
     // public member functions
     void SetSystem(PRadHyCalSystem *sys, bool force_set = false);
-    void UnsetSystem(bool force_unset =false);
+    void UnsetSystem(bool force_unset = false);
     virtual void ReadModuleList(const std::string &path);
+    void ReadVirtualModuleList(const std::string &path);
     void ReadCalibrationFile(const std::string &path);
     void SaveModuleList(const std::string &path) const;
     void SaveCalibrationFile(const std::string &path) const;
@@ -118,10 +119,14 @@ struct ModuleHit
     int sector;                     // hycal sector
     PRadHyCalModule::Geometry geo;  // geometry
     float energy;                   // participated energy, may be splitted
+    bool real;                      // false for virtual hit to correct leakage
 
-    ModuleHit() : id(0), flag(0), sector(0), energy(0) {};
-    ModuleHit(PRadHyCalModule *m, float e)
-    : energy(e)
+    ModuleHit(bool r = true)
+    : id(0), flag(0), sector(0), energy(0), real(r)
+    {};
+
+    ModuleHit(PRadHyCalModule *m, float e, bool r = true)
+    : energy(e), real(r)
     {
         id = m->GetID();
         flag = m->GetLayoutFlag();

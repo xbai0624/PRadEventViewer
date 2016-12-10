@@ -52,6 +52,51 @@ void PRadHyCalCluster::Configure(const std::string &path)
     least_leak = getDefConfig<float>("Least Leakage Fraction", 0.05, verbose);
     leak_iters = getDefConfig<unsigned int>("Leakage Iterations", 3, verbose);
     linear_corr_limit = getDefConfig<float>("Non Linearity Limit", 0.6, verbose);
+
+    ReadVModuleList(GetConfig<std::string>("Virtual Module List"));
+}
+
+void PRadHyCalCluster::ReadVModuleList(const std::string &path)
+{
+    if(path.empty())
+        return;
+
+    ConfigParser c_parser;
+    c_parser.ReadFile(path);
+
+    inner_virtual.clear();
+    outer_virtual.clear();
+
+    std::string name;
+    std::string type, sector;
+    PRadHyCalModule::Geometry geo;
+
+    // some info that is not read from list
+    while (c_parser.ParseLine())
+    {
+        if(!c_parser.CheckElements(8))
+            continue;
+
+        c_parser >> name >> type
+                 >> geo.size_x >> geo.size_y >> geo.size_z
+                 >> geo.x >> geo.y >> geo.z;
+
+        geo.type = PRadHyCalModule::get_module_type(type.c_str());
+
+        if(ConfigParser::str_upper(name) == "INNER") {
+            ModuleHit inner_hit(false);
+            inner_hit.id = -1;
+            inner_hit.geo = geo;
+            inner_hit.sector = 0;
+            inner_virtual.push_back(inner_hit);
+        } else if(ConfigParser::str_upper(name) == "OUTER") {
+            ModuleHit outer_hit(false);
+            outer_hit.id = -1;
+            outer_hit.geo = geo;
+            outer_hit.sector = 1;
+            outer_virtual.push_back(outer_hit);
+        }
+    }
 }
 
 void PRadHyCalCluster::FormCluster(std::vector<ModuleHit> &,
@@ -141,11 +186,28 @@ const
     return hycal_hit;
 }
 
+// leakage correction, dead module hits will be provided by hycal detector
 void PRadHyCalCluster::LeakCorr(ModuleCluster &cluster, const std::vector<ModuleHit> &dead)
 const
 {
-    // no need to do correction
     if(!leak_corr)
+        return;
+
+    if(TEST_BIT(cluster.center.flag, kDeadNeighbor))
+        AddVirtHits(cluster, dead);
+
+    if(TEST_BIT(cluster.center.flag, kInnerBound))
+        AddVirtHits(cluster, inner_virtual);
+
+    if(TEST_BIT(cluster.center.flag, kOuterBound))
+        AddVirtHits(cluster, outer_virtual);
+}
+
+// add virtual hits to correct energy leakage
+void PRadHyCalCluster::AddVirtHits(ModuleCluster &cluster, const std::vector<ModuleHit> &dead)
+const
+{
+    if(dead.empty())
         return;
 
     // prepare variables to be used
@@ -195,6 +257,7 @@ const
         {
             float frac = __hc_prof.GetProfile(temp_hit.x, temp_hit.y, dead.at(i)).frac;
 
+            // full correction would be frac/(1 - frac), but it may result in divergence
             temp_energy[i] = cluster.energy*frac;
             temp_hit.E += temp_energy[i];
         }
@@ -227,13 +290,44 @@ const
 
             // record leakage correction
             cluster.leakage += vhit.energy;
-
-            // change center if its energy is even larger
-            if(vhit.energy > cluster.center.energy) {
-                cluster.center = vhit;
-            }
         }
     }
+}
+
+// correct virtual hits energy if we know the real positon (from other detector)
+void PRadHyCalCluster::CorrectVirtHits(ModuleCluster &cluster, float x, float y)
+const
+{
+    // no need to correct
+    if(cluster.leakage == 0.)
+        return;
+
+    // re-calculate cluster energy, zero leakage energy
+    cluster.energy -= cluster.leakage;
+    cluster.leakage = 0.;
+
+    // change virtual hits
+    for(auto it = cluster.hits.begin(); it != cluster.hits.end(); ++it)
+    {
+        // real hit, no need to correct
+        if(it->real)
+            continue;
+
+        // check profile
+        float frac = __hc_prof.GetProfile(x, y, *it).frac;
+
+        // full energy correction because we trust the position
+        if(frac > 0. && frac < 1.) {
+            it->energy = cluster.energy*frac/(1 - frac);
+            cluster.leakage += it->energy;
+        // remove virtual hit if its energy should be zero
+        } else {
+            cluster.hits.erase(it--);
+        }
+    }
+
+    // update energy
+    cluster.energy += cluster.leakage;
 }
 
 // only use the center 3x3 to fill the temp container
