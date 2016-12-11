@@ -37,7 +37,6 @@ private:
     void fillHits(BaseHit *temp, int &count, const ModuleHit &center,
                   const std::vector<ModuleHit> &hits) const;
     void posRecon(BaseHit *temp, int count, float &x, float &y) const;
-    float evalEstimator(const BaseHit &hit, const ModuleCluster &cluster) const;
 
 protected:
     bool depth_corr;

@@ -216,7 +216,7 @@ const
     BaseHit cl[POS_RECON_HITS], temp_hit(center.geo.x, center.geo.y, 0., cluster.energy);
 
     // estimator to check if virtual hits will improve the profile
-    float estimator = evalEstimator(temp_hit, cluster);
+    float estimator = __hc_prof.EvalEstimator(temp_hit, cluster);
 
     // this cluster is too bad
     if(estimator > 5.)
@@ -266,7 +266,7 @@ const
         posRecon(cl, count, temp_hit.x, temp_hit.y);
 
         // check if the correction helps improve the cluster profile
-        float new_est = evalEstimator(temp_hit, cluster);
+        float new_est = __hc_prof.EvalEstimator(temp_hit, cluster);
         // not improving, stop!
         if(new_est > estimator)
             break;
@@ -294,42 +294,6 @@ const
             cluster.leakage += vhit.energy;
         }
     }
-}
-
-// correct virtual hits energy if we know the real positon (from other detector)
-void PRadHyCalCluster::CorrectVirtHits(ModuleCluster &cluster, float x, float y)
-const
-{
-    // no need to correct
-    if(cluster.leakage == 0.)
-        return;
-
-    // re-calculate cluster energy, zero leakage energy
-    cluster.energy -= cluster.leakage;
-    cluster.leakage = 0.;
-
-    // change virtual hits
-    for(auto it = cluster.hits.begin(); it != cluster.hits.end(); ++it)
-    {
-        // real hit, no need to correct
-        if(it->real)
-            continue;
-
-        // check profile
-        float frac = __hc_prof.GetProfile(x, y, *it).frac;
-
-        // full energy correction because we trust the position
-        if(frac > 0. && frac < 1.) {
-            it->energy = cluster.energy*frac/(1 - frac);
-            cluster.leakage += it->energy;
-        // remove virtual hit if its energy should be zero
-        } else {
-            cluster.hits.erase(it--);
-        }
-    }
-
-    // update energy
-    cluster.energy += cluster.leakage;
 }
 
 // only use the center 3x3 to fill the temp container
@@ -374,38 +338,38 @@ const
     y = weight_y/weight_total;
 }
 
-// evaluate how well the profile can describe this cluster
-// tmp is a reconstructed hit that contains position and energy information of
-// this cluster
-float PRadHyCalCluster::evalEstimator(const BaseHit &tmp, const ModuleCluster &cl)
+// correct virtual hits energy if we know the real positon (from other detector)
+void PRadHyCalCluster::CorrectVirtHits(ModuleCluster &cluster, float x, float y)
 const
 {
-    float est = 0.;
+    // no need to correct
+    if(cluster.leakage == 0.)
+        return;
 
-    // determine energy resolution
-    float res = 0.026;  // 2.6% for PbWO4
-    if(TEST_BIT(cl.center.flag, kPbGlass))
-        res = 0.065;    // 6.5% for PbGlass
-    if(TEST_BIT(cl.center.flag, kTransition))
-        res = 0.050;    // 5.0% for transition
-    res /= sqrt(tmp.E/1000.);
+    // re-calculate cluster energy, zero leakage energy
+    cluster.energy -= cluster.leakage;
+    cluster.leakage = 0.;
 
-    int count = 0;
-    for(auto hit : cl.hits)
+    // change virtual hits
+    for(auto it = cluster.hits.begin(); it != cluster.hits.end(); ++it)
     {
-        const auto &prof = __hc_prof.GetProfile(tmp.x, tmp.y, hit);
-        if(prof.frac < 0.01)
+        // real hit, no need to correct
+        if(it->real)
             continue;
 
-        ++count;
+        // check profile
+        float frac = __hc_prof.GetProfile(x, y, *it).frac;
 
-        float diff = hit.energy - tmp.E*prof.frac;
-        float sigma2 = 0.816*hit.energy + res*tmp.E*prof.err;
-
-        // log likelyhood for double exponential distribution
-        est += fabs(diff)/sqrt(sigma2);
+        // full energy correction because we trust the position
+        if(frac > 0. && frac < 1.) {
+            it->energy = cluster.energy*frac/(1 - frac);
+            cluster.leakage += it->energy;
+        // remove virtual hit if its energy should be zero
+        } else {
+            cluster.hits.erase(it--);
+        }
     }
 
-    return est/count;
+    // update energy
+    cluster.energy += cluster.leakage;
 }
-

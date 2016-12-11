@@ -3,6 +3,7 @@
 
 #include <string>
 #include "PRadHyCalDetector.h"
+#include "PRadEventStruct.h"
 
 class PRadClusterProfile
 {
@@ -40,6 +41,7 @@ public:
     const Profile &GetProfile(int type, int x, int y) const;
     const Profile &GetProfile(const ModuleHit &m1, const ModuleHit &m2) const;
     const Profile &GetProfile(const float &x, const float &y, const ModuleHit &hit) const;
+    float EvalEstimator(const BaseHit &hit, const ModuleCluster &cluster) const;
 
 private:
     PRadClusterProfile(int type = 2, int xsize = 501, int ysize = 501);

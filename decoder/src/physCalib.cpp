@@ -6,178 +6,25 @@
 // 12/10/2016                                                                 //
 //============================================================================//
 
-#include "PRadDSTParser.h"
-#include "PRadEvioParser.h"
-#include "PRadBenchMark.h"
-#include "PRadHyCalSystem.h"
-#include "PRadGEMSystem.h"
-#include "PRadEPICSystem.h"
-#include "PRadCoordSystem.h"
-#include "PRadDetMatch.h"
-#include "PRadInfoCenter.h"
-#include "PRadBenchMark.h"
-#include "TFile.h"
-#include "TTree.h"
-#include "TH1F.h"
-#include "TH2F.h"
-#include "TMath.h"
+#include "physCalib.h"
 #include "TSystem.h"
-#include "Rtypes.h"
+#include "TMath.h"
 #include "TVector2.h"
-#include <math.h>
-
-#include <iostream>
-#include <sstream>
-#include <string>
-#include <vector>
 #include <algorithm>
 #include <cassert>
-#include <map>
-
-#define T_BLOCKS 2156
-#define PROGRESS_COUNT 10000
-#define MAXCLUSTER 6
-
-using namespace std;
-
-const bool isLowE = true; //true if 1.1 GeV
-
-struct PairCoor
-{
-  float x1;
-  float y1;
-  float x2;
-  float y2;
-  PairCoor(float &xx1, float& yy1, float& xx2, float& yy2)
-  :x1(xx1), y1(yy1), x2(xx2), y2(yy2) {}
-};
-
-enum ParticleType
-{
-    kProton = 0,
-    kElectron
-};
-
-// combine gem hit info to hycal hit
-class CombinedHit : public HyCalHit
-{
-public:
-    float x_gem;
-    float y_gem;
-
-    // be abled to assgin HyCalHit to this class
-    CombinedHit &operator =(const HyCalHit &hit)
-    {
-        *(HyCalHit*)this = hit;
-        return *this;
-    }
-
-    // be abled to assgin GEMHit to this class
-    CombinedHit &operator =(const GEMHit &hit)
-    {
-        x_gem = hit.x;
-        y_gem = hit.y;
-        return *this;
-    }
-};
-
-//global variables
-string inputDir = "./calibration/dst_file"; //define your dst data file folder here
-vector<string> inputFiles;
-
-int clusterN, eventNumber;
-int currentRunNumber;
-float Ebeam, HyCalZ;
-float offsetGEM[4];
-const float targetMass[2] = {938.272046, 0.510998928};
-const float innerBoundary[2] = {83.079,     83};
-vector< PairCoor > pairHyCal;
-vector< PairCoor > pairGEM;
-
-PRadHyCalSystem *hycal_sys;
-PRadGEMSystem *gem_sys;
-PRadEPICSystem *epics;
-PRadCoordSystem *coord_sys;
-PRadDetMatch *det_match;
-PRadDSTParser *dst_parser;
-PRadHyCalDetector *hycal;
-PRadGEMDetector *gem1;
-PRadGEMDetector *gem2;
-const EventData *current_event;
-
-vector<int> innerModule;
-vector<int> boundModule;
-vector<int> countFill;
-vector<TH2F*> profile;
-float moduleEnergy[64][12][12] = {0.};
-int innerModuleList[12] = {1526, 1527, 1528, 1529, 1560, 1563, 1594, 1597, 1628, 1629, 1630, 1631};
-//int innerModuleList[12] = {1458, 1459, 1460, 1461, 1696, 1697, 1698, 1699, 1531, 1565, 1599, 1633};
-float pwo_profile[501][501] = {0.};
-//functions
-void InitHistogram();
-void InitInnerModule();
-void InitProfileData();
-void FindInputFiles(int & start, int & end);
-int  GetRunNumber(string run);
-bool SortFile(string name1, string name2);
-bool SortForE(CombinedHit const & a, CombinedHit const & b);
-void InnerModuleAnalyzer(CombinedHit* h);
-void FillInnerHist(int& id, float& E, float& expectE, ParticleType type);
-void EPAnalyzer(CombinedHit * h);
-void MollerAnalyzer(CombinedHit * h, int index1 = 0, int index2 = 1);
-void MultiHitAnalyzer(CombinedHit* h, int &n);
-void OffsetAnalyzer(CombinedHit* h);
-void LinesIntersect(float &xsect, float &ysect, float &xsect_GEM, float & ysect_GEM);
-void GetIntersect(float& x1, float& x2, float& y1,
-                  float& y2, float& x, float& y);//for monitoring beam spot
-float GetExpectedEnergy(ParticleType type, float& x, float &y);
-float GetExpectedEFromProfile(float& dx, float& dy);
-float GetElossIonElectron(float &theta, float& E);
-int   IsNeighborToInner(int& id);
-bool MatchedGEM(const CombinedHit &hit);
-ostream &operator <<(ostream &os, const PRadBenchMark &timer);
-
-//histograms
-TH1F *h_beam_e;
-TH2F *ep_x_y;
-TH2F *GEM_x_y;
-TH2F *GEM_ep_x_y;
-TH1F *ep_ratio_all;
-TH2F *ep_angle_E;
-
-TH2F *ee1_x_y;
-TH2F *ee2_x_y;
-TH2F *sym_ee_x_y;
-TH1F *sym_ee_E;
-TH1F *ee_ratio_all;
-TH2F *ee_angle_E;
-TH2F *eloss;
-TH2F *total_angle_E;
-
-TH1F *deltaCoor[2];
-TH1F *deltaCoor_GEM[2];
-TH1F *coorIntersect[2];
-TH1F *coorIntersect_GEM[2];
-TH1F *sym_ee_r[2];
-
-TH1F *ep_ratio[T_BLOCKS];
-TH1F *ee_ratio[T_BLOCKS];
-TH1F *ep_energy[T_BLOCKS];
-TH1F *ee_energy[T_BLOCKS];
-
-TH1F *inner_ratio[12];
-TH1F *inner_deltax[12];
-TH1F *inner_deltay[12];
-TH2F *ratio_x[12];
-TH2F *ratio_y[12];
+#include <cmath>
 
 int main(int argc, char * argv [])
 {
-    int start_run =atoi(argv[1]);
-    int end_run =atoi(argv[2]);
+    int start_run = 0, end_run = 10000;
+    if(argc > 1)
+        start_run = atoi(argv[1]);
+    if(argc > 2)
+        end_run = atoi(argv[2]);
     //int part = atoi(argv[3]);
     //part *= 2;
     FindInputFiles(start_run, end_run);
+    assert(inputFiles.size());
 
     hycal_sys = new PRadHyCalSystem("config/hycal.conf");
     gem_sys = new PRadGEMSystem("config/gem.conf");
@@ -251,17 +98,20 @@ int main(int argc, char * argv [])
                 coord_sys->Projection(gem1_hits.begin(), gem1_hits.end());
                 coord_sys->Projection(gem2_hits.begin(), gem2_hits.end());
 
+                // match hits
+                auto matched = det_match->Match(hycal_hits, gem1_hits, gem2_hits);
+
+                // fill gem hits if only 1 cluster is detected
                 if(gem1_hits.size() == 1) GEM_ep_x_y->Fill(gem1_hits.front().x, gem1_hits.front().y);
                 if(gem2_hits.size() == 1) GEM_ep_x_y->Fill(gem2_hits.front().x, gem2_hits.front().y);
 
-                // match and fill gem position if matched
+                // combine hycalhits and gemhits if matched
                 CombinedHit myhits[clusterN];
                 for(int i = 0; i < clusterN; ++i)
                 {
                     myhits[i] = hycal_hits[i];
                 }
 
-                auto matched = det_match->Match(hycal_hits, gem1_hits, gem2_hits);
                 for(auto idx : matched)
                 {
                     if(idx.gem1 >= 0) {
@@ -341,10 +191,14 @@ int main(int argc, char * argv [])
     eloss->Write();
     total_angle_E->Write();
     for(int i=0;i<=T_BLOCKS;i++){
-      ep_ratio[i]->Write();
-      ee_ratio[i]->Write();
-      ep_energy[i]->Write();
-      ee_energy[i]->Write();
+        if(ep_ratio[i])
+            ep_ratio[i]->Write();
+        if(ep_energy[i])
+            ep_energy[i]->Write();
+        if(ee_ratio[i])
+            ee_ratio[i]->Write();
+        if(ee_energy[i])
+            ee_energy[i]->Write();
     }
 
     for (int i=0; i<2; i++){
@@ -410,13 +264,22 @@ void InitHistogram()
     total_angle_E->SetOption("colz");
 
     for(int i=0;i<T_BLOCKS;i++) {
-        ep_ratio[i] = new TH1F(Form("ep_ratio%04d", i+1),Form("ep_ratio%04d", i+1),200,0,2);
-        ep_energy[i] = new TH1F(Form("ep_energy%04d", i+1),Form("ep_energy%04d", i+1),nBin,0,Ehigh);
-    }
-
-    for(int i=0;i<T_BLOCKS;i++) {
-        ee_ratio[i] = new TH1F(Form("ee_ratio%04d", i+1), Form("ee_ratio%04d", i+1),200,0,2);
-        ee_energy[i] = new TH1F(Form("ee_energy%04d", i+1),Form("ee_energy%04d", i+1),nBin,0,Ehigh);
+        PRadHyCalModule *module = hycal->GetModule(i+1);
+        if(module) {
+            string ep_name1 = "ep_ratio_" + module->GetName();
+            string ep_name2 = "ep_energy_" + module->GetName();
+            string ee_name1 = "ee_ratio_" + module->GetName();
+            string ee_name2 = "ee_energy_" + module->GetName();
+            ep_ratio[i] = new TH1F(ep_name1.c_str(),ep_name1.c_str(),200,0,2);
+            ep_energy[i] = new TH1F(ep_name2.c_str(),ep_name2.c_str(),nBin,0,Ehigh);
+            ee_ratio[i] = new TH1F(ee_name1.c_str(),ee_name1.c_str(),200,0,2);
+            ee_energy[i] = new TH1F(ee_name2.c_str(),ee_name2.c_str(),nBin,0,Ehigh);
+        } else {
+            ep_ratio[i] = nullptr;
+            ep_energy[i] = nullptr;
+            ee_ratio[i] = nullptr;
+            ee_energy[i] = nullptr;
+        }
     }
 
     for (int i=0; i<2; i++){
@@ -493,7 +356,7 @@ inline void EPAnalyzer(CombinedHit* h)
 //____________________________________________________________________________________________
 void InnerModuleAnalyzer(CombinedHit* h)
 {
-    if (! MatchedGEM(h[0]) || !TESTBIT(h[0].flag, kPbWO4)) return;
+    if (! MatchedGEM(h[0]) || !TEST_BIT(h[0].flag, kPbWO4)) return;
 
     // we need module energy, so need to refresh all modules' energies by choose current event
     hycal_sys->ChooseEvent(*current_event);
@@ -504,9 +367,9 @@ void InnerModuleAnalyzer(CombinedHit* h)
 
 	float gemX = h[0].x_gem;
 	float gemY = h[0].y_gem;
-	int id = hycal->GetModule(gemX, gemY)->GetID();
-
-	if (id <= 0) return;
+	PRadHyCalModule *module = hycal->GetModule(gemX, gemY);
+    if(module == nullptr) return;
+    int id = module->GetID();
 	FillInnerHist(id, h[0].E, expectE, kProton);
 
 	int neighborID = IsNeighborToInner(id);
@@ -602,8 +465,8 @@ inline void MollerAnalyzer(CombinedHit* h, int index1, int index2)
     //not co-plane enough, not considered as Moller, see if it is likely a ep
     if (fabs( fabs(phi[0] - phi[1]) - 180.) > 20.){
         for (int i=0; i<2; i++){
-            if( ( (TESTBIT(h[in[i]].flag, kPbGlass) || TESTBIT(h[in[i]].flag, kTransition) ) && h[in[i]].E > (1.-0.2727)*Ebeam) ||
-                ( (TESTBIT(h[in[i]].flag, kPbWO4) && h[in[i]].E > (1.-0.0909)*Ebeam) ) ) EPAnalyzer(&h[in[i]]);
+            if( ( (TEST_BIT(h[in[i]].flag, kPbGlass) || TEST_BIT(h[in[i]].flag, kTransition) ) && h[in[i]].E > (1.-0.2727)*Ebeam) ||
+                ( (TEST_BIT(h[in[i]].flag, kPbWO4) && h[in[i]].E > (1.-0.0909)*Ebeam) ) ) EPAnalyzer(&h[in[i]]);
         }
         return;
     }
@@ -613,8 +476,8 @@ inline void MollerAnalyzer(CombinedHit* h, int index1, int index2)
         ratio[i] = h[in[i]].E / GetExpectedEnergy(kElectron, h[in[i]].x, h[in[i]].y);
         theta[i] = atan(sqrt(h[in[i]].x*h[in[i]].x + h[in[i]].y*h[in[i]].y)/HyCalZ)*180./TMath::Pi();
         //check if this is actually a EP event
-        if ( ( (TESTBIT(h[in[i]].flag, kPbGlass) || TESTBIT(h[in[i]].flag, kTransition) ) && h[in[i]].E > (1.-0.2727)*Ebeam)
-            || (TESTBIT(h[in[i]].flag, kPbWO4) && theta[i] > 1.5 && h[in[i]].E > (1.-0.0909)*Ebeam) ){
+        if ( ( (TEST_BIT(h[in[i]].flag, kPbGlass) || TEST_BIT(h[in[i]].flag, kTransition) ) && h[in[i]].E > (1.-0.2727)*Ebeam)
+            || (TEST_BIT(h[in[i]].flag, kPbWO4) && theta[i] > 1.5 && h[in[i]].E > (1.-0.0909)*Ebeam) ){
             //Moller cannot have such high energy in LG and Transition region
             EPAnalyzer(&h[in[i]]);
             break;
@@ -627,12 +490,15 @@ inline void MollerAnalyzer(CombinedHit* h, int index1, int index2)
 
             //GEM histogram if within range
             if (fabs(h[in[i]].x) < innerBoundary[0] && fabs(h[in[i]].y) < innerBoundary[1]){
-                if (MatchedGEM(h[in[i]]) && TESTBIT(h[in[i]].flag, kPbWO4)){
+                if (MatchedGEM(h[in[i]]) && TEST_BIT(h[in[i]].flag, kPbWO4)){
                     float expectE = GetExpectedEnergy(kElectron, h[in[i]].x_gem, h[in[i]].y_gem);
                     float gemX = h[in[i]].x_gem;
 	                float gemY = h[in[i]].y_gem;
-	                int id = hycal->GetModule(gemX, gemY)->GetID();
-	                if (id > 0) FillInnerHist(id, h[in[i]].E, expectE, kElectron);
+	                PRadHyCalModule *module = hycal->GetModule(gemX, gemY);
+                    if (module) {
+                        int id = module->GetID();
+                        FillInnerHist(id, h[in[i]].E, expectE, kElectron);
+                    }
                 }
             }else{
                 ee_ratio[h[in[i]].cid-1]->Fill(ratio[i]);
@@ -691,7 +557,7 @@ inline void OffsetAnalyzer(CombinedHit* h)
 
     //we apply a set of rather tight cut on Moller candidates that could participate in this calculation
     if ((h[0].E + h[1].E) < (1. - 0.15)*Ebeam || (h[0].E + h[1].E) > (1. + 0.15)*Ebeam) return;
-    if (!TESTBIT(h[0].flag, kPbWO4) || !TESTBIT(h[1].flag, kPbWO4)) return; //PWO has better position resolution
+    if (!TEST_BIT(h[0].flag, kPbWO4) || !TEST_BIT(h[1].flag, kPbWO4)) return; //PWO has better position resolution
     double phi[2] = { atan2(h[0].y, h[0].x), atan2(h[1].y, h[1].x) };
     double theta[2] = { atan( sqrt( h[0].x*h[0].x + h[0].y*h[0].y)/HyCalZ )*180./TMath::Pi(),
                         atan( sqrt( h[1].x*h[1].x + h[1].y*h[1].y)/HyCalZ )*180./TMath::Pi() };
@@ -772,17 +638,18 @@ void FindInputFiles(int & start, int & end)
         cerr << "Error: Can't open input file directory "<< inputDir << endl;
         return;
     }
-    cout<<"Scanning for input files in "<< inputDir <<" "<<flush;
+    cout<<"Scanning for input files in "<< inputDir <<" "
+        <<"within run " << start << " ~ " << end << "..." << flush;
     const char* dir_item;
     while( (dir_item = gSystem->GetDirEntry(dirp)) ){
         if (!strncmp("prad_", dir_item, 5) && !strncmp(".dst", dir_item+strlen(dir_item)-4, 4)){
-        string thisName = inputDir;
-        thisName.append("/");
-        thisName.append(dir_item);
-        int runNumber = GetRunNumber(thisName);
+            string thisName = inputDir;
+            thisName.append("/");
+            thisName.append(dir_item);
+            int runNumber = GetRunNumber(thisName);
         if (runNumber <= end && runNumber >= start)
-        inputFiles.push_back(thisName);
-        cout<<"-.-"<<flush;
+            inputFiles.push_back(thisName);
+            cout<<"-.-"<<flush;
         }
     }
     cout<<endl<< "Found "<<inputFiles.size() <<" input files "<<endl;

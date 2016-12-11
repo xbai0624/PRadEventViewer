@@ -255,3 +255,36 @@ const
     return GetProfile(hit.geo.type, dx, dy);
 }
 
+// evaluate how well this cluster can be described by the profile
+float PRadClusterProfile::EvalEstimator(const BaseHit &h, const ModuleCluster &cl)
+const
+{
+    float est = 0.;
+
+    // determine energy resolution
+    float res = 0.026;  // 2.6% for PbWO4
+    if(TEST_BIT(cl.center.flag, kPbGlass))
+        res = 0.065;    // 6.5% for PbGlass
+    if(TEST_BIT(cl.center.flag, kTransition))
+        res = 0.050;    // 5.0% for transition
+    res /= sqrt(h.E/1000.);
+
+    int count = 0;
+    for(auto hit : cl.hits)
+    {
+        const auto &prof = GetProfile(h.x, h.y, hit);
+        if(prof.frac < 0.01)
+            continue;
+
+        ++count;
+
+        float diff = hit.energy - h.E*prof.frac;
+        float sigma2 = 0.816*hit.energy + res*h.E*prof.err;
+
+        // log likelyhood for double exponential distribution
+        est += fabs(diff)/sqrt(sigma2);
+    }
+
+    return est/count;
+}
+

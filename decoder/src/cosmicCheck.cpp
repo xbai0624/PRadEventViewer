@@ -24,13 +24,12 @@ const PRadClusterProfile &profile = PRadClusterProfile::Instance();
 
 // declaration of functions
 void Evaluate(const string &file);
-float EvalEstimator(const HyCalHit &hit, const vector<ModuleHit> &hits);
 float EvalUniformity(const HyCalHit &hycal_hit, const vector<ModuleHit> &hits);
 
 int main(int /*argc*/, char * /*argv*/ [])
 {
     Evaluate("cosmic.dst");             // a cosimic run
-//    Evaluate("prad_1310.dst");          // a normal production run
+    Evaluate("prad_1310.dst");          // a normal production run
     Evaluate("prad_1310_select.dst");   // selected events, (70%, 130%) beam energy
     return 0;
 }
@@ -77,7 +76,7 @@ void Evaluate(const string &file)
                     continue;
 
                 auto hit = method->Reconstruct(cluster);
-                float cl_est = EvalEstimator(hit, cluster.hits);
+                float cl_est = profile.EvalEstimator(hit, cluster);
                 hist_cl.Fill(cl_est);
                 est += cl_est;
                 ++count;
@@ -107,43 +106,6 @@ void Evaluate(const string &file)
     hist_ev.Write();
     hist_uni.Write();
     f.Close();
-}
-
-inline float quad_sum(const float &x, const float &y)
-{
-    return x*x + y*y;
-}
-
-float EvalEstimator(const HyCalHit &hycal_hit, const vector<ModuleHit> &hits)
-{
-    float est = 0.;
-
-    float res = 0.026;  // 2.6% for PbWO4
-    if(TEST_BIT(hycal_hit.flag, kPbGlass))
-        res = 0.065;    // 6.5% for PbGlass
-    if(TEST_BIT(hycal_hit.flag, kTransition))
-        res = 0.050;    // 5.0% for transition
-    res /= sqrt(hycal_hit.E/1000.);
-
-    int count = 0;
-    for(auto hit : hits)
-    {
-        const auto &prof = profile.GetProfile(hycal_hit.x, hycal_hit.y, hit);
-
-        if(prof.frac < 0.01)
-            continue;
-
-        float diff = hit.energy - hycal_hit.E*prof.frac;
-
-        // adjusted from PrimEx method
-        float sigma2 = 0.816*hit.energy + res*hycal_hit.E*prof.err;
-
-        // log likelyhood for double exponential distribution
-        est += fabs(diff)/sqrt(sigma2);
-        count++;
-    }
-
-    return est/count;
 }
 
 float EvalUniformity(const HyCalHit &hycal_hit, const vector<ModuleHit> &hits)

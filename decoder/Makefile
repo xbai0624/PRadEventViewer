@@ -18,7 +18,7 @@ FORTRAN       = gfortran
 FFLAGS        = -fPIC
 CXXFLAGS_LIBS = -shared -std=c++11 -O2 -g -pipe -Wall -fstack-protector-strong --param=ssp-buffer-size=4 -grecord-gcc-switches -m64 -mtune=generic -fPIC $(DEFINES)
 CXXFLAGS      = -std=c++11 -O2 -g -pipe -Wall -fstack-protector-strong --param=ssp-buffer-size=4 -grecord-gcc-switches -m64 -mtune=generic -fPIC $(DEFINES)
-INCPATH       = -I. -I$(PRAD_PATH)/include -I$(ROOTSYS)/include
+INCPATH       = -Iinclude -I$(PRAD_PATH)/include -I$(ROOTSYS)/include
 DEL_FILE      = rm -f
 CHK_DIR_EXISTS= test -d
 MKDIR         = mkdir -p
