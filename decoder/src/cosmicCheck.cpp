@@ -19,44 +19,70 @@
 
 using namespace std;
 
+#define MOST_UNIF_EST 0.8
+#define MOST_PROF_EST 9.0
+#define PROGRESS_COUNT 10000
+
 // reference to a signleton instance
 const PRadClusterProfile &profile = PRadClusterProfile::Instance();
 
 // declaration of functions
 void Evaluate(const string &file);
 float EvalUniformity(const HyCalHit &hycal_hit, const vector<ModuleHit> &hits);
+ostream &operator <<(ostream &os, const PRadBenchMark &timer);
 
-int main(int /*argc*/, char * /*argv*/ [])
+int main(int argc, char *argv[])
 {
-    Evaluate("cosmic.dst");             // a cosimic run
-    Evaluate("prad_1310.dst");          // a normal production run
-    Evaluate("prad_1310_select.dst");   // selected events, (70%, 130%) beam energy
+    for(int i = 1; i < argc; ++i)
+    {
+        string file = argv[i];
+        cout << "Analyzing File " << file << "..." << endl;
+        Evaluate(file);          // a normal production run
+    }
+
     return 0;
 }
 
 void Evaluate(const string &file)
 {
-    // remove affix
-    string fname = file.substr(0, file.find_last_of("."));
+    // remove directory and affix
+    auto dir_pos = file.find_last_of("/");
+    string dir, fname;
+    if(dir_pos == string::npos) {
+        dir = "./";
+        fname = file.substr(0, file.find_last_of("."));
+    } else {
+        dir = file.substr(0, dir_pos+1);
+        fname = file.substr(dir_pos+1, file.find_last_of(".") - dir_pos - 1);
+    }
 
     PRadDSTParser dst_parser;
     dst_parser.OpenInput(file);
-    dst_parser.OpenOutput(fname + "_rej.dst");
+    dst_parser.OpenOutput(dir + "cosmic_rej/" + fname + "_sav.dst");
     PRadDSTParser dst_parser2;
-    dst_parser2.OpenOutput(fname + "_sav.dst");
+    dst_parser2.OpenOutput(dir + "cosmic_rej/" + fname + "_rej.dst");
 
-    TFile f((fname + "_est.root").c_str(), "RECREATE");
+    TFile f((dir + "profile_est/" + fname + "_prof.root").c_str(), "RECREATE");
     TH1F hist_cl("Likelihood_cl", "Estimator Cluster", 1000, 0., 50.);
     TH1F hist_ev("Likelihood_ev", "Estimator Event", 1000, 0., 50.);
-    TH1F hist_uni("Uniformity", "Energy Fluctuation", 1000, 0., 3.);
+    TH1F hist_uni("Uniformity", "Energy Uniformity", 1000, 0., 5.);
 
     PRadHyCalSystem *sys = new PRadHyCalSystem("config/hycal.conf");
     PRadHyCalDetector *hycal = sys->GetDetector();
     PRadHyCalCluster *method = sys->GetClusterMethod();
 
+    int count = 0;
+    PRadBenchMark timer;
     while(dst_parser.Read())
     {
         if(dst_parser.EventType() == PRad_DST_Event) {
+
+            count++;
+            if(count%PROGRESS_COUNT == 0) {
+                cout <<"----------event " << count
+                     << "-------[ " << timer << " ]------"
+                     << "\r" << flush;
+            }
 
             auto event = dst_parser.GetEvent();
             if(!event.is_physics_event())
@@ -84,20 +110,27 @@ void Evaluate(const string &file)
                 // found a not uniform cluster
                 float uni = EvalUniformity(hit, cluster.hits);
                 hist_uni.Fill(uni);
-                if(uni > 0.8)
+                if(uni > MOST_UNIF_EST)
                     uniform = false;
             }
 
             est /= count;
             hist_ev.Fill(est);
 
-            // too uniform, reject
-            if(uniform)
-                dst_parser.WriteEvent(event);
-            else
+            // too uniform or too bad profile, reject
+            if(uniform || est > MOST_PROF_EST)
                 dst_parser2.WriteEvent(event);
+            else
+                dst_parser.WriteEvent(event);
+
+        } else if (dst_parser.EventType() == PRad_DST_Epics) {
+            dst_parser.WriteEPICS();
         }
     }
+
+    cout <<"----------event " << count
+         << "-------[ " << timer << " ]------"
+         << endl;
 
     dst_parser.CloseInput();
     dst_parser.CloseOutput();
@@ -120,4 +153,18 @@ float EvalUniformity(const HyCalHit &hycal_hit, const vector<ModuleHit> &hits)
     }
 
     return est/hits.size();
+}
+
+ostream &operator <<(ostream &os, const PRadBenchMark &timer)
+{
+    int t_sec = timer.GetElapsedTime()/1000;
+    int hour = t_sec/3600;
+    int min = (t_sec%3600)/60;
+    int sec = (t_sec%3600)%60;
+
+    os << hour << " hr "
+       << min << " min "
+       << sec << " sec";
+
+    return os;
 }

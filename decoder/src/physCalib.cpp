@@ -190,7 +190,7 @@ int main(int argc, char * argv [])
     sym_ee_E->Write();
     eloss->Write();
     total_angle_E->Write();
-    for(int i=0;i<=T_BLOCKS;i++){
+    for(int i=0;i<T_BLOCKS;i++){
         if(ep_ratio[i])
             ep_ratio[i]->Write();
         if(ep_energy[i])
