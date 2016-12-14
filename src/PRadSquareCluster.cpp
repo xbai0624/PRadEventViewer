@@ -6,12 +6,14 @@
 // 06/10/2016                                                                 //
 //============================================================================//
 
-#include <cmath>
-#include <list>
 #include "PRadSquareCluster.h"
-#include "PRadHyCalDetector.h"
-#include "PRadADCChannel.h"
-#include "PRadTDCChannel.h"
+#include "PRadClusterProfile.h"
+#include <algorithm>
+#include <cmath>
+
+
+
+const PRadClusterProfile &__sc_prof = PRadClusterProfile::Instance();
 
 PRadSquareCluster::PRadSquareCluster(const std::string &path)
 {
@@ -38,74 +40,6 @@ void PRadSquareCluster::Configure(const std::string &path)
     square_size = getDefConfig<unsigned int>("Square Size", 5, verbose);
 }
 
-void PRadSquareCluster::FormCluster(std::vector<ModuleHit> &hits,
-                                    std::vector<ModuleCluster> &clusters)
-const
-{
-    // clear container first
-    clusters.clear();
-
-    // create new cluster with its center
-    findCenters(hits, clusters);
-
-    // fill the clusters by square shape
-    fillClusters(hits, clusters);
-}
-
-void PRadSquareCluster::findCenters(std::vector<ModuleHit> &hits,
-                                    std::vector<ModuleCluster> &clusters)
-const
-{
-    // searching possible cluster centers
-    for(auto &hit : hits)
-    {
-        // did not pass the requirement on least energy for cluster center
-        if(hit.energy < min_center_energy)
-            continue;
-
-        bool overlap = false;
-
-        // merge the center if it belongs to other clusters
-        for(auto &cluster : clusters)
-        {
-            // overlap with other modules, discarded this center
-            // TODO, probably better to do splitting other than discarding
-            if(checkBelongs(cluster.center, hit, square_size)) {
-                overlap = true;
-
-                // change this center if it has less energy
-                if(cluster.center.energy < hit.energy) {
-                    cluster.center = hit;
-                }
-
-                break;
-            }
-        }
-
-        // a new center found
-        if(!overlap) {
-            clusters.emplace_back(hit);
-        }
-    }
-}
-
-void PRadSquareCluster::fillClusters(std::vector<ModuleHit> &hits,
-                                     std::vector<ModuleCluster> &clusters)
-const
-{
-    // group hits into clusters
-    for(auto &hit : hits)
-    {
-        for(auto &cluster : clusters)
-        {
-            if(checkBelongs(cluster.center, hit, float(square_size)/2.)) {
-                cluster.AddHit(hit);
-                break;
-            }
-        }
-    }
-}
-
 inline bool PRadSquareCluster::checkBelongs(const ModuleHit &center,
                                             const ModuleHit &hit,
                                             float factor)
@@ -120,3 +54,110 @@ const
 
     return true;
 }
+
+void PRadSquareCluster::FormCluster(std::vector<ModuleHit> &hits,
+                                    std::vector<ModuleCluster> &clusters)
+const
+{
+    // clear container first
+    clusters.clear();
+
+    // form clusters with high energy hit seed
+    groupHits(hits, clusters);
+}
+
+void PRadSquareCluster::groupHits(std::vector<ModuleHit> &hits,
+                                  std::vector<ModuleCluster> &clusters)
+const
+{
+    // sort hits by energy
+    std::sort(hits.begin(), hits.end(),
+              [] (const ModuleHit &m1, const ModuleHit &m2)
+              {
+                  return m1.energy > m2.energy;
+              });
+
+    // loop over all hits
+    for(auto &hit : hits)
+    {
+        // not belongs to any cluster, and the energy is larger than center threshold
+        if(!fillClusters(hit, clusters) && (hit.energy > min_center_energy))
+        {
+            clusters.emplace_back(hit);
+            clusters.back().AddHit(hit);
+        }
+    }
+}
+
+bool PRadSquareCluster::fillClusters(ModuleHit &hit, std::vector<ModuleCluster> &c)
+const
+{
+    std::vector<unsigned int> indices;
+    indices.reserve(50);
+
+    // check how many clusters the hit belongs to
+    for(unsigned int i = 0; i < c.size(); ++i)
+    {
+        const auto &center = c.at(i).center;
+        // within the square range
+        if(checkBelongs(center, hit, float(square_size)/2.)) {
+            indices.push_back(i);
+        }
+    }
+
+    // it belongs to no cluster
+    if(indices.empty())
+        return false;
+
+    // it belongs to single cluster
+    if(indices.size() == 1) {
+        c.at(indices.front()).AddHit(hit);
+        return true;
+    }
+
+    // it belongs to several clusters
+    return splitHit(hit, c, indices);
+}
+
+// split hit that belongs to several clusters
+bool PRadSquareCluster::splitHit(ModuleHit &hit,
+                                 std::vector<ModuleCluster> &clusters,
+                                 std::vector<unsigned int> &indices)
+const
+{
+    // energy fraction
+    float frac[indices.size()];
+    float total_frac = 0.;
+
+    // rough splitting, only use the center position
+    // to refine it, use a reconstruction position or position from other detector
+    for(unsigned int i = 0; i < indices.size(); ++i)
+    {
+        auto &center = clusters.at(indices.at(i)).center;
+        // we are comparing the relative amount of energy to be shared, so use of
+        // center energy should be equivalent to total cluster energy
+        frac[i] = __sc_prof.GetProfile(center, hit).frac * center.energy;
+        total_frac += frac[i];
+    }
+
+    // this hit is too far away from all clusters, discard it
+    if(total_frac == 0.) {
+        return false;
+    }
+
+    // add hit to all clusters
+    for(unsigned int i = 0; i < indices.size(); ++i)
+    {
+        // this cluster has no share of the hit
+        if(frac[i] == 0.)
+            continue;
+
+        auto &cluster = clusters.at(indices.at(i));
+        ModuleHit shared_hit(hit);
+        shared_hit.energy *= frac[i]/total_frac;
+        cluster.AddHit(shared_hit);
+    }
+
+    return true;
+}
+

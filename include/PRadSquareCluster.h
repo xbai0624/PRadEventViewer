@@ -15,8 +15,12 @@ public:
                      std::vector<ModuleCluster> &clusters) const;
 
 protected:
-    void findCenters(std::vector<ModuleHit> &h, std::vector<ModuleCluster> &c) const;
-    void fillClusters(std::vector<ModuleHit> &h, std::vector<ModuleCluster> &c) const;
+    void groupHits(std::vector<ModuleHit> &hits,
+                   std::vector<ModuleCluster> &clusters) const;
+    bool fillClusters(ModuleHit &hit, std::vector<ModuleCluster> &clusters) const;
+    bool splitHit(ModuleHit &hit,
+                  std::vector<ModuleCluster> &clusters,
+                  std::vector<unsigned int> &indices) const;
     bool checkBelongs(const ModuleHit &center, const ModuleHit &hit, float factor) const;
 
 protected:

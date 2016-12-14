@@ -14,18 +14,39 @@
 #include <string>
 #include <vector>
 
+#define PROGRESS_COUNT 10000
+
 using namespace std;
 
-int main(int /*argc*/, char * /*argv*/ [])
+void testHyCalCluster(const string &file, PRadHyCalSystem *sys);
+
+int main(int argc, char *argv[])
 {
-    PRadHyCalSystem *sys = new PRadHyCalSystem("config/hycal.conf");
+    if(argc < 2)
+        return 0;
+
+    PRadHyCalSystem *hycal_sys = new PRadHyCalSystem("config/hycal.conf");
+
+    for(int i = 1; i < argc; ++i)
+    {
+        string file = argv[i];
+        testHyCalCluster(file, hycal_sys);
+    }
+}
+
+void testHyCalCluster(const string &file, PRadHyCalSystem *sys)
+{
     PRadDSTParser *dst_parser = new PRadDSTParser();
 
-    dst_parser->OpenInput("prad_1310.dst");
+    cout << "Test HyCal Clustering Performance for file " << file << endl;
+    cout << "Using method " << sys->GetClusterMethodName() << endl;
+
+    dst_parser->OpenInput(file);
 
     PRadBenchMark timer;
 
     int count = 0;
+    double time = 0;
     while(dst_parser->Read())
     {
         if(dst_parser->EventType() == PRad_DST_Event) {
@@ -34,16 +55,26 @@ int main(int /*argc*/, char * /*argv*/ [])
             if(!event.is_physics_event())
                 continue;
 
-            sys->Reconstruct(event);
             ++count;
+
+            if(count%PROGRESS_COUNT == 0) {
+                double t = timer.GetElapsedTime();
+                time += t;
+                timer.Reset();
+
+                cout <<"------[ ev " << count << " ]---"
+                     << "---[ " << t << " ms ]---"
+                     << "---[ " << time/(double)count << " ms/ev ]------"
+                     << "\r" << flush;
+            }
+            sys->Reconstruct(event);
         }
     }
 
     dst_parser->CloseInput();
+    cout << endl;
     cout << "TIMER: Finished, read and reconstructed " << count << " events, "
          << "using method " << sys->GetClusterMethodName() << ", "
          << "took " << timer.GetElapsedTime() << " ms."
          << endl;
-
-    return 0;
 }
