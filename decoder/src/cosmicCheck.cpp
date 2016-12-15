@@ -46,10 +46,7 @@ int main(int argc, char *argv[])
 void Evaluate(const string &file)
 {
     // remove directory and affix
-    auto path_info = ConfigParser::decompose_path(file);
-
-    const string &dir = path_info.dir;
-    const string &fname = path_info.name;
+    const string &fname = ConfigParser::decompose_path(file).name;
 
     PRadDSTParser dst_parser;
     dst_parser.OpenInput(file);
@@ -57,7 +54,7 @@ void Evaluate(const string &file)
     PRadDSTParser dst_parser2;
     dst_parser2.OpenOutput(fname + "_rej.dst");
 
-    TFile f((dir + "profile_est/" + fname + "_prof.root").c_str(), "RECREATE");
+    TFile f((fname + "_prof.root").c_str(), "RECREATE");
     TH1F hist_cl("Likelihood_cl", "Estimator Cluster", 1000, 0., 50.);
     TH1F hist_ev("Likelihood_ev", "Estimator Event", 1000, 0., 50.);
     TH1F hist_uni("Uniformity", "Energy Uniformity", 1000, 0., 5.);
