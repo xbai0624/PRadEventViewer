@@ -102,31 +102,11 @@ double PRadInfoCenter::GetLiveTime()
     return (1. - (double)run.dead_count/(double)run.ungated_count);
 };
 
-// try to determine run number from file
-int __run_number_from_path(const std::string &name)
-{
-    // get rid of suffix
-    auto nameEnd = name.find(".evio");
-
-    if(nameEnd == std::string::npos)
-        nameEnd = name.size();
-    else
-        nameEnd -= 1;
-
-    // get rid of directories
-    auto nameBeg = name.find_last_of("/");
-    if(nameBeg == std::string::npos)
-        nameBeg = 0;
-    else
-        nameBeg += 1;
-
-    return ConfigParser::find_integer(name.substr(nameBeg, nameEnd - nameBeg + 1), 0);
-}
-
 // set run number from file path
 void PRadInfoCenter::SetRunNumber(const std::string &path)
 {
-    int run = __run_number_from_path(path);
+    std::string file_name = ConfigParser::decompose_path(path).second;
+    int run = ConfigParser::find_integer(file_name);
     if(run > 0)
         Instance().run_info.run_number = run;
 }
