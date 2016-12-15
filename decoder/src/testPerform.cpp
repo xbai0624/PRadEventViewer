@@ -32,6 +32,8 @@ int main(int argc, char *argv[])
         string file = argv[i];
         testHyCalCluster(file, hycal_sys);
     }
+
+    return 0;
 }
 
 void testHyCalCluster(const string &file, PRadHyCalSystem *sys)

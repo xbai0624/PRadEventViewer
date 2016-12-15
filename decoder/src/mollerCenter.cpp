@@ -33,20 +33,37 @@ struct DataPoint
     DataPoint(float xi, float yi, float Ei) : x(xi), y(yi), E(Ei) {};
 };
 
-typedef std::pair<DataPoint, DataPoint> MollerEvent;
-typedef std::vector<MollerEvent> MollerData;
+typedef pair<DataPoint, DataPoint> MollerEvent;
+typedef vector<MollerEvent> MollerData;
 
-void FillMollerEvents(const std::string &dst_path, MollerData &data);
+void AnalyzeMollerCenter(const string &path);
+void FillMollerEvents(const string &dst_path, MollerData &data);
 DataPoint GetIntersection(const MollerEvent &m1, const MollerEvent &m2);
 
-int main(int /*argc*/, char * /*argv*/ [])
+int main(int argc, char *argv[])
+{
+    if(argc < 2)
+        return 0;
+
+    for(int i = 1; i < argc; ++i)
+    {
+        string file = argv[i];
+        AnalyzeMollerCenter(file);
+    }
+
+    return 0;
+}
+
+void AnalyzeMollerCenter(const string &path)
 {
     MollerData mollers;
-    FillMollerEvents("prad_1310.dst", mollers);
+    FillMollerEvents(path, mollers);
 
-    TFile *f = new TFile("MollerCenter.root", "RECREATE");
-    TH1F *x_hist = new TH1F("x", "Center_X", 1000, -100., 100.);
-    TH1F *y_hist = new TH1F("y", "Center_Y", 1000, -100., 100.);
+    auto dir_path = ConfigParser::decompose_path(path);
+
+    TFile f((dir_path.second + "_mc.root").c_str(), "RECREATE");
+    TH1F x_hist("x", "Center_X", 1000, -100., 100.);
+    TH1F y_hist("y", "Center_Y", 1000, -100., 100.);
 
     auto it = mollers.begin();
     auto it_next = it + 1;
@@ -54,16 +71,16 @@ int main(int /*argc*/, char * /*argv*/ [])
     for(; it != mollers.end() && it_next != mollers.end(); it +=2, it_next +=2)
     {
         auto inter = GetIntersection(*it, *it_next);
-        x_hist->Fill(inter.x);
-        y_hist->Fill(inter.y);
+        x_hist.Fill(inter.x);
+        y_hist.Fill(inter.y);
     }
 
-    x_hist->Write();
-    y_hist->Write();
-    f->Close();
+    x_hist.Write();
+    y_hist.Write();
+    f.Close();
 }
 
-void FillMollerEvents(const std::string &dst_path, MollerData &data)
+void FillMollerEvents(const string &dst_path, MollerData &data)
 {
     PRadEPICSystem *epics = new PRadEPICSystem("config/epics_channels.conf");
     PRadHyCalSystem *hycal = new PRadHyCalSystem("config/hycal.conf");
@@ -151,7 +168,7 @@ void FillMollerEvents(const std::string &dst_path, MollerData &data)
                 good_moller = false;
 
             if(good_moller)
-                data.push_back(std::make_pair(moller1, moller2));
+                data.push_back(make_pair(moller1, moller2));
 
         } else if(dst_parser->EventType() == PRad_DST_Epics) {
             // save epics into handler, otherwise get epicsvalue won't work
