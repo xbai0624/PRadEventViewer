@@ -147,7 +147,8 @@ public:
     static int find_integer(const std::string &str, const size_t &pos = 0);
     static std::vector<int> find_integers(const std::string &str);
     static void find_integer_helper(const std::string &str, std::vector<int> &result);
-    static std::pair<std::string, std::string> decompose_path(const std::string &path);
+    struct PathInfo { std::string dir, name, suffix; };
+    static PathInfo decompose_path(const std::string &path);
 };
 
 #endif

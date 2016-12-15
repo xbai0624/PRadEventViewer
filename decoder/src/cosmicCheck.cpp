@@ -46,16 +46,16 @@ int main(int argc, char *argv[])
 void Evaluate(const string &file)
 {
     // remove directory and affix
-    auto dir_file = ConfigParser::decompose_path(file);
+    auto path_info = ConfigParser::decompose_path(file);
 
-    const string &dir = dir_file.first;
-    const string &fname = dir_file.second;
+    const string &dir = path_info.dir;
+    const string &fname = path_info.name;
 
     PRadDSTParser dst_parser;
     dst_parser.OpenInput(file);
-    dst_parser.OpenOutput(dir + "cosmic_rej/" + fname + "_sav.dst");
+    dst_parser.OpenOutput(fname + "_sav.dst");
     PRadDSTParser dst_parser2;
-    dst_parser2.OpenOutput(dir + "cosmic_rej/" + fname + "_rej.dst");
+    dst_parser2.OpenOutput(fname + "_rej.dst");
 
     TFile f((dir + "profile_est/" + fname + "_prof.root").c_str(), "RECREATE");
     TH1F hist_cl("Likelihood_cl", "Estimator Cluster", 1000, 0., 50.);
@@ -80,6 +80,15 @@ void Evaluate(const string &file)
             }
 
             auto event = dst_parser.GetEvent();
+
+            // save sync event no matter what it is
+            if(event.is_sync_event())
+            {
+                dst_parser.WriteEvent(event);
+                continue;
+            }
+
+            // discard non-physics events
             if(!event.is_physics_event())
                 continue;
 

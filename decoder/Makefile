@@ -99,8 +99,9 @@ EXAMPLE       = testGEM \
 				testPerform \
                 getAvgGain \
                 replay \
-				mollerCenter \
+                eventSelect \
 				cosmicCheck \
+				mollerCenter \
 				physCalib
 #                testCombine
 

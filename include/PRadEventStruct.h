@@ -289,6 +289,12 @@ struct EventData
                  (trigger == LMS_Alpha) );
     };
 
+    bool is_sync_event()
+    const
+    {
+        return type == CODA_Sync;
+    };
+
     double get_beam_time()
     const
     {

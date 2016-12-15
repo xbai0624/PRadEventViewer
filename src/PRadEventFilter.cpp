@@ -9,9 +9,9 @@
 #include "PRadEventFilter.h"
 #include "ConfigParser.h"
 
-PRadEventFilter::PRadEventFilter()
+PRadEventFilter::PRadEventFilter(const std::string &path)
 {
-    // place holder
+    LoadBadEventsList(path);
 }
 
 PRadEventFilter::~PRadEventFilter()
@@ -19,21 +19,23 @@ PRadEventFilter::~PRadEventFilter()
     // place holder
 }
 
-void PRadEventFilter::LoadBadEventList(const std::string &path)
+void PRadEventFilter::LoadBadEventsList(const std::string &path, bool clear_exist)
 {
-    ConfigParser c_parser;
+    if(clear_exist)
+        bad_events_list.clear();
 
+    ConfigParser c_parser;
     // remove *, space and tab at both ends of each element
     c_parser.SetWhiteSpace(" \t*");
 
     if (!c_parser.ReadFile(path)) {
-        std::cerr << "PRad Event Filter Error: Cannot open bad event list "
-                  <<"\"" << path << "\""
+        std::cerr << "PRad Event Filter: Cannot open bad event list "
+                  << "\"" << path << "\"."
+                  << "No bad events list loaded."
                   << std::endl;
-      return;
+        return;
     }
 
-    bad_events_list.clear();
     int val1, val2;
 
     while(c_parser.ParseLine())
@@ -47,7 +49,13 @@ void PRadEventFilter::LoadBadEventList(const std::string &path)
 
 }
 
+void PRadEventFilter::ClearBadEventsList()
+{
+    bad_events_list.clear();
+}
+
 bool PRadEventFilter::IsBadEvent(const EventData &event)
+const
 {
     // loop the whole list
     for(auto &interval : bad_events_list)
@@ -63,3 +71,23 @@ bool PRadEventFilter::IsBadEvent(const EventData &event)
     // not in the list
     return false;
 }
+
+bool PRadEventFilter::IsBadPeriod(const EventData &begin, const EventData &end)
+const
+{
+    // loop the whole list
+    for(auto &interval : bad_events_list)
+    {
+        // firstly, either begin or end itself is a bad event
+        if(IsBadEvent(begin) || IsBadEvent(end))
+            return true;
+
+        // secondly, if the whole period contains a bad period
+        if((begin.event_number < interval.begin) &&
+           (end.event_number > interval.end))
+            return true;
+    }
+
+    return false;
+}
+

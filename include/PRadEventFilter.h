@@ -18,10 +18,13 @@ private:
     };
 
 public:
-    PRadEventFilter();
+    PRadEventFilter(const std::string &path);
     virtual ~PRadEventFilter();
-    void LoadBadEventList(const std::string &path);
-    bool IsBadEvent(const EventData &event);
+
+    void LoadBadEventsList(const std::string &path, bool clear_exist = true);
+    void ClearBadEventsList();
+    bool IsBadEvent(const EventData &event) const;
+    bool IsBadPeriod(const EventData &begin, const EventData &end) const;
 
 private:
     std::vector<ev_interval> bad_events_list;

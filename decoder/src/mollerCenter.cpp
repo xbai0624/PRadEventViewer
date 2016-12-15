@@ -59,9 +59,9 @@ void AnalyzeMollerCenter(const string &path)
     MollerData mollers;
     FillMollerEvents(path, mollers);
 
-    auto dir_path = ConfigParser::decompose_path(path);
+    auto path_info = ConfigParser::decompose_path(path);
 
-    TFile f((dir_path.second + "_mc.root").c_str(), "RECREATE");
+    TFile f((path_info.name + "_mc.root").c_str(), "RECREATE");
     TH1F x_hist("x", "Center_X", 1000, -100., 100.);
     TH1F y_hist("y", "Center_Y", 1000, -100., 100.);
 
