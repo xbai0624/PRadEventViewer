@@ -46,15 +46,10 @@ int main(int argc, char *argv[])
 void Evaluate(const string &file)
 {
     // remove directory and affix
-    auto dir_pos = file.find_last_of("/");
-    string dir, fname;
-    if(dir_pos == string::npos) {
-        dir = "./";
-        fname = file.substr(0, file.find_last_of("."));
-    } else {
-        dir = file.substr(0, dir_pos+1);
-        fname = file.substr(dir_pos+1, file.find_last_of(".") - dir_pos - 1);
-    }
+    auto dir_file = ConfigParser::decompose_path(file);
+
+    const string &dir = dir_file.first;
+    const string &fname = dir_file.second;
 
     PRadDSTParser dst_parser;
     dst_parser.OpenInput(file);
