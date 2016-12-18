@@ -100,6 +100,7 @@ EXAMPLE       = testGEM \
                 getAvgGain \
                 replay \
                 eventSelect \
+                beamChargeCount \
 				cosmicCheck \
 				mollerCenter \
 				physCalib

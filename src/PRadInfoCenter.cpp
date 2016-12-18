@@ -1,6 +1,8 @@
 //============================================================================//
 // A singleton class that stores and manages the run information or online    //
 // information, it can be shared through all the classes                      //
+// TODO merge live_scaled_charge into RunInfo                                 //
+// It may change existing DST file parsing, so need a careful treatment       //
 //                                                                            //
 // Chao Peng                                                                  //
 // 11/19/2016                                                                 //
@@ -10,9 +12,9 @@
 #include "ConfigParser.h"
 
 
-
 // add the trigger channels
 PRadInfoCenter::PRadInfoCenter()
+: live_scaled_charge(0)
 {
     online_info.add_trigger("Lead Glass Sum", 0);
     online_info.add_trigger("Total Sum", 1);
@@ -27,6 +29,7 @@ void PRadInfoCenter::Reset()
 {
     run_info.reset();
     online_info.reset();
+    live_scaled_charge = 0.;
 }
 
 // update information from event data
@@ -70,9 +73,13 @@ void PRadInfoCenter::UpdateInfo(const EventData &event)
     if(!event.is_physics_event())
         return;
 
-    run_info.beam_charge += event.get_beam_charge();
-    run_info.ungated_count += event.get_ref_channel().ungated_count;
-    run_info.dead_count += event.get_ref_channel().gated_count;
+    double beam_charge = event.get_beam_charge();
+    unsigned int dead_count = event.get_ref_channel().gated_count;
+    unsigned int total_count = event.get_ref_channel().ungated_count;
+    run_info.beam_charge += beam_charge;
+    run_info.ungated_count += total_count;
+    run_info.dead_count += dead_count;
+    live_scaled_charge += beam_charge * (1. - (double)dead_count/(double)total_count);
 }
 
 // set run number
@@ -91,6 +98,12 @@ int PRadInfoCenter::GetRunNumber()
 double PRadInfoCenter::GetBeamCharge()
 {
     return Instance().run_info.beam_charge;
+}
+
+// get beam charge scaled by live time
+double PRadInfoCenter::GetLiveBeamCharge()
+{
+    return Instance().live_scaled_charge;
 }
 
 // get live time

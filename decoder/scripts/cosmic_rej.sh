@@ -5,7 +5,19 @@
 # define program position
 prog="/work/hallb/prad/PRadEventViewer/decoder/cosmicCheck"
 # define replay files directory
-dir="/lustre/expphy/work/hallb/prad/replay/"
+dir="/lustre/expphy/work/hallb/prad/replay/event_sel/"
+# define event file format
+file_format="prad_[run]_sel.dst"
+
+# pre-test
+if [ ! -f "$prog" ]; then
+    echo "$prog does not exist!"
+    exit
+fi
+if [ ! -d "$dir" ]; then
+    echo "$dir does not exist!"
+    exit
+fi
 
 # check run number range
 # begin
@@ -23,8 +35,13 @@ else
 fi
 
 # execute program
-for file in $dir*.dst; do
-    run=`echo $file | egrep -o "[0-9]+"`
+search_pattern=${file_format//"[run]"/"[0-9]+"}
+for file in $dir*; do
+    fname=${file//$dir/}
+    if [[ ! $fname =~ $search_pattern ]]; then
+        continue
+    fi
+    run=`echo $fname | egrep -o "[0-9]+"`
     if [ "$run" -ge "$run_begin" ] && [ "$run" -le "$run_end" ]; then
         echo $prog $file
         $prog $file

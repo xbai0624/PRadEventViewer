@@ -22,6 +22,7 @@ public:
     static void SetRunNumber(const std::string &path);
     static int GetRunNumber();
     static double GetBeamCharge();
+    static double GetLiveBeamCharge();
     static double GetLiveTime();
 
     void Reset();
@@ -35,6 +36,7 @@ public:
 private:
     RunInfo run_info;
     OnlineInfo online_info;
+    double live_scaled_charge;
 
     PRadInfoCenter();
 };
