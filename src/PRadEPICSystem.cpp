@@ -28,7 +28,7 @@ PRadEPICSystem::~PRadEPICSystem()
 
 void PRadEPICSystem::Reset()
 {
-    epics_data = std::deque<EPICS_Data>();
+    epics_data = std::deque<EpicsData>();
 
     for(auto &value : epics_values)
     {
@@ -112,12 +112,12 @@ void PRadEPICSystem::FillRawData(const char *data)
     }
 }
 
-void PRadEPICSystem::AddEvent(EPICS_Data &&data)
+void PRadEPICSystem::AddEvent(EpicsData &&data)
 {
     epics_data.emplace_back(data);
 }
 
-void PRadEPICSystem::AddEvent(const EPICS_Data &data)
+void PRadEPICSystem::AddEvent(const EpicsData &data)
 {
     epics_data.push_back(data);
 }
@@ -221,7 +221,7 @@ const
     out.close();
 }
 
-const EPICS_Data &PRadEPICSystem::GetEvent(const unsigned int &index)
+const EpicsData &PRadEPICSystem::GetEvent(const unsigned int &index)
 const
 throw(PRadException)
 {

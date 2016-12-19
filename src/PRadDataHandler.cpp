@@ -118,7 +118,7 @@ void PRadDataHandler::ReadFromDST(const std::string &path, unsigned int mode)
         {
             switch(dst_parser.EventType())
             {
-            case PRad_DST_Event:
+            case PRadDSTParser::Type::event:
                 // fill histogram
                 FillHistograms(dst_parser.GetEvent());
                 // count occupancy
@@ -127,7 +127,7 @@ void PRadDataHandler::ReadFromDST(const std::string &path, unsigned int mode)
                 // save data
                 event_data.emplace_back(std::move(dst_parser.event));
                 break;
-            case PRad_DST_Epics:
+            case PRadDSTParser::Type::epics:
                 if(epic_sys)
                     epic_sys->AddEvent(std::move(dst_parser.epics_event));
                 break;
@@ -343,7 +343,7 @@ void PRadDataHandler::EndProcess(EventData *ev)
 
         if(epic_sys) {
             if(replayMode)
-                dst_parser.WriteEPICS(EPICS_Data(ev->event_number, epic_sys->GetValues()));
+                dst_parser.WriteEPICS(EpicsData(ev->event_number, epic_sys->GetValues()));
             else
                 epic_sys->SaveData(ev->event_number, onlineMode);
         }

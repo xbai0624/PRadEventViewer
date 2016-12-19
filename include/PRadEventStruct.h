@@ -97,14 +97,14 @@ struct OnlineInfo
 //============================================================================//
 // *BEGIN* RAW EPICS DATA STRUCTURE                                           //
 //============================================================================//
-struct EPICS_Data
+struct EpicsData
 {
     int event_number;
     std::vector<float> values;
 
-    EPICS_Data()
+    EpicsData()
     {};
-    EPICS_Data(const int &ev, const std::vector<float> &val)
+    EpicsData(const int &ev, const std::vector<float> &val)
     : event_number(ev), values(val)
     {};
 

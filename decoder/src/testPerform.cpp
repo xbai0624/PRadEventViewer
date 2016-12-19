@@ -22,8 +22,10 @@ void testHyCalCluster(const string &file, PRadHyCalSystem *sys);
 
 int main(int argc, char *argv[])
 {
-    if(argc < 2)
+    if(argc < 2) {
+        cout << "usage: testPerform <file1> <file2> ..." << endl;
         return 0;
+    }
 
     PRadHyCalSystem *hycal_sys = new PRadHyCalSystem("config/hycal.conf");
 
@@ -51,7 +53,7 @@ void testHyCalCluster(const string &file, PRadHyCalSystem *sys)
     double time = 0;
     while(dst_parser->Read())
     {
-        if(dst_parser->EventType() == PRad_DST_Event) {
+        if(dst_parser->EventType() == PRadDSTParser::Type::event) {
 
             auto event = dst_parser->GetEvent();
             if(!event.is_physics_event())

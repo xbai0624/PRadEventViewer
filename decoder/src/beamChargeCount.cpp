@@ -20,11 +20,13 @@ using namespace std;
 
 void ChargeCount(const string &file, ofstream &out);
 
-// expecting two input string, event file path and bad events list path
 int main(int argc, char *argv[])
 {
     if(argc < 2)
+    {
+        cout << "usage: beamChargeCount <file1> <file2> ..." << endl;
         return 0;
+    }
 
     ofstream output("beam_charge.dat", ios::app);
     for(int i = 1; i < argc; ++i)
@@ -48,22 +50,29 @@ void ChargeCount(const string &file, ofstream &out)
 
     while(dst_parser.Read())
     {
-        if(dst_parser.EventType() == PRad_DST_Event) {
+        if(dst_parser.EventType() == PRadDSTParser::Type::event) {
             auto event = dst_parser.GetEvent();
             PRadInfoCenter::Instance().UpdateInfo(event);
         }
     }
     dst_parser.CloseInput();
 
-    cout << "TIMER: Finished beam charge counting,"
-         << " total beam charge: " << PRadInfoCenter::GetBeamCharge() << " nC"
-         << " average live time: " << PRadInfoCenter::GetLiveTime()*100. << "%"
-         << " accepted beam charge: " << PRadInfoCenter::GetLiveBeamCharge() << " nC "
+    cout << "TIMER: Finished beam charge counting for run "
+         << PRadInfoCenter::GetRunNumber() << "."
+         << endl
+         << "Total beam charge: "
+         << PRadInfoCenter::GetBeamCharge() << " nC."
+         << endl
+         << "Average live time: "
+         << PRadInfoCenter::GetLiveTime()*100. << "%."
+         << endl
+         << "Accepted beam charge: "
+         << PRadInfoCenter::GetLiveBeamCharge() << " nC."
          << endl;
 
     out << setw(6) << PRadInfoCenter::GetRunNumber()
-        << setw(10) << PRadInfoCenter::GetBeamCharge()
-        << setw(10) << PRadInfoCenter::GetLiveTime()
-        << setw(10) << PRadInfoCenter::GetLiveBeamCharge()
+        << setw(12) << PRadInfoCenter::GetBeamCharge()
+        << setw(12) << PRadInfoCenter::GetLiveTime()
+        << setw(12) << PRadInfoCenter::GetLiveBeamCharge()
         << endl;
 }

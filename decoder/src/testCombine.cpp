@@ -91,7 +91,7 @@ int main()
 
     while (dst_parser->Read())
     {
-        if (dst_parser->EventType() == PRad_DST_Event) {
+        if (dst_parser->EventType() == PRadDSTParser::Type::event) {
             auto event = dst_parser->GetEvent();
 
             if (! (event.trigger == PHYS_LeadGlassSum ||
@@ -157,7 +157,7 @@ int main()
             }
             t->Fill();
 
-        } else if (dst_parser->EventType() == PRad_DST_Epics) {
+        } else if (dst_parser->EventType() == PRadDSTParser::Type::epics) {
               // save epics into handler, otherwise get epicsvalue won't work
               handler->GetEPICSData().push_back(dst_parser->GetEPICSEvent());
         }

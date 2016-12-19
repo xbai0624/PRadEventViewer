@@ -80,7 +80,7 @@ int main(int /*argc*/, char * /*argv*/ [])
 
     while(dst_parser->Read())
     {
-        if(dst_parser->EventType() == PRad_DST_Event) {
+        if(dst_parser->EventType() == PRadDSTParser::Type::event) {
 
             auto event = dst_parser->GetEvent();
             if(!event.is_physics_event())

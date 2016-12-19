@@ -159,13 +159,13 @@ LIBS += -lexpat -lgfortran \
 ######################################################################
 # other compilers
 ######################################################################
-
-FORTRAN_SOURCES += src/island.F
-fortran.output = $${OBJECTS_DIR}/${QMAKE_FILE_BASE}.o
-fortran.commands = gfortran -c ${QMAKE_FILE_NAME} -Iinclude -o ${QMAKE_FILE_OUT}
-fortran.input = FORTRAN_SOURCES
-QMAKE_EXTRA_COMPILERS += fortran
-
+# not used anymore
+#FORTRAN_SOURCES += fortran/island.F
+#fortran.output = $${OBJECTS_DIR}/${QMAKE_FILE_BASE}.o
+#fortran.commands = gfortran -c ${QMAKE_FILE_NAME} -Ifortran -o ${QMAKE_FILE_OUT}
+#fortran.input = FORTRAN_SOURCES
+#QMAKE_EXTRA_COMPILERS += fortran
+#
 ######################################################################
 # other compilers end
 ######################################################################

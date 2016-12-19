@@ -43,7 +43,10 @@ DataPoint GetIntersection(const MollerEvent &m1, const MollerEvent &m2);
 int main(int argc, char *argv[])
 {
     if(argc < 2)
+    {
+        cout << "usage: mollerCenter <file1> <file2> ..." << endl;
         return 0;
+    }
 
     for(int i = 1; i < argc; ++i)
     {
@@ -87,7 +90,7 @@ void FillMollerEvents(const string &dst_path, MollerData &data)
     PRadGEMSystem *gem = new PRadGEMSystem("config/gem.conf");
 
     PRadDSTParser *dst_parser = new PRadDSTParser();
-    dst_parser->SetMode(No_Run_Info_Update);
+    dst_parser->EnableMode(PRadDSTParser::Mode::update_run_info);
     // coordinate system and detector match system
     PRadCoordSystem *coord_sys = new PRadCoordSystem("database/coordinates.dat");
     PRadDetMatch *det_match = new PRadDetMatch("config/det_match.conf");
@@ -108,7 +111,7 @@ void FillMollerEvents(const string &dst_path, MollerData &data)
 
     while(dst_parser->Read())
     {
-        if(dst_parser->EventType() == PRad_DST_Event) {
+        if(dst_parser->EventType() == PRadDSTParser::Type::event) {
             // you can push this event into data handler
             // handler->GetEventData().push_back(dst_parser->GetEvent()
             // or you can just do something with this event and discard it
@@ -170,7 +173,7 @@ void FillMollerEvents(const string &dst_path, MollerData &data)
             if(good_moller)
                 data.push_back(make_pair(moller1, moller2));
 
-        } else if(dst_parser->EventType() == PRad_DST_Epics) {
+        } else if(dst_parser->EventType() == PRadDSTParser::Type::epics) {
             // save epics into handler, otherwise get epicsvalue won't work
             epics->AddEvent(dst_parser->GetEPICSEvent());
         }

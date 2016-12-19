@@ -127,12 +127,12 @@ $(TARGET_LIB):  $(LIB_OBJECTS)
 $(LIB_OBJ_DIR)/%.o: $(LIB_SRC_DIR)/%.cpp
 	$(CXX) -c $(CXXFLAGS_LIBS) $(INCPATH) -o $@ $<
 
-$(LIB_OBJ_DIR)/island.o: $(LIB_SRC_DIR)/island.F
-	$(FORTRAN) -c $(FFLAGS) $(INCPATH) -o $@ $<
-
 $(EXAMPLE_DIR)/%: $(EXAMPLE_SRC)/%.cpp
 	$(CXX) $(CXXFLAGS) -o $@ $< $(INCPATH) $(LIBS) $(EXAMPLE_LIBS)
 
+# not used anymore
+#$(LIB_OBJ_DIR)/island.o: $(LIB_SRC_DIR)/island.F
+#	$(FORTRAN) -c $(FFLAGS) $(INCPATH) -o $@ $<
 
 ####### Clean
 clean: cleanobj cleanexe cleanlib

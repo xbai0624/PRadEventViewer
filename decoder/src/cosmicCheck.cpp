@@ -33,6 +33,12 @@ ostream &operator <<(ostream &os, const PRadBenchMark &timer);
 
 int main(int argc, char *argv[])
 {
+    if(argc < 2)
+    {
+        cout << "usage: cosmicCheck <file1> <file2> ..." << endl;
+        return 0;
+    }
+
     for(int i = 1; i < argc; ++i)
     {
         string file = argv[i];
@@ -67,7 +73,7 @@ void Evaluate(const string &file)
     PRadBenchMark timer;
     while(dst_parser.Read())
     {
-        if(dst_parser.EventType() == PRad_DST_Event) {
+        if(dst_parser.EventType() == PRadDSTParser::Type::event) {
 
             count++;
             if(count%PROGRESS_COUNT == 0) {
@@ -124,7 +130,7 @@ void Evaluate(const string &file)
             else
                 dst_parser.WriteEvent(event);
 
-        } else if (dst_parser.EventType() == PRad_DST_Epics) {
+        } else if (dst_parser.EventType() == PRadDSTParser::Type::epics) {
             dst_parser.WriteEPICS();
         }
     }

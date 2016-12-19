@@ -24,8 +24,10 @@ void WriteEvents(PRadDSTParser &dst, const PRadEventFilter &filter, const vector
 // expecting two input string, event file path and bad events list path
 int main(int argc, char *argv[])
 {
-    if(argc != 3)
+    if(argc != 3) {
+        cout << "usage: eventSelect <file> <bad_event_list>" << endl;
         return 0;
+    }
 
     string file = argv[1];
     string bad_file = argv[2];
@@ -62,7 +64,7 @@ void EventSelect(const string &file, const string &bad_file)
     bool first_sync = true;
     while(dst_parser.Read())
     {
-        if(dst_parser.EventType() == PRad_DST_Event) {
+        if(dst_parser.EventType() == PRadDSTParser::Type::event) {
             auto event = dst_parser.GetEvent();
             t_count++;
 

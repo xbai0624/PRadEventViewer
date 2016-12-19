@@ -32,7 +32,7 @@ int main(int /*argc*/, char * /*argv*/ [])
     PRadGEMSystem *gem = new PRadGEMSystem("config/gem.conf");
 
     PRadDSTParser *dst_parser = new PRadDSTParser();
-    dst_parser->SetMode(No_Run_Info_Update);
+    dst_parser->EnableMode(PRadDSTParser::Mode::update_run_info);
 
     // coordinate system and detector match system
     PRadCoordSystem *coord_sys = new PRadCoordSystem("database/coordinates.dat");
@@ -55,7 +55,7 @@ int main(int /*argc*/, char * /*argv*/ [])
 
     while(dst_parser->Read())
     {
-        if(dst_parser->EventType() == PRad_DST_Event) {
+        if(dst_parser->EventType() == PRadDSTParser::Type::event) {
             // you can push this event into data handler
             // handler->GetEventData().push_back(dst_parser->GetEvent()
             // or you can just do something with this event and discard it
@@ -115,7 +115,7 @@ int main(int /*argc*/, char * /*argv*/ [])
                 hist2d->Fill(r, dr);
             }
 
-        } else if(dst_parser->EventType() == PRad_DST_Epics) {
+        } else if(dst_parser->EventType() == PRadDSTParser::Type::epics) {
             // save epics into handler, otherwise get epicsvalue won't work
             epics->AddEvent(dst_parser->GetEPICSEvent());
         }

@@ -37,12 +37,12 @@ int main(int /*argc*/, char * /*argv*/ [])
     int count = 0;
     while(dst_parser->Read() && count < 300)
     {
-        if(dst_parser->EventType() == PRad_DST_Event) {
+        if(dst_parser->EventType() == PRadDSTParser::Type::event) {
             ++count;
             auto event = dst_parser->GetEvent();
             cout << event.event_number << ", energy is "
                  << epics->FindValue(event.event_number, "MBSY2C_energy") << endl;
-        } else if(dst_parser->EventType() == PRad_DST_Epics) {
+        } else if(dst_parser->EventType() == PRadDSTParser::Type::epics) {
             // save event into epics system, otherwise find epicsvalue won't work
             epics->AddEvent(dst_parser->GetEPICSEvent());
             cout << dst_parser->GetEPICSEvent().event_number << ", "

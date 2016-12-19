@@ -31,7 +31,7 @@ int main(int /*argc*/, char * /*argv*/ [])
     int count = 0;
     while(dst_parser->Read() && count < 20000)
     {
-        if(dst_parser->EventType() != PRad_DST_Event)
+        if(dst_parser->EventType() != PRadDSTParser::Type::event)
             continue;
 
         ++count;

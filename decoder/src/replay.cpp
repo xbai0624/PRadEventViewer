@@ -20,8 +20,22 @@
 
 using namespace std;
 
+void print_instruction()
+{
+    cout << "usage: " << endl
+         << setw(10) << "-i : " << "input file path" << endl
+         << setw(10) << "-o : " << "output file path" << endl
+         << setw(10) << "-h : " << "show options" << endl
+         << endl;
+}
+
 int main(int argc, char * argv[])
 {
+    if(argc < 2) {
+        print_instruction();
+        return 0;
+    }
+
     char *ptr;
     string output, input;
 
@@ -38,8 +52,11 @@ int main(int argc, char * argv[])
             case 'i':
                 input = argv[++i];
                 break;
+            case 'h':
+                print_instruction();
+                break;
             default:
-                printf("Unkown option!\n");
+                cout << "Unkown option! check with -h" << endl;
                 exit(1);
             }
         }
