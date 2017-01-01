@@ -62,9 +62,14 @@ void SelectEvent(const string &file)
                 continue;
 
             hycal->Reconstruct(event);
+            auto &hits = hycal->GetDetector()->GetHits();
+
+            if((hits.size() != 1) ||
+               (!TEST_BIT(hits.front().flag, kTransition)))
+                continue;
 
             float energy = 0;
-            for(auto &hit : hycal->GetDetector()->GetHits())
+            for(auto &hit : hits)
             {
                 energy += hit.E;
             }

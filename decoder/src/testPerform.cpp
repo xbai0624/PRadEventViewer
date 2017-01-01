@@ -76,9 +76,10 @@ void testHyCalCluster(const string &file, PRadHyCalSystem *sys)
     }
 
     dst_parser->CloseInput();
+    time += timer.GetElapsedTime();
     cout << endl;
     cout << "TIMER: Finished, read and reconstructed " << count << " events, "
          << "using method " << sys->GetClusterMethodName() << ", "
-         << "took " << timer.GetElapsedTime() << " ms."
+         << "took " << time/1000. << " s."
          << endl;
 }

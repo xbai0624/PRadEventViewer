@@ -12,7 +12,7 @@
 
 
 // value to judge if two modules are connected at corner, quantized to module size
-#define CORNER_ADJACENT 1.6
+#define CORNER_ADJACENT 1.5
 // value to judge if two modules are sharing a side line
 #define SIDE_ADJACENT 1.3
 
@@ -165,12 +165,32 @@ struct ModuleCluster
     void Merge(const ModuleCluster &that)
     {
         hits.reserve(hits.size() + that.hits.size());
-        for(auto &hit : that.hits)
-        {
-            AddHit(hit);
-        }
+        hits.insert(hits.end(), that.hits.begin(), that.hits.end());
+
+        energy += that.energy;
+        leakage += that.leakage;
+
         if(center.energy < that.center.energy)
             center = that.center;
+    }
+
+    void FindCenter()
+    {
+        if(hits.empty())
+            return;
+
+        float max_e = center.energy;
+        ModuleHit *cptr = nullptr;
+        for(auto &hit : hits)
+        {
+            if(hit.energy > max_e) {
+                max_e = hit.energy;
+                cptr = &hit;
+            }
+        }
+
+        if(cptr)
+            center = *cptr;
     }
 };
 

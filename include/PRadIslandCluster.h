@@ -1,26 +1,25 @@
 #ifndef PRAD_ISLAND_CLUSTER_H
 #define PRAD_ISLAND_CLUSTER_H
 
-#include <list>
 #include <vector>
 #include "PRadHyCalCluster.h"
 
-#define PRIMEX_METHOD
+#define ISLAND_FINE_SPLIT
 
 class PRadIslandCluster : public PRadHyCalCluster
 {
 public:
     PRadIslandCluster(const std::string &path = "");
     virtual ~PRadIslandCluster();
-    PRadHyCalCluster *Clone();
+    PRadHyCalCluster *Clone() const;
 
     void Configure(const std::string &path);
     void FormCluster(std::vector<ModuleHit> &hits,
                      std::vector<ModuleCluster> &clusters) const;
 
 protected:
-// primex method
-#ifdef PRIMEX_METHOD
+// primex method, do iterations for splitting
+#ifdef ISLAND_FINE_SPLIT
     void groupHits(std::vector<ModuleHit> &hits,
                    std::vector<std::vector<ModuleHit*>> &groups) const;
     bool fillClusters(ModuleHit &hit, std::vector<std::vector<ModuleHit*>> &groups) const;
@@ -33,7 +32,7 @@ protected:
     void evalFraction(const std::vector<ModuleHit*> &maximums,
                       const std::vector<ModuleHit*> &hits,
                       size_t iters) const;
-// M. Levillain and W. Xiong method
+// M. Levillain and W. Xiong method, a quick but slightly rough splitting
 #else
     void groupHits(std::vector<ModuleHit> &hits,
                    std::vector<ModuleCluster> &clusters) const;

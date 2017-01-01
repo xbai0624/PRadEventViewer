@@ -579,7 +579,7 @@ const
         }
     }
 
-    module.SetLayout(PRadHyCalModule::Layout(flag, sector, row, col));
+    module.SetLayout(PRadHyCalModule::Layout(flag, sector, row-1, col-1));
 }
 
 // quantize the distance between two modules by there sizes

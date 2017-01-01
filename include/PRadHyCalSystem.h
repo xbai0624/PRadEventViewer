@@ -13,6 +13,10 @@
 #include "PRadADCChannel.h"
 #include "ConfigObject.h"
 
+#ifdef USE_PRIMEX_METHOD
+#include "PRadPrimexCluster.h"
+#endif
+
 // adc searching speed is important, thus reserve buckets to have unordered_map
 // better formed
 #define ADC_BUCKETS 5000

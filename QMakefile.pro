@@ -34,6 +34,9 @@ COMPONENTS =
 # enable the reconstruction display in GUI
 COMPONENTS += RECON_DISPLAY
 
+# enable the usage of original PrimEx clustering method
+COMPONENTS += PRIMEX_CLUSTER
+
 ######################################################################
 # optional components end
 ######################################################################
@@ -157,20 +160,6 @@ LIBS += -lexpat -lgfortran \
 ######################################################################
 
 ######################################################################
-# other compilers
-######################################################################
-# not used anymore
-#FORTRAN_SOURCES += fortran/island.F
-#fortran.output = $${OBJECTS_DIR}/${QMAKE_FILE_BASE}.o
-#fortran.commands = gfortran -c ${QMAKE_FILE_NAME} -Ifortran -o ${QMAKE_FILE_OUT}
-#fortran.input = FORTRAN_SOURCES
-#QMAKE_EXTRA_COMPILERS += fortran
-#
-######################################################################
-# other compilers end
-######################################################################
-
-######################################################################
 # implement self-defined components
 ######################################################################
 
@@ -211,6 +200,21 @@ contains(COMPONENTS, RECON_DISPLAY) {
     SOURCES += src/ReconSettingPanel.cpp \
                src/MarkSettingWidget.cpp
 }
+
+contains(COMPONENTS, PRIMEX_CLUSTER) {
+    DEFINES += USE_PRIMEX_METHOD
+    SOURCES += src/PRadPrimexCluster.cpp
+    HEADERS += include/PRadPrimexCluster.h
+    FORTRAN_SOURCES += fortran/island.F
+    fortran.output = $${OBJECTS_DIR}/${QMAKE_FILE_BASE}.o
+    fortran.commands = gfortran -c ${QMAKE_FILE_NAME} -Ifortran -o ${QMAKE_FILE_OUT}
+    fortran.input = FORTRAN_SOURCES
+    QMAKE_EXTRA_COMPILERS += fortran
+}
+
+######################################################################
+# other compilers end
+######################################################################
 
 ######################################################################
 # self-defined components end

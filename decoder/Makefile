@@ -8,8 +8,7 @@
 
 MAKEFILE      = Makefile
 PRAD_PATH     = ..
-# enable multi-threading in the code
-DEFINES       = -DMULTI_THREAD
+COMPONENTS    = PRIMEX_METHOD, MULTI_THREAD
 
 ####### Compiler, tools and options
 CC            = gcc
@@ -49,6 +48,8 @@ STRIP         =
 LIB_DIR       = lib
 TARGET_LIB    = libprana.so
 LIB_SRC_DIR   = $(PRAD_PATH)/src
+FORTRAN_SRC   = $(PRAD_PATH)/fortran
+FORTRAN_INC   = $(PRAD_PATH)/fortran
 LIB_OBJ_DIR   = $(LIB_DIR)/obj
 LIB_CLASSES   = PRadDAQChannel \
 				PRadADCChannel \
@@ -83,6 +84,7 @@ LIB_CLASSES   = PRadDAQChannel \
                 PRadInfoCenter \
                 PRadTaggerSystem
 
+
 LIB_OBJECTS   = $(addprefix $(LIB_OBJ_DIR)/, $(LIB_CLASSES:=.o))
 
 
@@ -109,6 +111,21 @@ EXAMPLE       = testGEM \
 EXAMPLE_BINS  = $(addprefix $(EXAMPLE_DIR)/, $(EXAMPLE))
 EXAMPLE_LIBS  = -L$(LIB_DIR) -lprana
 
+
+###### Components related
+
+# use primex clustering method
+ifneq (,$(findstring PRIMEX_METHOD,$(COMPONENTS)))
+	LIB_CLASSES +=  island PRadPrimexCluster
+	DEFINES     +=  -DUSE_PRIMEX_METHOD
+endif
+
+# enable multi-threading in the code
+ifneq (, $(findstring MULTI_THREAD,$(COMPONENTS)))
+	DEFINES     += -DMULTI_THREAD
+endif
+
+####### Build rules
 first: all
 
 all: lib exe
@@ -116,10 +133,6 @@ all: lib exe
 lib: Makefile $(TARGET_LIB)
 
 exe: Makefile $(EXAMPLE_BINS)
-
-
-
-####### Build rules
 
 $(TARGET_LIB):  $(LIB_OBJECTS)
 	$(LINK) $(LFLAGS_LIBS) -o $(LIB_DIR)/$(TARGET_LIB) $(LIB_OBJECTS) $(LIBS)
@@ -130,9 +143,8 @@ $(LIB_OBJ_DIR)/%.o: $(LIB_SRC_DIR)/%.cpp
 $(EXAMPLE_DIR)/%: $(EXAMPLE_SRC)/%.cpp
 	$(CXX) $(CXXFLAGS) -o $@ $< $(INCPATH) $(LIBS) $(EXAMPLE_LIBS)
 
-# not used anymore
-#$(LIB_OBJ_DIR)/island.o: $(LIB_SRC_DIR)/island.F
-#	$(FORTRAN) -c $(FFLAGS) $(INCPATH) -o $@ $<
+$(LIB_OBJ_DIR)/island.o: $(FORTRAN_SRC)/island.F
+	$(FORTRAN) -c $(FFLAGS) $(INCPATH) -I$(FORTRAN_INC) -o $@ $<
 
 ####### Clean
 clean: cleanobj cleanexe cleanlib

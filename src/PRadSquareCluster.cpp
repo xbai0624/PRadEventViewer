@@ -26,6 +26,7 @@ PRadSquareCluster::~PRadSquareCluster()
 }
 
 PRadHyCalCluster *PRadSquareCluster::Clone()
+const
 {
     return new PRadSquareCluster(*this);
 }

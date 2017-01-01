@@ -36,6 +36,7 @@ PRadIslandCluster::~PRadIslandCluster()
 }
 
 PRadHyCalCluster *PRadIslandCluster::Clone()
+const
 {
     return new PRadIslandCluster(*this);
 }
@@ -76,7 +77,7 @@ void PRadIslandCluster::Configure(const std::string &path)
 //============================================================================//
 // Method based on the code from I. Larin for PrimEx                          //
 //============================================================================//
-#ifdef PRIMEX_METHOD
+#ifdef ISLAND_FINE_SPLIT
 
 void PRadIslandCluster::FormCluster(std::vector<ModuleHit> &hits,
                                     std::vector<ModuleCluster> &clusters)
@@ -120,14 +121,15 @@ const
     }
 
     // merge adjacent groups
-    for(auto it = groups.begin(); it != groups.end(); ++it)
+    for(size_t i = 0; i < groups.size(); ++i)
     {
-        auto it_next = it;
-        while(++it_next != groups.end())
+        for(size_t j = i + 1; j < groups.size(); ++j)
         {
-            if(checkAdjacent(*it, *it_next)) {
-                it_next->insert(it_next->end(), it->begin(), it->end());
-                groups.erase(it--);
+            auto &gi = groups.at(i), &gj = groups.at(j);
+            if(checkAdjacent(gi, gj)) {
+                gj.insert(gj.end(), gi.begin(), gi.end());
+                groups.erase(groups.begin() + i);
+                i--;
                 break;
             }
         }

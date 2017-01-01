@@ -8,7 +8,7 @@ class PRadSquareCluster : public PRadHyCalCluster
 public:
     PRadSquareCluster(const std::string &path = "");
     virtual ~PRadSquareCluster();
-    PRadHyCalCluster *Clone();
+    PRadHyCalCluster *Clone() const;
 
     void Configure(const std::string &path);
     void FormCluster(std::vector<ModuleHit> &hits,

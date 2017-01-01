@@ -10,7 +10,7 @@
 
 // we use 3x3 adjacent hits to reconstruct position
 // here gives a larger volume to save the information
-#define POS_RECON_HITS 15
+#define POS_RECON_HITS 20
 
 class PRadHyCalCluster : public ConfigObject
 {
@@ -24,13 +24,14 @@ public:
     virtual void FormCluster(std::vector<ModuleHit> &hits,
                              std::vector<ModuleCluster> &clusters) const;
     virtual bool CheckCluster(const ModuleCluster &hit) const;
+    virtual void LeakCorr(ModuleCluster &cluster, const std::vector<ModuleHit> &dead) const;
 
     void ReadVModuleList(const std::string &path);
     float GetWeight(const float &E, const float &E0) const;
     float GetShowerDepth(int module_type, const float &E) const;
-    void LeakCorr(ModuleCluster &cluster, const std::vector<ModuleHit> &dead) const;
     void AddVirtHits(ModuleCluster &cluster, const std::vector<ModuleHit> &dead) const;
     void CorrectVirtHits(ModuleCluster &cluster, float x, float y) const;
+
     HyCalHit Reconstruct(const ModuleCluster &cluster, const float &alpE = 1.) const;
 
 private:

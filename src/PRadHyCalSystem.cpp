@@ -35,7 +35,9 @@ PRadHyCalSystem::PRadHyCalSystem(const std::string &path)
     // hycal clustering methods
     AddClusterMethod("Square", new PRadSquareCluster());
     AddClusterMethod("Island", new PRadIslandCluster());
-
+#ifdef USE_PRIMEX_METHOD
+    AddClusterMethod("Primex", new PRadPrimexCluster());
+#endif
     if(!path.empty())
         Configure(path);
 }
@@ -178,11 +180,21 @@ void PRadHyCalSystem::Configure(const std::string &path)
     if(recon)
         recon->Configure(GetConfig<std::string>("Cluster Configuration"));
 
-    std::string prof;
-    prof = GetConfig<std::string>("Lead Tungstate Profile");
-    PRadClusterProfile::Instance().LoadProfile((int)PRadHyCalModule::PbWO4, prof);
-    prof = GetConfig<std::string>("Lead Glass Profile");
-    PRadClusterProfile::Instance().LoadProfile((int)PRadHyCalModule::PbGlass, prof);
+    // load profile
+    std::string pwo_prof, lg_prof;
+    pwo_prof = GetConfig<std::string>("Lead Tungstate Profile");
+    PRadClusterProfile::Instance().LoadProfile((int)PRadHyCalModule::PbWO4, pwo_prof);
+    lg_prof = GetConfig<std::string>("Lead Glass Profile");
+    PRadClusterProfile::Instance().LoadProfile((int)PRadHyCalModule::PbGlass, lg_prof);
+
+#ifdef USE_PRIMEX_METHOD
+    // original primex method needs to load the profile into fortran coe
+    PRadPrimexCluster *method = static_cast<PRadPrimexCluster*>(GetClusterMethod("Primex"));
+    if(method) {
+        method->LoadCrystalProfile(pwo_prof);
+        method->LoadLeadGlassProfile(lg_prof);
+    }
+#endif
 }
 
 // read DAQ channel list
@@ -387,6 +399,14 @@ void PRadHyCalSystem::ReadRunInfoFile(const std::string &path)
     // finished reading, inform detector to update dead module listg
     if(hycal)
         hycal->CreateDeadHits();
+
+#ifdef USE_PRIMEX_METHOD
+    // original primex method needs to load the profile into fortran coe
+    PRadPrimexCluster *method = static_cast<PRadPrimexCluster*>(GetClusterMethod("Primex"));
+    if(method && hycal) {
+        method->UpdateModuleStatus(hycal->GetModuleList());
+    }
+#endif
 }
 
 // update the event info to DAQ system
