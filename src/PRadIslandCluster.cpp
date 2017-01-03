@@ -121,15 +121,15 @@ const
     }
 
     // merge adjacent groups
-    for(size_t i = 0; i < groups.size(); ++i)
+
+    for(auto it = groups.begin(); it != groups.end(); ++it)
     {
-        for(size_t j = i + 1; j < groups.size(); ++j)
+        auto it_next = it;
+        while(++it_next != groups.end())
         {
-            auto &gi = groups.at(i), &gj = groups.at(j);
-            if(checkAdjacent(gi, gj)) {
-                gj.insert(gj.end(), gi.begin(), gi.end());
-                groups.erase(groups.begin() + i);
-                i--;
+            if(checkAdjacent(*it, *it_next)) {
+                it_next->insert(it_next->end(), it->begin(), it->end());
+                groups.erase(it--);
                 break;
             }
         }
@@ -303,7 +303,7 @@ inline void PRadIslandCluster::evalFraction(const std::vector<ModuleHit*> &hits,
 const
 {
     // temp containers for reconstruction
-    float cl_x[POS_RECON_HITS], cl_y[POS_RECON_HITS], cl_E[POS_RECON_HITS];
+    BaseHit temp[POS_RECON_HITS];
 
     // iterations to refine the split energies
     while(iters-- > 0)
@@ -323,30 +323,22 @@ const
 
                 // using 3x3 to reconstruct hit position
                 if(PRadHyCalDetector::hit_distance(center, hit) < CORNER_ADJACENT) {
-                    cl_x[count] = hit.geo.x;
-                    cl_y[count] = hit.geo.y;
-                    cl_E[count] = hit.energy*__ic_frac[j][i]/__ic_tot_frac[j];
-                    tot_E += cl_E[count];
+                    temp[count].x = hit.geo.x;
+                    temp[count].y = hit.geo.y;
+                    temp[count].E = hit.energy*__ic_frac[j][i]/__ic_tot_frac[j];
+                    tot_E += temp[count].E;
                     count++;
                 }
             }
 
-            float tot_weight = 0., weight_x = 0., weight_y = 0.;
-            for(int i = 0; i < count; ++i)
-            {
-                float weight = PRadHyCalCluster::GetWeight(cl_E[i], tot_E);
-                weight_x += weight*cl_x[i];
-                weight_y += weight*cl_y[i];
-                tot_weight += weight;
-            }
-            float x = weight_x/tot_weight;
-            float y = weight_y/tot_weight;
+            BaseHit recon;
+            PRadHyCalCluster::reconstructPos(temp, count, &recon);
 
             // update profile with the reconstructed center
             for(size_t j = 0; j < hits.size(); ++j)
             {
                 auto &hit = *hits.at(j);
-                __ic_frac[j][i] = __ic_prof.GetProfile(x, y, hit).frac*tot_E;
+                __ic_frac[j][i] = __ic_prof.GetProfile(recon.x, recon.y, hit).frac*tot_E;
             }
         }
     }

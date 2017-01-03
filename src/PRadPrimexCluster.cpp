@@ -130,7 +130,22 @@ const
     }
 
     // glue clusters separated by the sector
-    glueClusters(clusters, sect_clusters);
+    for(size_t i = 0; i < MSECT; ++i)
+    {
+        for(int j = i + 1; j < MSECT; ++j)
+        {
+            glueClusters(sect_clusters.at(i), sect_clusters.at(j));
+        }
+    }
+
+    // add clusters to the container
+    for(auto &sect : sect_clusters)
+    {
+        for(auto &cluster : sect)
+        {
+            clusters.emplace_back(std::move(cluster));
+        }
+    }
 }
 
 void PRadPrimexCluster::callIsland(const std::vector<ModuleHit> &hits, int isect)
@@ -246,38 +261,20 @@ const
     return res;
 }
 
-void PRadPrimexCluster::glueClusters(std::vector<ModuleCluster> &clusters,
-                                     std::vector<std::vector<ModuleCluster>> &s)
+void PRadPrimexCluster::glueClusters(std::vector<ModuleCluster> &base,
+                                     std::vector<ModuleCluster> &sector)
 const
 {
     // merge clusters between sectors
-    for(size_t isect = 0; isect < MSECT; ++isect)
+    for(auto it = sector.begin(); it != sector.end(); ++it)
     {
-        auto &base = s.at(isect);
-        for(int jsect = isect + 1; jsect < MSECT; ++jsect)
+        for(auto it2 = base.begin(); it2 != base.end(); ++it2)
         {
-            auto &sector = s.at(jsect);
-            for(size_t i = 0; i < sector.size(); ++i)
-            {
-                for(auto &cluster : base)
-                {
-                    if(checkTransAdj(sector.at(i), cluster)) {
-                        cluster.Merge(sector.at(i));
-                        sector.erase(sector.begin() + i);
-                        i--;
-                        break;
-                    }
-                }
+            if(checkTransAdj(*it, *it2)) {
+                it2->Merge(*it);
+                sector.erase(it--);
+                break;
             }
-        }
-    }
-
-    // add clusters to the container
-    for(auto &sect : s)
-    {
-        for(auto &cluster : sect)
-        {
-            clusters.emplace_back(std::move(cluster));
         }
     }
 }
@@ -286,12 +283,15 @@ inline bool PRadPrimexCluster::checkTransAdj(const ModuleCluster &c1,
                                              const ModuleCluster &c2)
 const
 {
+    // don't merge the clusters in the same sector
+    if(c1.center.sector == c2.center.sector)
+        return false;
+
     for(auto &m1 : c1.hits)
     {
         for(auto &m2 : c2.hits)
         {
-            if((m1.sector != m2.sector) &&
-               (PRadHyCalDetector::hit_distance(m1, m2) < adj_dist)) {
+            if(PRadHyCalDetector::hit_distance(m1, m2) < adj_dist) {
                 return true;
             }
         }
@@ -307,169 +307,3 @@ const
     // TODO island.F has corrected the leakage
     // here we probably can add some inforamtion about the leakage correction
 }
-/*
-void PRadPrimexCluster::ClusterProcessing()
-{
-    //float pi = 3.1415926535;
-    //  final cluster processing (add status and energy resolution sigma_E):
-    for(int i = 0; i < fNHyCalClusters; ++i)
-    {
-        float e   = fHyCalCluster[i].E;
-        int idmax = fHyCalCluster[i].cid;
-
-        // apply 1st approx. non-lin. corr. (was obtained for PWO):
-        //e *= 1. + 200.*pi/pow((pi+e),7.5);
-        //fHyCalCluster[i].E = e;
-
-        //float x   = fHyCalCluster[i].x1;
-        //float y   = fHyCalCluster[i].y1;
-
-        //coord_align(i, e, idmax);
-        int status = fHyCalCluster[i].status;
-        int type   = fHyCalCluster[i].type;
-        int dime   = fHyCalCluster[i].nblocks;
-
-        if(status < 0)
-        {
-            printf("error in island : cluster with negative status");
-            exit(1);
-        }
-
-        int itp, ist;
-        itp  = (idmax>1000) ? 0 : 10;
-        if(status==1)
-            itp += 1;
-
-        for(int k = 0; k < (dime>MAX_CC ? MAX_CC : dime); ++k)
-        {
-            if(itp<10) {
-                if(fClusterStorage[i].id[k] < 1000)
-                {
-                    itp =  2;
-                    break;
-                }
-            } else {
-                if(fClusterStorage[i].id[k] > 1000)
-                {
-                    itp = 12;
-                    break;
-                }
-            }
-        }
-
-        fHyCalCluster[i].type = itp;
-
-        ist = type;
-
-        if(status > 2)
-            ist += 20; // glued
-        fHyCalCluster[i].status = ist;
-
-        double se = (idmax>1000) ? sqrt(0.9*0.9*e*e+2.5*2.5*e+1.0) : sqrt(2.3*2.3*e*e+5.4*5.4*e);
-        se /= 100.;
-        if(itp%10 == 1) {
-            se *= 1.5;
-        } else if(itp%10 == 2) {
-            if(itp>10)
-                se *= 0.8;
-            else
-                se *=1.25;
-        }
-        fHyCalCluster[i].sigma_E = se;
-    }
-}
-//____________________________________________________________________________
-void PRadPrimexCluster::FinalProcessing()
-{
-    // old PrimEx island output is in GeV and cm
-    // the x axis is also reverted comparing to our convention
-    // here transform the PrimEx unit convention to ours
-    for(int i = 0; i < fNHyCalClusters; ++i)
-    {
-        if (fHyCalCluster[i].type == 0  || fHyCalCluster[i].type == 1)
-        SET_BIT(fHyCalCluster[i].flag, kPWO);
-        if (fHyCalCluster[i].type == 10 || fHyCalCluster[i].type == 11)
-        SET_BIT(fHyCalCluster[i].flag, kLG);
-        if (fHyCalCluster[i].type == 2  || fHyCalCluster[i].type == 12)
-        SET_BIT(fHyCalCluster[i].flag, kTransition);
-        if (fHyCalCluster[i].type == 1){
-            SET_BIT(fHyCalCluster[i].flag, kInnerBound);
-            SET_BIT(fHyCalCluster[i].flag, kPWO);
-        }
-        if (fHyCalCluster[i].type == 11){
-            SET_BIT(fHyCalCluster[i].flag, kOuterBound);
-            SET_BIT(fHyCalCluster[i].flag, kLG);
-        }
-        if (fHyCalCluster[i].status == 10 || fHyCalCluster[i].status == 30)
-        SET_BIT(fHyCalCluster[i].flag, kSplit);
-
-        for (unsigned int j = 0; j < fDeadModules.size(); j++){
-            float r = sqrt( pow((fDeadModules.at(j).x - fHyCalCluster[i].x), 2) +
-                            pow((fDeadModules.at(j).y - fHyCalCluster[i].y), 2) );
-            float size = 0;
-            if (fDeadModules.at(j).sector == 0) size = CRYS_SIZE_X;
-            else size = GLASS_SIZE;
-
-            if (r/size < 1.5) SET_BIT(fHyCalCluster[i].flag, kDeadModule);
-        }
-
-
-        // x axis is flipped due to the difference between PrimEx coordinates and
-        // current PRad coordinates
-        fHyCalCluster[i].E *= 1000.; // GeV to MeV
-        fHyCalCluster[i].sigma_E *= 1000.; // GeV to MeV
-        fHyCalCluster[i].x *= 10.; // cm to mm
-        fHyCalCluster[i].y *= 10.; // cm to mm
-        fHyCalCluster[i].z *= 10.; //cm to mm
-
-//        fHyCalCluster[i].x_log *= -10.; // cm to mm
-//        fHyCalCluster[i].y_log *= 10.; // cm to mm
-
-
-        PRadDAQUnit *module =
-        fHandler->GetChannel(PRadDAQUnit::NameFromPrimExID(fHyCalCluster[i].cid));
-
-        PRadTDCGroup *tdc = module->GetTDCGroup();
-        if(tdc)
-            fHyCalCluster[i].set_time(tdc->GetTimeMeasure());
-        else
-            fHyCalCluster[i].clear_time();
-
-    }
-}
-//_______________________________________________________________________________
-float PRadPrimexCluster::GetDoubleExpWeight(float& e, float& E)
-{
-    float y = e/E;
-    return std::max(0.,1.-Finv(y) /Finv(fCutOffThr))/(1.-Finv(1.)/Finv(fCutOffThr));
-}
-//_________________________________________________________________________________
-inline float PRadPrimexCluster::Finv(float y)
-{
-    float x0 = 0.;
-    float y0 = 0.;
-    float x1 = -10.;
-    float x2 = 10.;
-    float y1 = Fx(x1) - y;
-    // FIXME y2 is not used? comment out to avoid warning
-    //float y2 = Fx(x2) - y;
-    while(fabs(x1-x2) > 1e-6)
-    {
-        x0 = 0.5*(x1+x2);
-        y0 = Fx(x0) - y;
-        if(y1*y0 > 0) {
-          x1 = x0;
-          y1 = y0;
-        }else{
-          x2 = x0;
-          //y2 = y0;
-        }
-    }
-    return x0;
-}
-//_________________________________________________________________________________
-inline float PRadPrimexCluster::Fx(float& x)
-{
-    return (1.-f2ExpFreeWeight)*exp(-3.*x) + f2ExpFreeWeight*exp(-2.*x/3.);
-}
-*/

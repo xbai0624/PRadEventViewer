@@ -147,8 +147,7 @@ public:
 private:
     void callIsland(const std::vector<ModuleHit> &hits, int isect) const;
     std::vector<ModuleCluster> getIslandResult(const std::map<int, ModuleHit*> &hmap) const;
-    void glueClusters(std::vector<ModuleCluster> &clusters,
-                      std::vector<std::vector<ModuleCluster>> &s) const;
+    void glueClusters(std::vector<ModuleCluster> &b, std::vector<ModuleCluster> &s) const;
     bool checkTransAdj(const ModuleCluster &c1, const ModuleCluster &c2) const;
 
 private:

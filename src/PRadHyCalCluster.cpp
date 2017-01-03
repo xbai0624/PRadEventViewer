@@ -169,15 +169,14 @@ const
     hycal_hit.nblocks = cluster.hits.size();
 
     // fill 3x3 hits around center into temp container for position reconstruction
-    int count = 0;
     BaseHit cl[POS_RECON_HITS];
-    fillHits(cl, count, cluster.center, cluster.hits);
+    int count = fillHits(cl, cluster.center, cluster.hits);
 
     // record how many hits participated in position reconstruction
     hycal_hit.npos = count;
 
     // reconstruct position
-    posRecon(cl, count, hycal_hit.x, hycal_hit.y);
+    reconstructPos(cl, count, (BaseHit*)&hycal_hit);
     hycal_hit.z = cluster.center.geo.z;
 
     // z position will need a depth correction
@@ -242,9 +241,9 @@ const
         }
 
         // reconstruct position using cluster hits and dead modules
-        int count = 0;
         // fill existing cluster hits
-        fillHits(cl, count, center, cluster.hits);
+        int count = fillHits(cl, center, cluster.hits);
+
         // fill virtual hits for dead modules
         temp_hit.E = cluster.energy;
         for(unsigned int i = 0; i < dead.size(); ++i)
@@ -263,7 +262,7 @@ const
         }
 
         // reconstruct position
-        posRecon(cl, count, temp_hit.x, temp_hit.y);
+        reconstructPos(cl, count, &temp_hit);
 
         // check if the correction helps improve the cluster profile
         float new_est = __hc_prof.EvalEstimator(temp_hit, cluster);
@@ -297,11 +296,12 @@ const
 }
 
 // only use the center 3x3 to fill the temp container
-inline void PRadHyCalCluster::fillHits(BaseHit *temp, int &count,
-                                       const ModuleHit &center,
-                                       const std::vector<ModuleHit> &hits)
+inline int PRadHyCalCluster::fillHits(BaseHit *temp,
+                                      const ModuleHit &center,
+                                      const std::vector<ModuleHit> &hits)
 const
 {
+    int count = 0;
     for(auto &hit : hits)
     {
         if(PRadHyCalDetector::hit_distance(center, hit) < CORNER_ADJACENT) {
@@ -311,12 +311,20 @@ const
             count++;
         }
     }
+    return count;
 }
 
 // reconstruct position from the temp container
-inline void PRadHyCalCluster::posRecon(BaseHit *temp, int count, float &x, float &y)
+void PRadHyCalCluster::reconstructPos(BaseHit *temp, int count, BaseHit *recon)
 const
 {
+    if(count > POS_RECON_HITS) {
+        std::cout << "Warning, " << count << " hits participate in position "
+                  << "reconstruction, while buffer size is " << POS_RECON_HITS
+                  << std::endl;
+        count = POS_RECON_HITS;
+    }
+
     // get total energy
     float energy = 0;
     for(int i= 0; i < count; ++i)
@@ -325,17 +333,17 @@ const
     }
 
     // reconstruct position
-    float weight_x = 0, weight_y = 0, weight_total = 0;
+    float wx = 0, wy = 0, wtot = 0;
     for(int i = 0; i < count; ++i)
     {
         float weight = GetWeight(temp[i].E, energy);
-        weight_x += temp[i].x*weight;
-        weight_y += temp[i].y*weight;
-        weight_total += weight;
+        wx += temp[i].x*weight;
+        wy += temp[i].y*weight;
+        wtot += weight;
     }
 
-    x = weight_x/weight_total;
-    y = weight_y/weight_total;
+    recon->x = wx/wtot;
+    recon->y = wy/wtot;
 }
 
 // correct virtual hits energy if we know the real positon (from other detector)

@@ -66,9 +66,6 @@ public:
 };
 
 //global variables
-string inputDir = "./calibration/dst_file"; //define your dst data file folder here
-vector<string> inputFiles;
-
 int clusterN, eventNumber;
 int currentRunNumber;
 float Ebeam, HyCalZ;
@@ -98,10 +95,11 @@ int innerModuleList[12] = {1526, 1527, 1528, 1529, 1560, 1563, 1594, 1597, 1628,
 //int innerModuleList[12] = {1458, 1459, 1460, 1461, 1696, 1697, 1698, 1699, 1531, 1565, 1599, 1633};
 float pwo_profile[501][501] = {0.};
 //functions
+void Helper();
 void InitHistogram();
 void InitInnerModule();
 void InitProfileData();
-void FindInputFiles(int & start, int & end);
+vector<string> FindInputFiles(const string &in_dir, int start, int end);
 int  GetRunNumber(string run);
 bool SortFile(string name1, string name2);
 bool SortForE(CombinedHit const & a, CombinedHit const & b);

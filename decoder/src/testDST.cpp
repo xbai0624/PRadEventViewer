@@ -60,7 +60,6 @@ void SelectEvent(const string &file)
             auto event = dst_parser->GetEvent();
             if(!event.is_physics_event())
                 continue;
-
             hycal->Reconstruct(event);
             auto &hits = hycal->GetDetector()->GetHits();
 
@@ -77,7 +76,6 @@ void SelectEvent(const string &file)
             // only save the event with the energy close to beam energy
             if(fabs((energy - beam_energy)/beam_energy) <= 0.3)
                 dst_parser->WriteEvent();
-
         } else if (dst_parser->EventType() == PRadDSTParser::Type::epics) {
             auto epics_ev = dst_parser->GetEPICSEvent();
             dst_parser->WriteEPICS(epics_ev);

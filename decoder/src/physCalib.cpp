@@ -14,17 +14,59 @@
 #include <cassert>
 #include <cmath>
 
+void Helper()
+{
+    cout << "usage: physCalib <options> <begin_run> <end_run>" << endl
+         << "options:" << endl
+         << setw(10) << "-i " << "<input_file_dir>" << endl
+         << setw(10) << "-o " << "<output_file_dir>" << endl
+         << setw(10) << "-h " << "<show_options>" << endl
+         << endl;
+    exit(1);
+}
+
 int main(int argc, char * argv [])
 {
-    int start_run = 0, end_run = 10000;
-    if(argc > 1)
-        start_run = atoi(argv[1]);
-    if(argc > 2)
-        end_run = atoi(argv[2]);
-    //int part = atoi(argv[3]);
-    //part *= 2;
-    FindInputFiles(start_run, end_run);
-    assert(inputFiles.size());
+    // determine input files
+    int run[2], run_arg;
+    run[0] = 0;
+    run[1] = 999999;
+    run_arg = 0;
+    string in_dir = "./"; //define your dst data file folder here
+    string out_dir = "./";
+
+    for(int i = 1; i < argc; ++i)
+    {
+        char* ptr = argv[i];
+        if(*(ptr++) == '-') {
+            switch(*(ptr++))
+            {
+            case 'o':
+                out_dir = argv[++i];
+                break;
+            case 'i':
+                in_dir = argv[++i];
+                break;
+            case 'h':
+            default:
+                Helper();
+            }
+        } else {
+            if(run_arg > 1)
+                Helper();
+            run[run_arg] = atoi(argv[i]);
+            run_arg++;
+        }
+    }
+
+    auto inputFiles = FindInputFiles(in_dir, run[0], run[1]);
+    if (inputFiles.empty()) {
+        cout << "did not find any input files in dir " << in_dir
+             << " between run " << run[0]
+             << " and " << run[1]
+             << endl;
+        return -1;
+    }
 
     hycal_sys = new PRadHyCalSystem("config/hycal.conf");
     gem_sys = new PRadGEMSystem("config/gem.conf");
@@ -41,15 +83,16 @@ int main(int argc, char * argv [])
     InitInnerModule();
     InitProfileData();
 
-    TFile *f = new TFile(Form("./calibration/hist/cal%d_%d.root",start_run,end_run), "RECREATE");
+    if(out_dir.back() != '/')
+        out_dir += "/";
+    string out_file = "cal" + to_string(run[0]) + "_" + to_string(run[1]) + ".root";
+    TFile *f = new TFile((out_dir + out_file).c_str(), "RECREATE");
+
     //TFile *f = new TFile(Form("test_GEMcali_%d.root", part), "RECREATE");
     InitHistogram();  //initialize global histograms
     HyCalZ = 5817.;  //fDetCoor->GetHyCalZ();
 
     //------------------------------analyze events--------------------------------//
-    if (inputFiles.size() == 0) { cout<<"did not find any input files in dir "<< inputDir
-                                  <<" between run "<<start_run<<" and "<<end_run << endl; return -1; }
-
     for (unsigned int i=0; i<inputFiles.size(); i++) {
         dst_parser->OpenInput(inputFiles[i].c_str());
         cout<< "open input file:" << inputFiles[i]<<endl;
@@ -170,10 +213,6 @@ int main(int argc, char * argv [])
         profile[i]->Fill(6, 5, -0.01*maxModuleEnergy);
     }
 
-
-
-
-
     f->cd();
 
     h_beam_e->Write();
@@ -190,6 +229,9 @@ int main(int argc, char * argv [])
     sym_ee_E->Write();
     eloss->Write();
     total_angle_E->Write();
+
+    TDirectory *cur_dir = f->mkdir("Modules");
+    cur_dir->cd();
     for(int i=0;i<T_BLOCKS;i++) {
         if(ep_ratio[i])
             ep_ratio[i]->Write();
@@ -201,6 +243,8 @@ int main(int argc, char * argv [])
             ee_energy[i]->Write();
     }
 
+    cur_dir = f->mkdir("Moller Coords");
+    cur_dir->cd();
     for (int i=0; i<2; i++) {
         deltaCoor[i]->Write();
         coorIntersect[i]->Write();
@@ -209,10 +253,14 @@ int main(int argc, char * argv [])
         sym_ee_r[i]->Write();
     }
 
+    cur_dir = f->mkdir("Profile");
+    cur_dir->cd();
     for (unsigned int i=0; i<profile.size(); i++) {
         profile[i]->Write();
     }
 
+    cur_dir = f->mkdir("Inner Modules");
+    cur_dir->cd();
     for (int i=0; i<12 ; i++) {
         inner_ratio[i]->Write();
         inner_deltax[i]->Write();
@@ -630,33 +678,36 @@ inline void LinesIntersect(float &xsect, float &ysect, float &xsect_GEM, float &
     ysect_GEM = -1.*(m[1]*b[0] - m[0]*b[1])/(m[1] - m[0]);
 }
 //____________________________________________________________________________________________
-void FindInputFiles(int & start, int & end)
+vector<string> FindInputFiles(const string &in_dir, int start, int end)
 {
-    inputFiles.clear();
-    void* dirp = gSystem->OpenDirectory(inputDir.c_str());
+    vector<string> res;
+    void* dirp = gSystem->OpenDirectory(in_dir.c_str());
     if (!dirp) {
-        cerr << "Error: Can't open input file directory "<< inputDir << endl;
-        return;
+        cerr << "Error: Can't open input file directory "<< in_dir << endl;
+        return res;
     }
-    cout<<"Scanning for input files in "<< inputDir <<" "
-        <<"within run " << start << " ~ " << end << "..." << flush;
+    cout << "Scanning for input files in " << in_dir
+         << " within run " << start << " ~ " << end << "..." << flush;
+
     const char* dir_item;
     while( (dir_item = gSystem->GetDirEntry(dirp)) ) {
         if (!strncmp("prad_", dir_item, 5) && !strncmp(".dst", dir_item+strlen(dir_item)-4, 4)) {
-            string thisName = inputDir;
-            thisName.append("/");
+            string thisName = in_dir;
+            if(in_dir.back() != '/')
+                thisName.append("/");
             thisName.append(dir_item);
 
             int runNumber = GetRunNumber(thisName);
             if (runNumber <= end && runNumber >= start) {
-                inputFiles.push_back(thisName);
+                res.push_back(thisName);
                 cout<<"-.-"<<flush;
             }
         }
     }
-    cout<<endl<< "Found "<<inputFiles.size() <<" input files "<<endl;
-    std::sort(inputFiles.begin(), inputFiles.end(), SortFile);
+    cout << endl << "Found " << res.size() << " input files " << endl;
+    std::sort(res.begin(), res.end(), SortFile);
     gSystem->FreeDirectory(dirp);
+    return res;
 
 }
 //______________________________________________________________________________________________
@@ -688,14 +739,10 @@ void GetIntersect(float& x1, float& x2, float& y1, float &y2, float &x, float &y
     x = -1.*y1/m + x1;
 }
 //______________________________________________________________________________________________
-int GetRunNumber(string run)
+int GetRunNumber(string path)
 {
-    string sub = run.substr(strlen(run.c_str())-8 , 4);
-    if (sub.at(0) == '0') {
-        return stoi(sub.substr(1,4));
-    }else{
-        return stoi(sub);
-    }
+    string name = ConfigParser::decompose_path(path).name;
+    return ConfigParser::find_integer(name);
 }
 //______________________________________________________________________________________________
 bool SortFile(string name1, string name2) {

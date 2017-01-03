@@ -10,13 +10,10 @@
 
 // we use 3x3 adjacent hits to reconstruct position
 // here gives a larger volume to save the information
-#define POS_RECON_HITS 20
+#define POS_RECON_HITS 15
 
 class PRadHyCalCluster : public ConfigObject
 {
-protected:
-    PRadHyCalCluster();
-
 public:
     virtual ~PRadHyCalCluster();
     virtual PRadHyCalCluster *Clone();
@@ -34,10 +31,12 @@ public:
 
     HyCalHit Reconstruct(const ModuleCluster &cluster, const float &alpE = 1.) const;
 
-private:
-    void fillHits(BaseHit *temp, int &count, const ModuleHit &center,
-                  const std::vector<ModuleHit> &hits) const;
-    void posRecon(BaseHit *temp, int count, float &x, float &y) const;
+protected:
+    PRadHyCalCluster();
+    int fillHits(BaseHit *temp,
+                 const ModuleHit &center,
+                 const std::vector<ModuleHit> &hits) const;
+    void reconstructPos(BaseHit *temp, int count, BaseHit *recon) const;
 
 protected:
     bool depth_corr;
