@@ -762,7 +762,8 @@ bool PRadHyCalSystem::AddClusterMethod(const std::string &name, PRadHyCalCluster
     if(recon_map.empty())
         recon = c;
 
-    auto it = recon_map.find(name);
+    std::string key = ConfigParser::str_upper(name);
+    auto it = recon_map.find(key);
     // exists, skip
     if(it != recon_map.end()) {
         std::cerr << "PRad HyCal System Error: Clustering method " << name
@@ -771,13 +772,14 @@ bool PRadHyCalSystem::AddClusterMethod(const std::string &name, PRadHyCalCluster
         return false;
     }
 
-    recon_map[name] = c;
+    recon_map[key] = c;
     return true;
 }
 
 void PRadHyCalSystem::RemoveClusterMethod(const std::string &name)
 {
-    auto it = recon_map.find(name);
+    std::string key = ConfigParser::str_upper(name);
+    auto it = recon_map.find(key);
 
     if(it != recon_map.end()) {
         if(it->second == recon)
@@ -808,7 +810,9 @@ void PRadHyCalSystem::SetClusterMethod(const std::string &name)
     if(name.empty())
         return;
 
-    auto it = recon_map.find(name);
+    std::string key = ConfigParser::str_upper(name);
+    auto it = recon_map.find(key);
+
     if(it != recon_map.end()) {
         recon = it->second;
     } else {
@@ -825,13 +829,13 @@ const
     if(name.empty())
         return recon;
 
-    PRadHyCalCluster *result = nullptr;
+    std::string key = ConfigParser::str_upper(name);
+    auto it = recon_map.find(key);
 
-    auto it = recon_map.find(name);
     if(it != recon_map.end())
-        result = it->second;
+        return it->second;
 
-    return result;
+    return nullptr;
 }
 
 std::string PRadHyCalSystem::GetClusterMethodName()
