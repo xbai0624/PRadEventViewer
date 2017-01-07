@@ -8,6 +8,8 @@
 #include "PRadPrimexCluster.h"
 
 
+// a temporary storage to convert row and col back to id
+// which is needed in fetching result from island.F
 int __prcl_ich[MROW][MCOL];
 #define ICH(M,N) __prcl_ich[N-1][M-1]
 
@@ -57,10 +59,11 @@ void PRadPrimexCluster::Configure(const std::string &path)
     }
 
     // pass parameters to fortran code
-    SET_EMIN  = 0.01;           // banks->CONFIG->config->CLUSTER_ENERGY_MIN;
-    SET_EMAX  = 9.9;            // banks->CONFIG->config->CLUSTER_ENERGY_MAX;
-    SET_HMIN  = 1;              // banks->CONFIG->config->CLUSTER_MIN_HITS_NUMBER;
-    SET_MINM  = 0.01;           // banks->CONFIG->config->CLUSTER_MAX_CELL_MIN_ENERGY;
+    // MeV to GeV
+    SET_EMIN  = min_cluster_energy*0.001;   // banks->CONFIG->config->CLUSTER_ENERGY_MIN;
+    SET_EMAX  = 9.9;                        // banks->CONFIG->config->CLUSTER_ENERGY_MAX;
+    SET_HMIN  = min_cluster_size;           // banks->CONFIG->config->CLUSTER_MIN_HITS_NUMBER;
+    SET_MINM  = min_center_energy*0.001;    // banks->CONFIG->config->CLUSTER_MAX_CELL_MIN_ENERGY;
 }
 
 void PRadPrimexCluster::LoadCrystalProfile(const std::string &path)
