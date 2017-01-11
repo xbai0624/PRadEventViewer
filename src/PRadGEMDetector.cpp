@@ -178,7 +178,7 @@ bool PRadGEMDetector::AddPlane(PRadGEMPlane *plane)
 // remove plane
 void PRadGEMDetector::RemovePlane(const int &type)
 {
-    if((size_t)type >= planes.size())
+    if((uint32_t)type >= planes.size())
         return;
 
     auto &plane = planes[type];
@@ -192,7 +192,7 @@ void PRadGEMDetector::RemovePlane(const int &type)
 // remove plane
 void PRadGEMDetector::DisconnectPlane(const int &type, bool force_disconn)
 {
-    if((size_t)type >= planes.size())
+    if((uint32_t)type >= planes.size())
         return;
 
     auto &plane = planes[type];
@@ -269,7 +269,7 @@ void PRadGEMDetector::Reset()
 PRadGEMPlane *PRadGEMDetector::GetPlane(const std::string &type)
 const
 {
-    size_t idx = (size_t) PRadGEMPlane::GetPlaneTypeID(type.c_str());
+    uint32_t idx = (uint32_t) PRadGEMPlane::GetPlaneTypeID(type.c_str());
 
     if(idx >= planes.size())
         return nullptr;

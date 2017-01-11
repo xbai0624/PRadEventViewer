@@ -50,9 +50,9 @@ public:
 
     // public member functions
     void ConnectAPV(PRadGEMAPV *apv, const int &index);
-    void DisconnectAPV(const size_t &plane_index, bool force_disconn);
+    void DisconnectAPV(const uint32_t &plane_index, bool force_disconn);
     void DisconnectAPVs();
-    void AddStripHit(const int &plane_strip, const std::vector<float> &charges);
+    void AddStripHit(const int &plane_strip, const std::vector<float> &charges, const bool &ct = false);
     void ClearStripHits();
     void CollectAPVHits();
     float GetStripPosition(const int &plane_strip) const;
@@ -102,10 +102,13 @@ struct StripHit
     int strip;
     float charge;
     float position;
+    bool cross_talk;
 
-    StripHit() : strip(0), charge(0.), position(0.) {};
+    StripHit() : strip(0), charge(0.), position(0.), cross_talk(false) {};
     StripHit(const int &s, const float &c, const float &p)
-    : strip(s), charge(c), position(p) {};
+    : strip(s), charge(c), position(p), cross_talk(false) {};
+    StripHit(const int &s, const float &c, const float &p, const bool &f)
+    : strip(s), charge(c), position(p),cross_talk(f) {};
 };
 
 struct StripCluster
@@ -126,6 +129,17 @@ struct StripCluster
     StripCluster(std::vector<StripHit> &&p)
     : position(0.), peak_charge(0.), total_charge(0.), hits(std::move(p))
     {};
+
+    bool IsCrossTalk()
+    const
+    {
+        for(auto &hit : hits)
+        {
+            if(!hit.cross_talk)
+                return false;
+        }
+        return true;
+    }
 };
 
 #endif

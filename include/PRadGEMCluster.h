@@ -29,7 +29,8 @@ protected:
     void splitCluster(std::vector<StripCluster> &c) const;
     bool splitCluster_sub(StripCluster &c, StripCluster &c1) const;
     void filterCluster(std::vector<StripCluster> &c) const;
-    bool filterCluster_sub(const StripCluster &c) const;
+    bool filterCrossTalk(const StripCluster &cluster,
+                         const std::vector<StripCluster> &clusters) const;
     void reconstructCluster(std::vector<StripCluster> &c) const;
 
 protected:
@@ -37,6 +38,10 @@ protected:
     unsigned int min_cluster_hits;
     unsigned int max_cluster_hits;
     float split_cluster_diff;
+    float cross_talk_width;
+
+    // cross talk characteristic distances
+    std::vector<double> charac_distance;
 };
 
 #endif

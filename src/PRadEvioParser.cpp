@@ -125,7 +125,7 @@ throw(PRadException)
     in.read((char*) &buf[1], buf_size*(buf[0] - 1));
 
     // skip the block header
-    size_t index = BLOCK_HEADER_SIZE;
+    uint32_t index = BLOCK_HEADER_SIZE;
 
     int buffer_cnt = 0;
     // inside a block
@@ -228,8 +228,8 @@ void PRadEvioParser::parseROCBank(const PRadEventHeader *roc_header)
         return;
     }
 
-    size_t roc_size = roc_header->length - 1;
-    size_t index = 0;
+    uint32_t roc_size = roc_header->length - 1;
+    uint32_t index = 0;
 
     while(index < roc_size)
     {
@@ -242,7 +242,7 @@ void PRadEvioParser::parseROCBank(const PRadEventHeader *roc_header)
 void PRadEvioParser::parseDataBank(const PRadEventHeader *data_header)
 {
     const uint32_t *buffer = (const uint32_t*) &data_header[1]; // skip current header
-    size_t dataSize = data_header->length - 1;
+    uint32_t dataSize = data_header->length - 1;
 
     // check the header, skip uninterested ones
     switch(data_header->tag)
@@ -328,7 +328,7 @@ void PRadEvioParser::parseADC1881M(const uint32_t *data)
 }
 
 // GEM data
-void PRadEvioParser::parseGEMData(const uint32_t *data, const size_t &size,  const int &fec_id)
+void PRadEvioParser::parseGEMData(const uint32_t *data, const uint32_t &size,  const int &fec_id)
 {
     // pre-zero-suppressed GEM data are in bank 99
     if(fec_id == 99) {
@@ -338,7 +338,7 @@ void PRadEvioParser::parseGEMData(const uint32_t *data, const size_t &size,  con
 
     // parse raw GEM data
     GEMRawData gemData;
-    size_t i = 0;
+    uint32_t i = 0;
 
     while(i < size)
     {
@@ -358,7 +358,7 @@ void PRadEvioParser::parseGEMData(const uint32_t *data, const size_t &size,  con
 }
 
 // parse zero-suppressed GEM data
-void PRadEvioParser::parseGEMZeroSupData(const uint32_t *data, const size_t &size)
+void PRadEvioParser::parseGEMZeroSupData(const uint32_t *data, const uint32_t &size)
 {
     // data word structure (32 bit word)
     // detector: 1 bit
@@ -377,7 +377,7 @@ void PRadEvioParser::parseGEMZeroSupData(const uint32_t *data, const size_t &siz
     }
 
     vector<GEMZeroSupData> gemDataPack;
-    for(size_t i = 1; i < size; ++i)
+    for(uint32_t i = 1; i < size; ++i)
     {
         GEMZeroSupData gemData;
         gemData.addr.fec_id = (data[i] >> 26)&0xf;
@@ -393,9 +393,9 @@ void PRadEvioParser::parseGEMZeroSupData(const uint32_t *data, const size_t &siz
 }
 
 // a helper function to determine the APV data size
-size_t PRadEvioParser::getAPVDataSize(const uint32_t *data)
+uint32_t PRadEvioParser::getAPVDataSize(const uint32_t *data)
 {
-    size_t idx = 0;
+    uint32_t idx = 0;
 
     while((data[idx]&0xffffff00) != GEMDATA_APVBEG)
     {
@@ -409,7 +409,7 @@ size_t PRadEvioParser::getAPVDataSize(const uint32_t *data)
 }
 
 // parse CAEN V767 Data
-void PRadEvioParser::parseTDCV767(const uint32_t *data, const size_t &size, const int &roc_id)
+void PRadEvioParser::parseTDCV767(const uint32_t *data, const uint32_t &size, const int &roc_id)
 {
     if(!(data[0]&V767_HEADER_BIT)) {
         cerr << "Unrecognized V767 header word: "
@@ -427,7 +427,7 @@ void PRadEvioParser::parseTDCV767(const uint32_t *data, const size_t &size, cons
     TDCV767Data tdcData;
     tdcData.addr.crate = roc_id;
     tdcData.addr.slot = data[0]>>27;
-    for(size_t i = 1; i < size - 1; ++i)
+    for(uint32_t i = 1; i < size - 1; ++i)
     {
         if(data[i]&V767_INVALID_BIT) {
             cerr << "Event: "<< dec << event_number
@@ -443,12 +443,12 @@ void PRadEvioParser::parseTDCV767(const uint32_t *data, const size_t &size, cons
 }
 
 // parse CAEN V1190 Data
-void PRadEvioParser::parseTDCV1190(const uint32_t *data, const size_t &size, const int &roc_id)
+void PRadEvioParser::parseTDCV1190(const uint32_t *data, const uint32_t &size, const int &roc_id)
 {
     TDCV1190Data tdcData;
     tdcData.addr.crate = roc_id;
 
-    for(size_t i = 0; i < size; ++i)
+    for(uint32_t i = 0; i < size; ++i)
     {
         switch(data[i]>>27)
         {
@@ -480,7 +480,7 @@ void PRadEvioParser::parseTDCV1190(const uint32_t *data, const size_t &size, con
 }
 
 // parse JLab distriminator data
-void PRadEvioParser::parseDSCData(const uint32_t *data, const size_t &size)
+void PRadEvioParser::parseDSCData(const uint32_t *data, const uint32_t &size)
 {
 #define GATED_TDC_GROUP 3
 #define GATED_TRG_GROUP 19
@@ -501,7 +501,7 @@ void PRadEvioParser::parseDSCData(const uint32_t *data, const size_t &size)
 }
 
 // parse JLab TI data
-void PRadEvioParser::parseTIData(const uint32_t *data, const size_t &size, const int &roc_id)
+void PRadEvioParser::parseTIData(const uint32_t *data, const uint32_t &size, const int &roc_id)
 {
     // update trigger type
     myHandler->UpdateTrgType(bit_to_trigger(data[2]>>24));

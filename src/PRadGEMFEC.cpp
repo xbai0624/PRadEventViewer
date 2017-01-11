@@ -37,7 +37,7 @@ PRadGEMFEC::PRadGEMFEC(const PRadGEMFEC &that)
     // open slots for inserting APVs
     adc_list.resize(that.adc_list.size(), nullptr);
 
-    for(size_t i = 0; i < that.adc_list.size(); ++i)
+    for(uint32_t i = 0; i < that.adc_list.size(); ++i)
     {
         // add the copied apv to the same slot
         if(that.adc_list.at(i) != nullptr)
@@ -50,7 +50,7 @@ PRadGEMFEC::PRadGEMFEC(PRadGEMFEC &&that)
 : gem_srs(nullptr), id(that.id), ip(std::move(that.ip)), adc_list(std::move(that.adc_list))
 {
     // reset the connection
-    for(size_t i = 0; i < adc_list.size(); ++i)
+    for(uint32_t i = 0; i < adc_list.size(); ++i)
         adc_list[i]->SetFEC(this, i);
 }
 
@@ -71,7 +71,7 @@ PRadGEMFEC &PRadGEMFEC::operator =(const PRadGEMFEC &rhs)
     ip = rhs.ip;
     adc_list.resize(rhs.adc_list.size(), nullptr);
 
-    for(size_t i = 0; i < rhs.adc_list.size(); ++i)
+    for(uint32_t i = 0; i < rhs.adc_list.size(); ++i)
     {
         // add the copied apv to the same slot
         if(rhs.adc_list.at(i) != nullptr)
@@ -90,7 +90,7 @@ PRadGEMFEC &PRadGEMFEC::operator =(PRadGEMFEC &&rhs)
     adc_list = std::move(rhs.adc_list);
 
     // reset the connection
-    for(size_t i = 0; i < adc_list.size(); ++i)
+    for(uint32_t i = 0; i < adc_list.size(); ++i)
         adc_list[i]->SetFEC(this, i);
     return *this;
 }
@@ -130,14 +130,14 @@ void PRadGEMFEC::SetCapacity(int slots)
     // capacity cannot be negative
     if(slots < 0) slots = 0;
 
-    if((size_t)slots < adc_list.size())
+    if((uint32_t)slots < adc_list.size())
     {
         std::cout << "PRad GEM FEC Warning: Reduce the slots in FEC "
                   << id << " from " << adc_list.size() << " to " << slots
                   << ". All APVs beyond " << slots << " will be removed. "
                   << std::endl;
 
-        for(size_t i = slots; i < adc_list.size(); ++i)
+        for(uint32_t i = slots; i < adc_list.size(); ++i)
         {
             if(adc_list[i] != nullptr)
                 adc_list[i]->UnsetFEC(true);
@@ -153,7 +153,7 @@ bool PRadGEMFEC::AddAPV(PRadGEMAPV *apv, const int &slot)
     if(apv == nullptr)
         return false;
 
-    if((size_t)slot >= adc_list.size()) {
+    if((uint32_t)slot >= adc_list.size()) {
         std::cerr << "GEM FEC " << id
                   << ": Abort to add an apv to adc channel "
                   << apv->GetADCChannel()
@@ -180,7 +180,7 @@ bool PRadGEMFEC::AddAPV(PRadGEMAPV *apv, const int &slot)
 // remove apv in the slot
 void PRadGEMFEC::RemoveAPV(const int &slot)
 {
-    if((size_t)slot >= adc_list.size())
+    if((uint32_t)slot >= adc_list.size())
         return;
 
     auto &apv = adc_list[slot];
@@ -193,7 +193,7 @@ void PRadGEMFEC::RemoveAPV(const int &slot)
 // disconnect apv in the slot
 void PRadGEMFEC::DisconnectAPV(const int &slot, bool force_disconn)
 {
-    if((size_t)slot >= adc_list.size())
+    if((uint32_t)slot >= adc_list.size())
         return;
 
     auto &apv = adc_list[slot];
@@ -222,7 +222,7 @@ void PRadGEMFEC::Clear()
 PRadGEMAPV *PRadGEMFEC::GetAPV(const int &slot)
 const
 {
-    if((size_t)slot >= adc_list.size())
+    if((uint32_t)slot >= adc_list.size())
         return nullptr;
 
     return adc_list[slot];

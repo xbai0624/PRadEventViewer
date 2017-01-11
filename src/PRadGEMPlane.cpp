@@ -124,7 +124,7 @@ void PRadGEMPlane::SetCapacity(int c)
     // capacity cannot be negative
     if(c < 0) c = 0;
 
-    if((size_t)c < apv_list.size())
+    if((uint32_t)c < apv_list.size())
     {
         std::cout << "PRad GEM Plane Warning: Reduce the connectors on plane "
                   << name << " from " << apv_list.size() << " to " << c
@@ -132,7 +132,7 @@ void PRadGEMPlane::SetCapacity(int c)
                   << c
                   << std::endl;
 
-        for(size_t i = c; i < apv_list.size(); ++i)
+        for(uint32_t i = c; i < apv_list.size(); ++i)
         {
             if(apv_list[i] != nullptr)
                 apv_list[i]->UnsetDetectorPlane(true);
@@ -148,7 +148,7 @@ void PRadGEMPlane::ConnectAPV(PRadGEMAPV *apv, const int &index)
     if(apv == nullptr)
         return;
 
-    if((size_t)index >= apv_list.size()) {
+    if((uint32_t)index >= apv_list.size()) {
         std::cout << "PRad GEM Plane Warning: Failed to connect plane " << name
                   << " with APV " << apv->GetAddress()
                   << ". Plane connectors are not enough, have " << apv_list.size()
@@ -170,7 +170,7 @@ void PRadGEMPlane::ConnectAPV(PRadGEMAPV *apv, const int &index)
 }
 
 // disconnect an APV
-void PRadGEMPlane::DisconnectAPV(const size_t &plane_index, bool force_disconn)
+void PRadGEMPlane::DisconnectAPV(const uint32_t &plane_index, bool force_disconn)
 {
     if(plane_index >= apv_list.size())
         return;
@@ -239,7 +239,7 @@ const
 
     float result = charges.at(0);
 
-    for(size_t i = 1; i < charges.size(); ++i)
+    for(uint32_t i = 1; i < charges.size(); ++i)
     {
         if(result < charges.at(i))
             result = charges.at(i);
@@ -269,13 +269,18 @@ void PRadGEMPlane::ClearStripHits()
 // add a plane hit
 // X plane needs to remove 16 strips at both ends, because they are floating
 // This is a special setup for PRad GEMs, so not configurable
-void PRadGEMPlane::AddStripHit(const int &plane_strip, const std::vector<float> &charges)
+void PRadGEMPlane::AddStripHit(const int &plane_strip,
+                               const std::vector<float> &charges,
+                               const bool &ct_flag)
 {
     if((type == Plane_X) &&
        ((plane_strip < 16) || (plane_strip > 1391)))
        return;
 
-    strip_hits.emplace_back(plane_strip, GetMaxCharge(charges), GetStripPosition(plane_strip));
+    strip_hits.emplace_back(plane_strip,
+                            GetMaxCharge(charges),
+                            GetStripPosition(plane_strip),
+                            ct_flag);
 }
 
 // collect hits from the connected APVs

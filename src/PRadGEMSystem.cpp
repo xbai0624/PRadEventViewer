@@ -35,7 +35,7 @@ using namespace std;
 // constructor
 PRadGEMSystem::PRadGEMSystem(const string &config_file, int daq_cap, int det_cap)
 : gem_recon(new PRadGEMCluster()), PedestalMode(false),
-  def_ts(3), def_cth(20.), def_zth(5)
+  def_ts(3), def_cth(20.), def_zth(5), def_ctth(8)
 {
     daq_slots.resize(daq_cap, nullptr);
     det_slots.resize(det_cap, nullptr);
@@ -51,7 +51,8 @@ PRadGEMSystem::PRadGEMSystem(const string &config_file, int daq_cap, int det_cap
 PRadGEMSystem::PRadGEMSystem(const PRadGEMSystem &that)
 : ConfigObject(that),
   gem_recon(new PRadGEMCluster(*that.gem_recon)), PedestalMode(that.PedestalMode),
-  def_ts(that.def_ts), def_cth(that.def_cth), def_zth(that.def_zth)
+  def_ts(that.def_ts), def_cth(that.def_cth), def_zth(that.def_zth),
+  def_ctth(that.def_ctth)
 {
     gem_recon = new PRadGEMCluster(*that.gem_recon);
 
@@ -75,7 +76,7 @@ PRadGEMSystem::PRadGEMSystem(const PRadGEMSystem &that)
 
             // copy the connections between APVs and planes
             auto that_planes = det->GetPlaneList();
-            for(size_t i = 0; i < that_planes.size(); ++i)
+            for(uint32_t i = 0; i < that_planes.size(); ++i)
             {
                 auto that_apvs = that_planes[i]->GetAPVList();
                 PRadGEMPlane *this_plane = new_det->GetPlaneList().at(i);
@@ -97,7 +98,8 @@ PRadGEMSystem::PRadGEMSystem(PRadGEMSystem &&that)
   PedestalMode(that.PedestalMode), det_list(move(that.det_list)),
   fec_list(move(that.fec_list)), daq_slots(move(that.daq_slots)),
   det_slots(move(that.det_slots)), det_name_map(move(that.det_name_map)),
-  def_ts(that.def_ts), def_cth(that.def_cth), def_zth(that.def_zth)
+  def_ts(that.def_ts), def_cth(that.def_cth), def_zth(that.def_zth),
+  def_ctth(that.def_ctth)
 {
     gem_recon = that.gem_recon;
     that.gem_recon = nullptr;
@@ -146,6 +148,7 @@ PRadGEMSystem &PRadGEMSystem::operator =(PRadGEMSystem &&rhs)
     def_ts = rhs.def_ts;
     def_cth = rhs.def_cth;
     def_zth = rhs.def_zth;
+    def_ctth = rhs.def_ctth;
 
     // reset the system for all components
     for(auto &fec : fec_list)
@@ -176,6 +179,7 @@ void PRadGEMSystem::Configure(const string &path)
     def_ts = getDefConfig<unsigned int>("Default Time Samples", 3, verbose);
     def_cth = getDefConfig<float>("Default Common Mode Threshold", 20, verbose);
     def_zth = getDefConfig<float>("Default Zero Suppression Threshold", 5, verbose);
+    def_ctth = getDefConfig<float>("Default Cross Talk Threshold", 8, verbose);
 
     if(gem_recon)
         gem_recon->Configure(GetConfig<std::string>("GEM Cluster Configuration"));
@@ -236,7 +240,7 @@ void PRadGEMSystem::ReadMapFile(const string &path) throw(PRadException)
     // detector, plane, fec, apv
     vector<string> types = {"DET", "PLN", "FEC", "APV"};
     vector<int> expect_args = {3, 6, 2, 8};
-    vector<int> option_args = {0, 0, 0, 3};
+    vector<int> option_args = {0, 0, 0, 4};
     // this vector is to store all the following arguments
     vector<list<ConfigValue>> args[types.size()];
 
@@ -244,7 +248,7 @@ void PRadGEMSystem::ReadMapFile(const string &path) throw(PRadException)
     while(c_parser.ParseLine())
     {
         string key = c_parser.TakeFirst();
-        size_t i = 0;
+        uint32_t i = 0;
         for(; i < types.size(); ++i)
         {
             if(ConfigParser::strcmp_case_insensitive(key, types.at(i))) {
@@ -330,7 +334,7 @@ bool PRadGEMSystem::Register(PRadGEMDetector *det)
     if(det == nullptr)
         return false;
 
-    if((size_t)det->GetDetID() >= det_slots.size())
+    if((uint32_t)det->GetDetID() >= det_slots.size())
     {
         cerr << "GEM System Error: Failed to add detector "
              << det->GetName()
@@ -361,7 +365,7 @@ bool PRadGEMSystem::Register(PRadGEMFEC *fec)
     if(fec == nullptr)
         return false;
 
-    if((size_t)fec->GetID() >= daq_slots.size())
+    if((uint32_t)fec->GetID() >= daq_slots.size())
     {
         cerr << "GEM System Error: Failed to add FEC id " << fec->GetID()
              << ", it exceeds current DAQ capacity " << daq_slots.size()
@@ -386,7 +390,7 @@ bool PRadGEMSystem::Register(PRadGEMFEC *fec)
 // disconnect detector, and rebuild the detector map
 void PRadGEMSystem::DisconnectDetector(int det_id, bool force_disconn)
 {
-    if((size_t)det_id >= det_slots.size())
+    if((uint32_t)det_id >= det_slots.size())
         return;
 
     auto &det = det_slots[det_id];
@@ -404,7 +408,7 @@ void PRadGEMSystem::DisconnectDetector(int det_id, bool force_disconn)
 // remove detector, and rebuild the detector map
 void PRadGEMSystem::RemoveDetector(int det_id)
 {
-    if((size_t)det_id >= det_slots.size())
+    if((uint32_t)det_id >= det_slots.size())
         return;
 
     auto &det = det_slots[det_id];
@@ -421,7 +425,7 @@ void PRadGEMSystem::RemoveDetector(int det_id)
 // disconnect FEC, and rebuild the DAQ map
 void PRadGEMSystem::DisconnectFEC(int fec_id, bool force_disconn)
 {
-    if((size_t)fec_id >= daq_slots.size())
+    if((uint32_t)fec_id >= daq_slots.size())
         return;
 
     auto &fec = daq_slots[fec_id];
@@ -438,7 +442,7 @@ void PRadGEMSystem::DisconnectFEC(int fec_id, bool force_disconn)
 
 void PRadGEMSystem::RemoveFEC(int fec_id)
 {
-    if((size_t)fec_id >= daq_slots.size())
+    if((uint32_t)fec_id >= daq_slots.size())
         return;
 
     auto &fec = daq_slots[fec_id];
@@ -508,7 +512,7 @@ const
 PRadGEMFEC *PRadGEMSystem::GetFEC(const int &id)
 const
 {
-    if((size_t)id < daq_slots.size()) {
+    if((uint32_t)id < daq_slots.size()) {
         return daq_slots[id];
     }
 
@@ -519,7 +523,7 @@ const
 PRadGEMAPV *PRadGEMSystem::GetAPV(const int &fec_id, const int &apv_id)
 const
 {
-    if (((size_t) fec_id < daq_slots.size()) &&
+    if (((uint32_t) fec_id < daq_slots.size()) &&
         (daq_slots.at(fec_id) != nullptr)) {
 
         return daq_slots.at(fec_id)->GetAPV(apv_id);
@@ -640,43 +644,7 @@ void PRadGEMSystem::Reconstruct(const EventData &data)
     if(!data.is_physics_event())
         return;
 
-    // Plane based reconstruction, collect hits first
-    // There exists two way to collect hits to plane.
-    // This is the first way, collect hits from event data:
-    // 1. Get hits data
-    // 2. Find corresponding APV and its connected plane
-    // 3. Transform APV's channel to plane strip
-    // 4. Add plane hits (plane strip, charges from time samples)
-    // The other way is
-    // Decode the raw data, do zero suppression on all APVs
-    // or use ChooseEvent() to redistribute the hits to APVs
-    // so APV got the hits in its storage
-    // use plane->CollectAPVHits() to ccollect these hits
-
-    // clear hits for all detector planes
-    for(auto &det : det_list)
-    {
-        det->ClearHits();
-    }
-
-    // add the hits from event data
-    for(auto &hit : data.gem_data)
-    {
-        auto apv = GetAPV(hit.addr.fec, hit.addr.adc);
-        if(apv == nullptr)
-            continue;
-
-        auto plane = apv->GetPlane();
-        if(plane == nullptr) {
-            cout << "GEM System Warning: APV " << apv->GetAddress()
-                 << " is not connected to any detector plane."
-                 << endl;
-            continue;
-        }
-
-        plane->AddStripHit(apv->GetPlaneStripNb(hit.addr.strip), hit.values);
-    }
-
+    ChooseEvent(data);
     Reconstruct();
 }
 
@@ -767,7 +735,7 @@ void PRadGEMSystem::SetUnivZeroSupThresLevel(const float &thres)
 }
 
 // change the time sample for all APVs
-void PRadGEMSystem::SetUnivTimeSample(const size_t &ts)
+void PRadGEMSystem::SetUnivTimeSample(const uint32_t &ts)
 {
     for(auto &fec : fec_list)
     {
@@ -916,13 +884,15 @@ void PRadGEMSystem::buildAPV(list<ConfigValue> &apv_args)
 
     // optional arguments
     unsigned int ts = def_ts;
-    float cth = def_cth, zth = def_zth;
+    float cth = def_cth, zth = def_zth, ctth = def_ctth;
     if(apv_args.size())
         apv_args >> ts;
     if(apv_args.size())
         apv_args >> cth;
     if(apv_args.size())
         apv_args >> zth;
+    if(apv_args.size())
+        apv_args >> ctth;
 
     PRadGEMFEC *fec = GetFEC(fec_id);
     if(fec == nullptr) {// did not find detector
@@ -933,7 +903,7 @@ void PRadGEMSystem::buildAPV(list<ConfigValue> &apv_args)
         return;
     }
 
-    PRadGEMAPV *new_apv = new PRadGEMAPV(orient, hl, status, ts, cth, zth);
+    PRadGEMAPV *new_apv = new PRadGEMAPV(orient, hl, status, ts, cth, zth, ctth);
     if(!fec->AddAPV(new_apv, adc_ch)) { // failed to add APV to FEC
         delete new_apv;
         return;

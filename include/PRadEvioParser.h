@@ -35,14 +35,14 @@ private:
     void parseROCBank(const PRadEventHeader *roc_header);
     void parseDataBank(const PRadEventHeader *data_header);
     void parseADC1881M(const uint32_t *data);
-    void parseGEMData(const uint32_t *data, const size_t &size, const int &fec_id);
-    void parseGEMZeroSupData(const uint32_t *data, const size_t &size);
-    void parseTDCV767(const uint32_t *data, const size_t &size, const int &roc_id);
-    void parseTDCV1190(const uint32_t *data, const size_t &size, const int &roc_id);
-    void parseDSCData(const uint32_t *data, const size_t &size);
-    void parseTIData(const uint32_t *data, const size_t &size, const int &roc_id);
+    void parseGEMData(const uint32_t *data, const uint32_t &size, const int &fec_id);
+    void parseGEMZeroSupData(const uint32_t *data, const uint32_t &size);
+    void parseTDCV767(const uint32_t *data, const uint32_t &size, const int &roc_id);
+    void parseTDCV1190(const uint32_t *data, const uint32_t &size, const int &roc_id);
+    void parseDSCData(const uint32_t *data, const uint32_t &size);
+    void parseTIData(const uint32_t *data, const uint32_t &size, const int &roc_id);
     void parseEPICS(const uint32_t *data);
-    size_t getAPVDataSize(const uint32_t *data);
+    uint32_t getAPVDataSize(const uint32_t *data);
 
 private:
     PRadDataHandler *myHandler;

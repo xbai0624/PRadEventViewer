@@ -17,8 +17,15 @@
 
 using namespace std;
 
-int main(int /*argc*/, char * /*argv*/ [])
+int main(int argc, char *argv [])
 {
+
+    if(argc != 2) {
+        cout << "usage: testGEM <dst_file>" << endl;
+        return 0;
+    }
+
+    string dst_file = argv[1];
 
     PRadGEMSystem *gem_srs = new PRadGEMSystem("config/gem.conf");
     PRadDSTParser *dst_parser = new PRadDSTParser();
@@ -65,7 +72,7 @@ int main(int /*argc*/, char * /*argv*/ [])
     }
 
     //dst_parser->OpenInput("/work/hallb/prad/replay/prad_001288.dst");
-    dst_parser->OpenInput("prad_1310.dst");
+    dst_parser->OpenInput(dst_file);
 
     // test reconstruction performance
     PRadBenchMark timer;
@@ -80,7 +87,9 @@ int main(int /*argc*/, char * /*argv*/ [])
             gem_srs->Reconstruct(event);
             // show strip clusters
             // detectors from GEM system
-            /*
+
+	    //-------------------------------------------------
+	    /*
             for(auto &detector: gem_srs->GetDetectorList())
             {
                 cout << "Detector: " << detector->GetName() << endl;
@@ -105,7 +114,8 @@ int main(int /*argc*/, char * /*argv*/ [])
                     }
                 }
             }
-            */
+	    */
+	    //-------------------------------------------------
         }
     }
 

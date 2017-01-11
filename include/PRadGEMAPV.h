@@ -50,9 +50,10 @@ public:
     PRadGEMAPV(const int &orient,
                const int &header_level,
                const std::string &status,
-               const size_t &time_sample = 3,
+               const uint32_t &time_sample = 3,
                const float &common_threshold = 20.,
-               const float &zero_threshold = 5.);
+               const float &zero_threshold = 5.,
+               const float &cross_threshold = 8.);
 
     // copy/move constructors
     PRadGEMAPV(const PRadGEMAPV &p);
@@ -73,37 +74,39 @@ public:
     void FillPedHist();
     void ResetPedHist();
     void FitPedestal();
-    void FillRawData(const uint32_t *buf, const size_t &siz);
-    void FillZeroSupData(const size_t &ch, const size_t &ts, const unsigned short &val);
-    void FillZeroSupData(const size_t &ch, const std::vector<float> &vals);
+    void FillRawData(const uint32_t *buf, const uint32_t &siz);
+    void FillZeroSupData(const uint32_t &ch, const uint32_t &ts, const unsigned short &val);
+    void FillZeroSupData(const uint32_t &ch, const std::vector<float> &vals);
     void SplitData(const uint32_t &buf, float &word1, float &word2);
     void UpdatePedestal(std::vector<Pedestal> &ped);
-    void UpdatePedestal(const Pedestal &ped, const size_t &index);
-    void UpdatePedestal(const float &offset, const float &noise, const size_t &index);
+    void UpdatePedestal(const Pedestal &ped, const uint32_t &index);
+    void UpdatePedestal(const float &offset, const float &noise, const uint32_t &index);
     void ZeroSuppression();
-    void CommonModeCorrection(float *buf, const size_t &size);
-    void CommonModeCorrection_Split(float *buf, const size_t &size);
+    void CommonModeCorrection(float *buf, const uint32_t &size);
+    void CommonModeCorrection_Split(float *buf, const uint32_t &size);
     void CollectZeroSupHits(std::vector<GEM_Data> &hits);
     void CollectZeroSupHits();
     void ResetHitPos();
     void PrintOutPedestal(std::ofstream &out);
     StripNb MapStrip(int ch);
+    bool IsCrossTalkStrip(const uint32_t &strip) const;
 
     // get parameters
     int GetFECID() const {return fec_id;};
     int GetADCChannel() const {return adc_ch;};
     GEMChannelAddress GetAddress() const {return GEMChannelAddress(fec_id, adc_ch);};
-    size_t GetNTimeSamples() const {return time_samples;};
-    size_t GetTimeSampleSize() const {return TIME_SAMPLE_SIZE;};
+    uint32_t GetNTimeSamples() const {return time_samples;};
+    uint32_t GetTimeSampleSize() const {return TIME_SAMPLE_SIZE;};
     int GetOrientation() const {return orient;};
     int GetPlaneIndex() const {return plane_index;};
     int GetHeaderLevel() const {return header_level;};
     bool GetSplitStatus() const {return split;};
     float GetCommonModeThresLevel() const {return common_thres;};
     float GetZeroSupThresLevel() const {return zerosup_thres;};
-    size_t GetBufferSize() const {return buffer_size;};
-    int GetLocalStripNb(const size_t &ch) const;
-    int GetPlaneStripNb(const size_t &ch) const;
+    float GetCrossTalkThresLevel() const {return crosstalk_thres;};
+    uint32_t GetBufferSize() const {return buffer_size;};
+    int GetLocalStripNb(const uint32_t &ch) const;
+    int GetPlaneStripNb(const uint32_t &ch) const;
     PRadGEMFEC *GetFEC() const {return fec;};
     PRadGEMPlane *GetPlane() const {return plane;};
     std::vector<TH1I *> GetHistList() const;
@@ -114,16 +117,17 @@ public:
     void UnsetFEC(bool force_unset = false);
     void SetDetectorPlane(PRadGEMPlane *p, int pl_idx, bool force_set = false);
     void UnsetDetectorPlane(bool force_unset = false);
-    void SetTimeSample(const size_t &t);
+    void SetTimeSample(const uint32_t &t);
     void SetOrientation(const int &o) {orient = o;};
     void SetHeaderLevel(const int &h) {header_level = h;};
     void SetCommonModeThresLevel(const float &t) {common_thres = t;};
     void SetZeroSupThresLevel(const float &t) {zerosup_thres = t;};
+    void SetCrossTalkThresLevel(const float &t) {crosstalk_thres = t;};
 
 private:
     void initialize();
-    void getAverage(float &ave, const float *buf, const size_t &set = 0);
-    size_t getTimeSampleStart();
+    void getAverage(float &ave, const float *buf, const uint32_t &set = 0);
+    uint32_t getTimeSampleStart();
     void buildStripMap();
 
 private:
@@ -133,14 +137,15 @@ private:
     int adc_ch;
     int plane_index;
 
-    size_t time_samples;
+    uint32_t time_samples;
     int orient;
     int header_level;
     bool split;
     float common_thres;
     float zerosup_thres;
-    size_t buffer_size;
-    size_t ts_index;
+    float crosstalk_thres;
+    uint32_t buffer_size;
+    uint32_t ts_index;
     float *raw_data;
     Pedestal pedestal[TIME_SAMPLE_SIZE];
     StripNb strip_map[TIME_SAMPLE_SIZE];

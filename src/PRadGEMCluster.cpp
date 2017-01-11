@@ -6,12 +6,14 @@
 //                                                                            //
 // Xinzhan Bai & Kondo Gnanvo, first version coding of the algorithm          //
 // Chao Peng, adapted to PRad analysis software package                       //
+// Xinzhan Bai, add cross talk removal                                        //
 // 10/21/2016                                                                 //
 //============================================================================//
 
 #include <iostream>
 #include <iomanip>
 #include <algorithm>
+#include <vector>
 #include "PRadGEMCluster.h"
 #include "PRadGEMDetector.h"
 
@@ -41,6 +43,18 @@ void PRadGEMCluster::Configure(const std::string &path)
     min_cluster_hits = getDefConfig<unsigned int>("Min Cluster Hits", 1, verbose);
     max_cluster_hits = getDefConfig<unsigned int>("Max Cluster Hits", 20, verbose);
     split_cluster_diff = getDefConfig<float>("Split Threshold", 14, verbose);
+    cross_talk_width = getDefConfig<float>("Cross Talk Width", 2, verbose);
+
+    // get cross talk characteristic distance
+    charac_distance.clear();
+    std::string dist_str = GetConfig<std::string>("Characteristic Distance");
+    auto dists = ConfigParser::split(dist_str, ",");  // split input string
+    while(dists.size())
+    {
+	    std::string dist = ConfigParser::trim(dists.front(), " \t"); // trim off white spaces
+	    dists.pop();
+	    charac_distance.push_back(std::stod(dist)); // convert string to double and save it
+    }
 }
 
 // group hits into clusters
@@ -57,11 +71,11 @@ const
     // split the clusters that may contain multiple physical hits
     splitCluster(clusters);
 
-    // remove the clusters that does not pass certain criteria
-    filterCluster(clusters);
-
     // reconstruct the cluster position
     reconstructCluster(clusters);
+
+    // remove the clusters that does not pass certain criteria
+    filterCluster(clusters);
 }
 
 // group consecutive hits
@@ -179,29 +193,48 @@ const
 }
 
 // filter out bad clusters
+#define MAX_CLUSTER_WIDTH 2.0
 void PRadGEMCluster::filterCluster(std::vector<StripCluster> &clusters)
 const
 {
+    // remove cluster that has too less/many hits
     for(auto it = clusters.begin(); it != clusters.end(); ++it)
     {
-        // did not pass the filter, carefully remove element inside the loop
-        if(!filterCluster_sub(*it))
+        if((it->hits.size() < min_cluster_hits) ||
+           (it->hits.size() > max_cluster_hits))
             clusters.erase(it--);
     }
+
+    // remove cross talk cluster
+    for(auto it = clusters.begin(); it != clusters.end(); ++it)
+    {
+	    if(filterCrossTalk(*it, clusters)) {
+            clusters.erase(it--);
+        }
+    }
+
 }
 
-// this function helps filterCluster, it returns true if the cluster is good
-// and return false if the cluster is bad
-bool PRadGEMCluster::filterCluster_sub(const StripCluster &c)
+bool PRadGEMCluster::filterCrossTalk(const StripCluster &cluster,
+                                     const std::vector<StripCluster> &clusters)
 const
 {
-    // only check size for now
-    if((c.hits.size() < min_cluster_hits) ||
-       (c.hits.size() > max_cluster_hits))
+    if(!cluster.IsCrossTalk())
         return false;
 
-    // passed all the check
-    return true;
+    for(auto it = clusters.begin(); it != clusters.end(); ++it)
+    {
+        double delta = fabs(it->position - cluster.position);
+
+        for(auto &dist : charac_distance)
+        {
+            if(delta > dist - cross_talk_width &&
+               delta < dist + cross_talk_width)
+                return true;
+        }
+    }
+
+    return false;
 }
 
 // calculate the cluster position

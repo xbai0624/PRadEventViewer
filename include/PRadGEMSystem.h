@@ -53,6 +53,7 @@ public:
     void ChooseEvent(const EventData &data);
     void Reconstruct();
     void Reconstruct(const EventData &data);
+    int GetStripCrossTalkFlag(const GEM_Data &p, const GEM_Data &c, const GEM_Data &n);
     void RebuildDetectorMap();
     void RebuildDAQMap();
     void FillRawData(const GEMRawData &raw, EventData &event);
@@ -63,7 +64,7 @@ public:
 
     void SetUnivCommonModeThresLevel(const float &thres);
     void SetUnivZeroSupThresLevel(const float &thres);
-    void SetUnivTimeSample(const size_t &thres);
+    void SetUnivTimeSample(const uint32_t &thres);
     void SetPedestalMode(const bool &m);
     void FitPedestal();
     void Reset();
@@ -103,6 +104,9 @@ private:
     unsigned int def_ts;
     float def_cth;
     float def_zth;
+
+    // cross talk threshold
+    float def_ctth;
 
 #ifdef MULTI_THREAD
     std::mutex locker;

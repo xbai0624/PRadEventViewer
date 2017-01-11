@@ -228,7 +228,7 @@ struct GEMRawData
 {
     GEMChannelAddress addr;
     const uint32_t *buf;
-    size_t size;
+    uint32_t size;
 };
 
 struct GEMZeroSupData

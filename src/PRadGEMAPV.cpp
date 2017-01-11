@@ -24,10 +24,12 @@
 PRadGEMAPV::PRadGEMAPV(const int &o,
                        const int &hl,
                        const std::string &s,
-                       const size_t &t,
+                       const uint32_t &t,
                        const float &cth,
-                       const float &zth)
-: orient(o), header_level(hl), common_thres(cth), zerosup_thres(zth)
+                       const float &zth,
+                       const float &ctth)
+: orient(o), header_level(hl),
+  common_thres(cth), zerosup_thres(zth), crosstalk_thres(ctth)
 {
     // initialize
     initialize();
@@ -35,7 +37,7 @@ PRadGEMAPV::PRadGEMAPV(const int &o,
     raw_data = nullptr;
     SetTimeSample(t);
 
-    for(size_t i = 0; i < TIME_SAMPLE_SIZE; ++i)
+    for(uint32_t i = 0; i < TIME_SAMPLE_SIZE; ++i)
     {
         offset_hist[i] = nullptr;
         noise_hist[i] = nullptr;
@@ -69,7 +71,8 @@ void PRadGEMAPV::initialize()
 PRadGEMAPV::PRadGEMAPV(const PRadGEMAPV &that)
 : time_samples(that.time_samples), orient(that.orient),
   header_level(that.header_level), split(that.split),
-  common_thres(that.common_thres), zerosup_thres(that.zerosup_thres)
+  common_thres(that.common_thres), zerosup_thres(that.zerosup_thres),
+  crosstalk_thres(that.crosstalk_thres)
 {
     initialize();
 
@@ -79,13 +82,13 @@ PRadGEMAPV::PRadGEMAPV(const PRadGEMAPV &that)
     // dangerous part, may fail due to lack of memory
     raw_data = new float[buffer_size];
     // copy values
-    for(size_t i = 0; i < buffer_size; ++i)
+    for(uint32_t i = 0; i < buffer_size; ++i)
     {
         raw_data[i] = that.raw_data[i];
     }
 
     // copy other arrays
-    for(size_t i = 0; i < TIME_SAMPLE_SIZE; ++i)
+    for(uint32_t i = 0; i < TIME_SAMPLE_SIZE; ++i)
     {
         pedestal[i] = that.pedestal[i];
         strip_map[i] = that.strip_map[i];
@@ -110,7 +113,8 @@ PRadGEMAPV::PRadGEMAPV(const PRadGEMAPV &that)
 PRadGEMAPV::PRadGEMAPV(PRadGEMAPV &&that)
 : time_samples(that.time_samples), orient(that.orient),
   header_level(that.header_level), split(that.split),
-  common_thres(that.common_thres), zerosup_thres(that.zerosup_thres)
+  common_thres(that.common_thres), zerosup_thres(that.zerosup_thres),
+  crosstalk_thres(that.crosstalk_thres)
 {
     initialize();
 
@@ -124,7 +128,7 @@ PRadGEMAPV::PRadGEMAPV(PRadGEMAPV &&that)
 
     // other arrays
     // static array, so no need to move, just copy elements
-    for(size_t i = 0; i < TIME_SAMPLE_SIZE; ++i)
+    for(uint32_t i = 0; i < TIME_SAMPLE_SIZE; ++i)
     {
         pedestal[i] = that.pedestal[i];
         strip_map[i] = that.strip_map[i];
@@ -170,6 +174,7 @@ PRadGEMAPV &PRadGEMAPV::operator= (PRadGEMAPV &&rhs)
     split = rhs.split;
     common_thres = rhs.common_thres;
     zerosup_thres = rhs.zerosup_thres;
+    crosstalk_thres = rhs.crosstalk_thres;
 
     // raw_data related
     buffer_size = rhs.buffer_size;
@@ -181,7 +186,7 @@ PRadGEMAPV &PRadGEMAPV::operator= (PRadGEMAPV &&rhs)
 
     // other arrays
     // static array, so no need to move, just copy elements
-    for(size_t i = 0; i < TIME_SAMPLE_SIZE; ++i)
+    for(uint32_t i = 0; i < TIME_SAMPLE_SIZE; ++i)
     {
         pedestal[i] = rhs.pedestal[i];
         strip_map[i] = rhs.strip_map[i];
@@ -266,7 +271,7 @@ void PRadGEMAPV::UnsetDetectorPlane(bool force_unset)
 // create histograms
 void PRadGEMAPV::CreatePedHist()
 {
-    for(size_t i = 0; i < TIME_SAMPLE_SIZE; ++i)
+    for(uint32_t i = 0; i < TIME_SAMPLE_SIZE; ++i)
     {
         if(offset_hist[i] == nullptr) {
             std::string name = "CH_" + std::to_string(i) + "_OFFSET_"
@@ -285,7 +290,7 @@ void PRadGEMAPV::CreatePedHist()
 
 void PRadGEMAPV::ResetPedHist()
 {
-    for(size_t i = 0; i < TIME_SAMPLE_SIZE; ++i)
+    for(uint32_t i = 0; i < TIME_SAMPLE_SIZE; ++i)
     {
         if(offset_hist[i])
             offset_hist[i]->Reset();
@@ -297,7 +302,7 @@ void PRadGEMAPV::ResetPedHist()
 // release the memory for histograms
 void PRadGEMAPV::ReleasePedHist()
 {
-    for(size_t i = 0; i < TIME_SAMPLE_SIZE; ++i)
+    for(uint32_t i = 0; i < TIME_SAMPLE_SIZE; ++i)
     {
         delete offset_hist[i], offset_hist[i] = nullptr;
         delete noise_hist[i], noise_hist[i] = nullptr;
@@ -305,7 +310,7 @@ void PRadGEMAPV::ReleasePedHist()
 }
 
 // set time samples and reserve memory for raw data
-void PRadGEMAPV::SetTimeSample(const size_t &t)
+void PRadGEMAPV::SetTimeSample(const uint32_t &t)
 {
     time_samples = t;
     buffer_size = t*TIME_SAMPLE_DIFF + APV_EXTEND_SIZE;
@@ -322,7 +327,7 @@ void PRadGEMAPV::SetTimeSample(const size_t &t)
 void PRadGEMAPV::ClearData()
 {
     // set to a high value that won't trigger zero suppression
-    for(size_t i = 0; i < buffer_size; ++i)
+    for(uint32_t i = 0; i < buffer_size; ++i)
         raw_data[i] = 5000.;
 
     ResetHitPos();
@@ -331,26 +336,26 @@ void PRadGEMAPV::ClearData()
 // reset hit position array
 void PRadGEMAPV::ResetHitPos()
 {
-    for(size_t i = 0; i < TIME_SAMPLE_SIZE; ++i)
+    for(uint32_t i = 0; i < TIME_SAMPLE_SIZE; ++i)
         hit_pos[i] = false;
 }
 
 // clear all the pedestal
 void PRadGEMAPV::ClearPedestal()
 {
-    for(size_t i = 0; i < TIME_SAMPLE_SIZE; ++i)
+    for(uint32_t i = 0; i < TIME_SAMPLE_SIZE; ++i)
         pedestal[i] = Pedestal(0, 0);
 }
 
 // update pedestal
 void PRadGEMAPV::UpdatePedestal(std::vector<Pedestal> &ped)
 {
-    for(size_t i = 0; (i < ped.size()) && (i < TIME_SAMPLE_SIZE); ++i)
+    for(uint32_t i = 0; (i < ped.size()) && (i < TIME_SAMPLE_SIZE); ++i)
         pedestal[i] = ped[i];
 }
 
 // update single channel pedestal
-void PRadGEMAPV::UpdatePedestal(const Pedestal &ped, const size_t &index)
+void PRadGEMAPV::UpdatePedestal(const Pedestal &ped, const uint32_t &index)
 {
     if(index >= TIME_SAMPLE_SIZE)
         return;
@@ -359,7 +364,7 @@ void PRadGEMAPV::UpdatePedestal(const Pedestal &ped, const size_t &index)
 }
 
 // update single channel pedestal
-void PRadGEMAPV::UpdatePedestal(const float &offset, const float &noise, const size_t &index)
+void PRadGEMAPV::UpdatePedestal(const float &offset, const float &noise, const uint32_t &index)
 {
     if(index >= TIME_SAMPLE_SIZE)
         return;
@@ -369,7 +374,7 @@ void PRadGEMAPV::UpdatePedestal(const float &offset, const float &noise, const s
 }
 
 // fill raw data
-void PRadGEMAPV::FillRawData(const uint32_t *buf, const size_t &size)
+void PRadGEMAPV::FillRawData(const uint32_t *buf, const uint32_t &size)
 {
     if(2*size > buffer_size) {
         std::cerr << "Received " << size * 2 << " adc words, "
@@ -378,7 +383,7 @@ void PRadGEMAPV::FillRawData(const uint32_t *buf, const size_t &size)
         return;
     }
 
-    for(size_t i = 0; i < size; ++i)
+    for(uint32_t i = 0; i < size; ++i)
     {
         SplitData(buf[i], raw_data[2*i], raw_data[2*i+1]);
     }
@@ -387,10 +392,10 @@ void PRadGEMAPV::FillRawData(const uint32_t *buf, const size_t &size)
 }
 
 // fill zero suppressed data
-void PRadGEMAPV::FillZeroSupData(const size_t &ch, const size_t &ts, const unsigned short &val)
+void PRadGEMAPV::FillZeroSupData(const uint32_t &ch, const uint32_t &ts, const unsigned short &val)
 {
     ts_index = 0;
-    size_t idx = ch + ts_index + ts*TIME_SAMPLE_DIFF;
+    uint32_t idx = ch + ts_index + ts*TIME_SAMPLE_DIFF;
     if(ts >= time_samples ||
        ch >= TIME_SAMPLE_SIZE ||
        idx >= buffer_size)
@@ -407,7 +412,7 @@ void PRadGEMAPV::FillZeroSupData(const size_t &ch, const size_t &ts, const unsig
 }
 
 // fill zero suppressed data
-void PRadGEMAPV::FillZeroSupData(const size_t &ch, const std::vector<float> &vals)
+void PRadGEMAPV::FillZeroSupData(const uint32_t &ch, const std::vector<float> &vals)
 {
     ts_index = 0;
 
@@ -422,9 +427,9 @@ void PRadGEMAPV::FillZeroSupData(const size_t &ch, const std::vector<float> &val
 
     hit_pos[ch] = true;
 
-    for(size_t i = 0; i < vals.size(); ++i)
+    for(uint32_t i = 0; i < vals.size(); ++i)
     {
-        size_t idx = ch + ts_index + i*TIME_SAMPLE_DIFF;
+        uint32_t idx = ch + ts_index + i*TIME_SAMPLE_DIFF;
         raw_data[idx] = vals[i];
     }
 
@@ -444,7 +449,7 @@ void PRadGEMAPV::FillPedHist()
 {
     float average[2][3];
 
-    for(size_t i = 0; i < time_samples; ++i)
+    for(uint32_t i = 0; i < time_samples; ++i)
     {
         if(split) {
             getAverage(average[0][i], &raw_data[ts_index + i*TIME_SAMPLE_DIFF], 1);
@@ -454,11 +459,11 @@ void PRadGEMAPV::FillPedHist()
         }
     }
 
-    for(size_t i = 0; i < TIME_SAMPLE_SIZE; ++i)
+    for(uint32_t i = 0; i < TIME_SAMPLE_SIZE; ++i)
     {
         float ch_average = 0.;
         float noise_average = 0.;
-        for(size_t j = 0; j < time_samples; ++j)
+        for(uint32_t j = 0; j < time_samples; ++j)
         {
             ch_average += raw_data[i + ts_index + j*TIME_SAMPLE_DIFF];
             if(split) {
@@ -482,7 +487,7 @@ void PRadGEMAPV::FillPedHist()
 // fit pedestal histogram
 void PRadGEMAPV::FitPedestal()
 {
-    for(size_t i = 0; i < TIME_SAMPLE_SIZE; ++i)
+    for(uint32_t i = 0; i < TIME_SAMPLE_SIZE; ++i)
     {
         if( (offset_hist[i] == nullptr) ||
             (noise_hist[i] == nullptr) ||
@@ -523,7 +528,7 @@ void PRadGEMAPV::ZeroSuppression()
     }
 
     // common mode correction
-    for(size_t ts = 0; ts < time_samples; ++ts)
+    for(uint32_t ts = 0; ts < time_samples; ++ts)
     {
         if(split)
             CommonModeCorrection_Split(&raw_data[ts_index + ts*TIME_SAMPLE_DIFF], TIME_SAMPLE_SIZE);
@@ -531,10 +536,10 @@ void PRadGEMAPV::ZeroSuppression()
             CommonModeCorrection(&raw_data[ts_index + ts*TIME_SAMPLE_DIFF], TIME_SAMPLE_SIZE);
     }
 
-    for(size_t i = 0; i < TIME_SAMPLE_SIZE; ++i)
+    for(uint32_t i = 0; i < TIME_SAMPLE_SIZE; ++i)
     {
         float average = 0.;
-        for(size_t j = 0; j < time_samples; ++j)
+        for(uint32_t j = 0; j < time_samples; ++j)
         {
             average += raw_data[i + ts_index + j*TIME_SAMPLE_DIFF];
         }
@@ -550,13 +555,13 @@ void PRadGEMAPV::ZeroSuppression()
 // collect zero suppressed hit in raw data space, need a container input
 void PRadGEMAPV::CollectZeroSupHits(std::vector<GEM_Data> &hits)
 {
-    for(size_t i = 0; i < TIME_SAMPLE_SIZE; ++i)
+    for(uint32_t i = 0; i < TIME_SAMPLE_SIZE; ++i)
     {
         if(hit_pos[i] == false)
             continue;
 
         GEM_Data hit(fec_id, adc_ch, i);
-        for(size_t j = 0; j < time_samples; ++j)
+        for(uint32_t j = 0; j < time_samples; ++j)
         {
             hit.values.emplace_back(raw_data[i + ts_index + j*TIME_SAMPLE_DIFF]);
         }
@@ -570,27 +575,29 @@ void PRadGEMAPV::CollectZeroSupHits()
     if(plane == nullptr)
         return;
 
-    for(size_t i = 0; i < TIME_SAMPLE_SIZE; ++i)
+    for(uint32_t i = 0; i < TIME_SAMPLE_SIZE; ++i)
     {
         if(hit_pos[i] == false)
             continue;
 
         std::vector<float> charges;
-        for(size_t j = 0; j < time_samples; ++j)
+        for(uint32_t j = 0; j < time_samples; ++j)
         {
             charges.push_back(raw_data[i + ts_index + j*TIME_SAMPLE_DIFF]);
         }
-        plane->AddStripHit(strip_map[i].plane, charges);
+        plane->AddStripHit(strip_map[i].plane,
+                           charges,
+                           IsCrossTalkStrip(i));
     }
 }
 
 // do common mode correction (bring the signal average to 0)
-void PRadGEMAPV::CommonModeCorrection(float *buf, const size_t &size)
+void PRadGEMAPV::CommonModeCorrection(float *buf, const uint32_t &size)
 {
     int count = 0;
     float average = 0;
 
-    for(size_t i = 0; i < size; ++i)
+    for(uint32_t i = 0; i < size; ++i)
     {
         buf[i] = pedestal[i].offset - buf[i];
 
@@ -603,19 +610,19 @@ void PRadGEMAPV::CommonModeCorrection(float *buf, const size_t &size)
     if(count)
         average /= (float)count;
 
-    for(size_t i = 0; i < size; ++i)
+    for(uint32_t i = 0; i < size; ++i)
     {
         buf[i] -= average;
     }
 }
 
 // do common mode correction for split APV
-void PRadGEMAPV::CommonModeCorrection_Split(float *buf, const size_t &size)
+void PRadGEMAPV::CommonModeCorrection_Split(float *buf, const uint32_t &size)
 {
     int count1 = 0, count2 = 0;
     float average1 = 0, average2 = 0;
 
-    for(size_t i = 0; i < size; ++i)
+    for(uint32_t i = 0; i < size; ++i)
     {
         buf[i] = pedestal[i].offset - buf[i];
         if(strip_map[i].local < 16) {
@@ -636,7 +643,7 @@ void PRadGEMAPV::CommonModeCorrection_Split(float *buf, const size_t &size)
     if(count2)
         average2 /= (float)count2;
 
-    for(size_t i = 0; i < size; ++i)
+    for(uint32_t i = 0; i < size; ++i)
     {
         if(strip_map[i].local < 16)
             buf[i] -= average1;
@@ -646,7 +653,7 @@ void PRadGEMAPV::CommonModeCorrection_Split(float *buf, const size_t &size)
 }
 
 // get the local strip number from strip map
-int PRadGEMAPV::GetLocalStripNb(const size_t &ch)
+int PRadGEMAPV::GetLocalStripNb(const uint32_t &ch)
 const
 {
    if(ch >= TIME_SAMPLE_SIZE) {
@@ -662,7 +669,7 @@ const
 }
 
 // get the plane strip number from strip map
-int PRadGEMAPV::GetPlaneStripNb(const size_t &ch)
+int PRadGEMAPV::GetPlaneStripNb(const uint32_t &ch)
 const
 {
    if(ch >= TIME_SAMPLE_SIZE) {
@@ -727,7 +734,7 @@ void PRadGEMAPV::PrintOutPedestal(std::ofstream &out)
         << std::setw(12) << adc_ch
         << std::endl;
 
-    for(size_t i = 0; i < TIME_SAMPLE_SIZE; ++i)
+    for(uint32_t i = 0; i < TIME_SAMPLE_SIZE; ++i)
     {
         out << std::setw(12) << i
             << std::setw(12) << pedestal[i].offset
@@ -742,7 +749,7 @@ const
 {
     std::vector<TH1I *> hist_list;
 
-    for(size_t i = 0; i < TIME_SAMPLE_SIZE; ++i)
+    for(uint32_t i = 0; i < TIME_SAMPLE_SIZE; ++i)
     {
         if(offset_hist[i])
             hist_list.push_back(offset_hist[i]);
@@ -758,7 +765,7 @@ std::vector<PRadGEMAPV::Pedestal> PRadGEMAPV::GetPedestalList()
 const
 {
     std::vector<Pedestal> ped_list;
-    for(size_t i = 0; i < TIME_SAMPLE_SIZE; ++i)
+    for(uint32_t i = 0; i < TIME_SAMPLE_SIZE; ++i)
     {
         ped_list.push_back(pedestal[i]);
     }
@@ -766,14 +773,55 @@ const
     return ped_list;
 }
 
+// check if this strip is a cross-talk strip (possibly)
+bool PRadGEMAPV::IsCrossTalkStrip(const uint32_t &strip)
+const
+{
+    if(strip >= TIME_SAMPLE_SIZE || !hit_pos[strip])
+        return false;
+
+    float max_charge = 0., pre_max = 0., next_max = 0.;
+    for(uint32_t j = 0; j < time_samples; ++j)
+    {
+        float cur_charge = raw_data[strip + ts_index + j*TIME_SAMPLE_DIFF];
+        if(cur_charge > max_charge)
+            max_charge = cur_charge;
+    }
+
+    if(strip > 0 && hit_pos[strip-1]) {
+        for(uint32_t j = 0; j < time_samples; ++j)
+        {
+            float pre_charge = raw_data[strip-1 + ts_index + j*TIME_SAMPLE_DIFF];
+            if(pre_charge > pre_max)
+                pre_max = pre_charge;
+        }
+    }
+
+    if(strip < TIME_SAMPLE_SIZE - 1 && hit_pos[strip+1]) {
+        for(uint32_t j = 0; j < time_samples; ++j)
+        {
+            float next_charge = raw_data[strip+1 + ts_index + j*TIME_SAMPLE_DIFF];
+            if(next_charge > next_max)
+                next_max = next_charge;
+        }
+    }
+
+    max_charge *= crosstalk_thres;
+
+	if(max_charge < pre_max || max_charge < next_max)
+        return true;
+
+    return false;
+}
+
 //============================================================================//
 // Private Member Functions                                                   //
 //============================================================================//
 
 // Compare the data with header level and find where the time sample data begin
-size_t PRadGEMAPV::getTimeSampleStart()
+uint32_t PRadGEMAPV::getTimeSampleStart()
 {
-    for(size_t i = 2; i < buffer_size; ++i)
+    for(uint32_t i = 2; i < buffer_size; ++i)
     {
         if( (raw_data[i]   < header_level) &&
             (raw_data[i-1] < header_level) &&
@@ -789,12 +837,12 @@ size_t PRadGEMAPV::getTimeSampleStart()
 // if set = 0, it is normal apv, all strips are in
 // if set = 1, it is a splitted apv, the set 1, first 16 strips are in
 // if set = 2, it is a splitted apv, the set 2, other strips are in
-void PRadGEMAPV::getAverage(float &average, const float *buf, const size_t &set)
+void PRadGEMAPV::getAverage(float &average, const float *buf, const uint32_t &set)
 {
     average = 0.;
     int count = 0;
 
-    for(size_t i = 0; i < TIME_SAMPLE_SIZE; ++i)
+    for(uint32_t i = 0; i < TIME_SAMPLE_SIZE; ++i)
     {
         if((set == 0) ||
            (set == 1 && strip_map[i].local < 16) ||
@@ -813,7 +861,7 @@ void PRadGEMAPV::getAverage(float &average, const float *buf, const size_t &set)
 // thus this function will only be called when the APV is connected to the plane
 void PRadGEMAPV::buildStripMap()
 {
-    for(size_t i = 0; i < TIME_SAMPLE_SIZE; ++i)
+    for(uint32_t i = 0; i < TIME_SAMPLE_SIZE; ++i)
     {
         strip_map[i] = MapStrip(i);
     }
