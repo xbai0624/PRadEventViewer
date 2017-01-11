@@ -15,6 +15,8 @@
 #include <string>
 #include <vector>
 
+#define PROGRESS_COUNT 10000
+
 using namespace std;
 
 int main(int argc, char *argv [])
@@ -77,6 +79,9 @@ int main(int argc, char *argv [])
     // test reconstruction performance
     PRadBenchMark timer;
 
+    int count = 0;
+    double time = 0;
+
     while(dst_parser->Read())
     {
         if(dst_parser->EventType() == PRadDSTParser::Type::event) {
@@ -84,7 +89,19 @@ int main(int argc, char *argv [])
             if(!event.is_physics_event())
                 continue;
 
+            ++count;
             gem_srs->Reconstruct(event);
+
+            if(count%PROGRESS_COUNT == 0) {
+                double t = timer.GetElapsedTime();
+                time += t;
+                timer.Reset();
+
+                cout <<"------[ ev " << count << " ]---"
+                     << "---[ " << t << " ms ]---"
+                     << "---[ " << time/(double)count << " ms/ev ]------"
+                     << "\r" << flush;
+            }
             // show strip clusters
             // detectors from GEM system
 
@@ -120,8 +137,11 @@ int main(int argc, char *argv [])
     }
 
     dst_parser->CloseInput();
-
-    cout << "TIMER: Finished, took " << timer.GetElapsedTime() << " ms" << endl;
+    time += timer.GetElapsedTime();
+    cout << endl;
+    cout << "TIMER: Finished, read and reconstructed " << count << " events, "
+         << "took " << time/1000. << " s."
+         << endl;
 
     return 0;
 }
