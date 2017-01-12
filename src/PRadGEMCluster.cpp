@@ -78,6 +78,10 @@ const
     filterCluster(clusters);
 }
 
+// special apv id, this is not configurable, determined
+// by the hardware connection between APV and FEC
+#define OVERLAP_APV1 (1<<4|8)
+#define OVERLAP_APV2 (6<<4|8)
 // group consecutive hits
 void PRadGEMCluster::groupHits(std::vector<StripHit> &hits,
                                std::vector<StripCluster> &clusters)
@@ -102,6 +106,38 @@ const
             clusters.emplace_back(std::vector<StripHit>(cluster_begin, next));
             break;
         }
+
+	// recursively group hits for overlapped APVs
+	if( next->strip == it->strip)
+	{
+	    auto duplicated_begin = cluster_begin;
+	    std::vector<StripHit> dup1, dup2;
+	    // duplicate shared strips
+	    for(auto itd=duplicated_begin; itd!= it; ++itd)
+	    {
+	        dup1.push_back(*itd);
+		dup2.push_back(*itd);
+	    }
+	    // divide charges by half for shared strips
+	    for(auto &i: dup1)
+	        i.charge/=2;
+	    for(auto &i: dup2)
+	        i.charge/=2;
+	    // dispatch the rest strips by APV ID
+	    for(auto itd = it; itd != hits.end(); ++itd)
+	    {
+	        if(itd->apv_id == OVERLAP_APV1 || itd->apv_id == OVERLAP_APV2){
+		    dup1.push_back(*itd);
+		} else {
+		    dup2.push_back(*itd);
+		}
+	    }
+	    // group the remaining strips into clusters
+	    groupHits(dup1, clusters);
+	    groupHits(dup2, clusters);
+
+	    break; // finished all grouping, break out the entire loop
+	}
 
         // check consecutivity
         if(next->strip - it->strip > 1) {

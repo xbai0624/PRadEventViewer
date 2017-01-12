@@ -585,9 +585,11 @@ void PRadGEMAPV::CollectZeroSupHits()
         {
             charges.push_back(raw_data[i + ts_index + j*TIME_SAMPLE_DIFF]);
         }
+	int apv_id = (fec_id<<4) | adc_ch;
         plane->AddStripHit(strip_map[i].plane,
                            charges,
-                           IsCrossTalkStrip(i));
+                           IsCrossTalkStrip(i),
+			   apv_id);
     }
 }
 

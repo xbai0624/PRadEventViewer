@@ -52,7 +52,7 @@ public:
     void ConnectAPV(PRadGEMAPV *apv, const int &index);
     void DisconnectAPV(const uint32_t &plane_index, bool force_disconn);
     void DisconnectAPVs();
-    void AddStripHit(const int &plane_strip, const std::vector<float> &charges, const bool &ct = false);
+    void AddStripHit(const int &plane_strip, const std::vector<float> &charges, const bool &ct = false, const int &apv_id=-1);
     void ClearStripHits();
     void CollectAPVHits();
     float GetStripPosition(const int &plane_strip) const;
@@ -103,12 +103,13 @@ struct StripHit
     float charge;
     float position;
     bool cross_talk;
+    int apv_id;
 
-    StripHit() : strip(0), charge(0.), position(0.), cross_talk(false) {};
+    StripHit() : strip(0), charge(0.), position(0.), cross_talk(false), apv_id(-1) {};
     StripHit(const int &s, const float &c, const float &p)
-    : strip(s), charge(c), position(p), cross_talk(false) {};
-    StripHit(const int &s, const float &c, const float &p, const bool &f)
-    : strip(s), charge(c), position(p),cross_talk(f) {};
+    : strip(s), charge(c), position(p), cross_talk(false), apv_id(-1) {};
+    StripHit(const int &s, const float &c, const float &p, const bool &f, const int &id)
+    : strip(s), charge(c), position(p),cross_talk(f),apv_id(id) {};
 };
 
 struct StripCluster

@@ -271,7 +271,8 @@ void PRadGEMPlane::ClearStripHits()
 // This is a special setup for PRad GEMs, so not configurable
 void PRadGEMPlane::AddStripHit(const int &plane_strip,
                                const std::vector<float> &charges,
-                               const bool &ct_flag)
+                               const bool &ct_flag,
+			       const int &apv_id)
 {
     if((type == Plane_X) &&
        ((plane_strip < 16) || (plane_strip > 1391)))
@@ -280,7 +281,8 @@ void PRadGEMPlane::AddStripHit(const int &plane_strip,
     strip_hits.emplace_back(plane_strip,
                             GetMaxCharge(charges),
                             GetStripPosition(plane_strip),
-                            ct_flag);
+                            ct_flag,
+			    apv_id);
 }
 
 // collect hits from the connected APVs
